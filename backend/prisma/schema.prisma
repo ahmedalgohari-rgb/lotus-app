@@ -1,0 +1,231 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// SQLite doesn't support enums - using String with validation in application
+
+model User {
+  id                String   @id @default(uuid())
+  email             String   @unique
+  passwordHash      String   @map("password_hash")
+  firstName         String?  @map("first_name")
+  lastName          String?  @map("last_name")
+  role              String   @default("USER")
+  isEmailVerified   Boolean  @default(false) @map("is_email_verified")
+  emailVerifiedAt   DateTime? @map("email_verified_at")
+  
+  // Profile information
+  avatarUrl         String?  @map("avatar_url")
+  timezone          String   @default("UTC")
+  language          String   @default("en")
+  
+  // Authentication
+  lastLoginAt       DateTime? @map("last_login_at")
+  passwordChangedAt DateTime? @map("password_changed_at")
+  
+  // Two-factor authentication
+  twoFactorEnabled  Boolean  @default(false) @map("two_factor_enabled")
+  twoFactorSecret   String?  @map("two_factor_secret")
+  
+  // Timestamps
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+  
+  // Relations
+  plants            Plant[]
+  careLogs          CareLog[]
+  refreshTokens     RefreshToken[]
+  notifications     Notification[]
+  
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  deviceId  String   @map("device_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  revokedAt DateTime? @map("revoked_at")
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("refresh_tokens")
+}
+
+model Plant {
+  id              String            @id @default(uuid())
+  name            String
+  scientificName  String?           @map("scientific_name")
+  commonNames     String?           @map("common_names") // JSON string in SQLite
+  
+  // Ownership
+  userId          String            @map("user_id")
+  
+  // Plant details
+  variety         String?
+  age             Int?              // Age in days
+  acquisitionDate DateTime?         @map("acquisition_date")
+  source          String?           // Where the plant was acquired
+  
+  // Images
+  primaryImageUrl String?           @map("primary_image_url")
+  imageUrls       String?           @map("image_urls") // JSON string in SQLite
+  
+  // Health and care
+  healthStatus    String            @default("GOOD") @map("health_status")
+  healthScore     Float?            @map("health_score") // 0-100
+  
+  // Care settings
+  wateringFrequency    Int?     @map("watering_frequency") // Days between watering
+  fertilizingFrequency Int?     @map("fertilizing_frequency") // Days between fertilizing
+  sunlightRequirement  String?  @map("sunlight_requirement") // full, partial, shade
+  temperatureMin       Float?   @map("temperature_min")
+  temperatureMax       Float?   @map("temperature_max")
+  humidityRequirement  String?  @map("humidity_requirement") // low, moderate, high
+  
+  // Last care dates
+  lastWateredAt    DateTime? @map("last_watered_at")
+  lastFertilizedAt DateTime? @map("last_fertilized_at")
+  lastPrunedAt     DateTime? @map("last_pruned_at")
+  lastRepottedAt   DateTime? @map("last_repotted_at")
+  
+  // Location
+  location         String?   // JSON string in SQLite
+  
+  // Plant identification metadata
+  identificationConfidence Float?  @map("identification_confidence")
+  identificationSource     String? @map("identification_source") // plantnet, manual, etc.
+  
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  
+  // Relations
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  careLogs     CareLog[]
+  diagnoses    Diagnosis[]
+  
+  @@map("plants")
+}
+
+model CareLog {
+  id        String      @id @default(uuid())
+  type      String      // WATERING, FERTILIZING, PRUNING, REPOTTING, OBSERVATION
+  notes     String?
+  
+  // References
+  userId    String      @map("user_id")
+  plantId   String      @map("plant_id")
+  
+  // Care-specific data
+  metadata  String?     // JSON string in SQLite
+  imageUrl  String?     @map("image_url")
+  
+  // Timestamps
+  performedAt DateTime  @default(now()) @map("performed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plant Plant @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  
+  @@map("care_logs")
+}
+
+model Diagnosis {
+  id          String   @id @default(uuid())
+  plantId     String   @map("plant_id")
+  
+  // Diagnosis details
+  symptoms    String?     // JSON string in SQLite
+  diagnosis   String?
+  confidence  Float?   // 0-1
+  severity    String?  // mild, moderate, severe
+  
+  // Treatment recommendations
+  treatment   String?
+  followUp    DateTime? @map("follow_up")
+  
+  // Images
+  imageUrls   String?  @map("image_urls") // JSON string in SQLite
+  
+  // AI/ML metadata
+  modelVersion String? @map("model_version")
+  processedBy  String? @map("processed_by") // ai, expert, user
+  
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // Relations
+  plant Plant @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  
+  @@map("diagnoses")
+}
+
+model Notification {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  
+  // Notification details
+  title       String
+  message     String
+  type        String    // care_reminder, health_alert, system, etc.
+  priority    String    @default("normal") // low, normal, high, urgent
+  
+  // Metadata
+  metadata    String?   // JSON string in SQLite
+  
+  // Status
+  isRead      Boolean   @default(false) @map("is_read")
+  readAt      DateTime? @map("read_at")
+  
+  // Scheduling
+  scheduledFor DateTime? @map("scheduled_for")
+  sentAt       DateTime? @map("sent_at")
+  
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("notifications")
+}
+
+// Audit log for security and compliance
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?  @map("user_id")
+  action     String   // CREATE, UPDATE, DELETE, LOGIN, etc.
+  resource   String   // users, plants, care_logs, etc.
+  resourceId String?  @map("resource_id")
+  
+  // Request details
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  method     String?  // HTTP method
+  path       String?  // Request path
+  
+  // Changes (for UPDATE actions)
+  oldValues  String?  @map("old_values") // JSON string in SQLite
+  newValues  String?  @map("new_values") // JSON string in SQLite
+  
+  // Timestamp
+  createdAt  DateTime @default(now()) @map("created_at")
+  
+  @@map("audit_logs")
+}
