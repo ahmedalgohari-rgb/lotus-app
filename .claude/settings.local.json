@@ -46,7 +46,13 @@
       "Bash(\"/c/Users/AbdElMohsenA2/OneDrive - Vodafone Group/Documents/node/node.exe\" -r ts-node/register test-identification-routes.js)",
       "Bash(\"/c/Users/AbdElMohsenA2/OneDrive - Vodafone Group/Documents/node/node.exe\" test-complete-apis.js)",
       "Bash(\"/c/Users/AbdElMohsenA2/OneDrive - Vodafone Group/Documents/node/node.exe\" test-complete-apis-verified.js)",
-      "Bash(\"/c/Users/AbdElMohsenA2/OneDrive - Vodafone Group/Documents/node/node.exe\" test-complete-apis-final.js)"
+      "Bash(\"/c/Users/AbdElMohsenA2/OneDrive - Vodafone Group/Documents/node/node.exe\" test-complete-apis-final.js)",
+      "Bash(\"/c/Users/AbdElMohsenA2/OneDrive - Vodafone Group/Documents/node/node.exe\" \"/c/Users/AbdElMohsenA2/OneDrive - Vodafone Group/Documents/node/node_modules/npm/bin/npm-cli.js\" create vite@latest . -- --template react-ts)",
+      "Bash(npx create-vite:*)",
+      "Bash(npx create-react-app:*)",
+      "Bash(\"/c/Users/AbdElMohsenA2/OneDrive - Vodafone Group/Documents/node/node.exe\" \"/c/Users/AbdElMohsenA2/OneDrive - Vodafone Group/Documents/node/node_modules/npm/bin/npm-cli.js\" create-react-app . --template typescript)",
+      "Bash(npm create:*)",
+      "Bash(npx tailwindcss init -p)"
     ],
     "deny": [],
     "ask": [],

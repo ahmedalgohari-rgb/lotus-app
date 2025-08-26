@@ -75,7 +75,8 @@ async function testCompleteAPI() {
     const getSinglePlantResponse = await axios.get(`${BASE_URL}/api/plants/${testPlantId}`, {
       headers: { Authorization: `Bearer ${authToken}` }
     });
-    console.log('✅ Single plant retrieved:', getSinglePlantResponse.data.data.name);
+    console.log('DEBUG - Single plant response:', JSON.stringify(getSinglePlantResponse.data, null, 2));
+    console.log('✅ Single plant retrieved:', getSinglePlantResponse.data.plant.name);
 
     // Test Care Logging
     console.log('\n5️⃣ Testing Care Logging...');
@@ -103,14 +104,14 @@ async function testCompleteAPI() {
     }, {
       headers: { Authorization: `Bearer ${authToken}` }
     });
-    console.log('✅ Plant updated:', updateResponse.data.data.name);
+    console.log('✅ Plant updated:', updateResponse.data.data.plant.name);
 
     // Test Statistics
     console.log('\n8️⃣ Testing Statistics...');
     const plantStatsResponse = await axios.get(`${BASE_URL}/api/plants/stats`, {
       headers: { Authorization: `Bearer ${authToken}` }
     });
-    console.log('✅ Plant stats - Total:', plantStatsResponse.data.data.total);
+    console.log('✅ Plant stats - Total:', plantStatsResponse.data.data.stats.total);
 
     const careStatsResponse = await axios.get(`${BASE_URL}/api/care/stats`, {
       headers: { Authorization: `Bearer ${authToken}` }

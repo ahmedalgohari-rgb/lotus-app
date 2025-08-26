@@ -118,6 +118,7 @@ router.get('/:id',
       
       res.json({
         success: true,
+        message: "Plant retrieved successfully", 
         data: { plant },
       });
     } catch (error) {

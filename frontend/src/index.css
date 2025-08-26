@@ -1,0 +1,150 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Lotus Design System Base Styles */
+@layer base {
+  /* Arabic Typography Enhancement */
+  html[dir="rtl"] {
+    font-family: 'Cairo', 'Noto Sans Arabic', sans-serif;
+  }
+  
+  /* Base Text Colors */
+  body {
+    @apply text-gray-900 bg-cairo-sand;
+  }
+  
+  /* Arabic Text Improvements */
+  .arabic-text {
+    @apply font-arabic;
+    font-size: 1.1em; /* 1.1x larger for Arabic as per design system */
+    line-height: 1.2; /* 1.2x line height for Arabic */
+  }
+  
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-lotus-green/50 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-lotus-green;
+  }
+}
+
+@layer components {
+  /* Primary Button Component */
+  .btn-primary {
+    @apply bg-lotus-green text-white px-6 py-3 rounded-lg font-medium;
+    @apply hover:bg-lotus-green-600 active:scale-98;
+    @apply transition-all duration-200 ease-out;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+    min-height: 48px; /* Touch target requirement */
+  }
+  
+  /* Secondary Button Component */
+  .btn-secondary {
+    @apply border-2 border-lotus-green text-lotus-green px-6 py-3 rounded-lg font-medium;
+    @apply hover:bg-lotus-green hover:text-white active:scale-98;
+    @apply transition-all duration-200 ease-out;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+    min-height: 48px;
+  }
+  
+  /* Plant Card Component */
+  .plant-card {
+    @apply bg-white rounded-md shadow-plant-card overflow-hidden;
+    @apply hover:shadow-lg transition-shadow duration-200;
+    @apply border border-gray-100;
+  }
+  
+  /* Input Field Component */
+  .input-field {
+    @apply w-full px-4 py-3 border border-gray-300 rounded-sm;
+    @apply focus:ring-2 focus:ring-lotus-green focus:border-lotus-green;
+    @apply transition-colors duration-200;
+    @apply placeholder:text-gray-500;
+    min-height: 48px; /* Touch target requirement */
+  }
+  
+  /* FAB (Floating Action Button) */
+  .fab {
+    @apply w-14 h-14 bg-hero-gradient rounded-full shadow-fab;
+    @apply flex items-center justify-center text-white;
+    @apply hover:scale-105 active:scale-95;
+    @apply transition-transform duration-200 ease-out;
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    z-index: 50;
+  }
+  
+  /* Health Status Indicators */
+  .health-indicator {
+    @apply w-3 h-3 rounded-full;
+  }
+  
+  .health-good {
+    @apply bg-plant-healthy;
+  }
+  
+  .health-warning {
+    @apply bg-needs-attention;
+  }
+  
+  .health-critical {
+    @apply bg-critical-care;
+  }
+  
+  /* Loading States */
+  .skeleton {
+    @apply animate-pulse bg-gray-200 rounded;
+  }
+  
+  /* RTL Support */
+  .rtl-flip {
+    transform: scaleX(-1);
+  }
+  
+  [dir="rtl"] .rtl-flip {
+    transform: scaleX(1);
+  }
+}
+
+@layer utilities {
+  /* Animation Utilities */
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  /* Touch Utilities */
+  .touch-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  /* Arabic Number Support */
+  .arabic-numerals {
+    font-feature-settings: "lnum" 1;
+  }
+  
+  /* Performance Optimizations */
+  .will-change-transform {
+    will-change: transform;
+  }
+  
+  .will-change-opacity {
+    will-change: opacity;
+  }
+}
