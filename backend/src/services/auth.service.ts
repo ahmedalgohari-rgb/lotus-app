@@ -1,0 +1,564 @@
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
+import { PrismaClient } from '@prisma/client';
+import { logger } from '../utils/logger';
+import { JWTPayload } from '../middleware/auth';
+import { OAuthService } from './oauth.service';
+
+const prisma = new PrismaClient();
+
+export class AuthService {
+  private readonly ACCESS_TOKEN_EXPIRY = '15m';
+  private readonly REFRESH_TOKEN_EXPIRY = '7d';
+  private readonly TOKEN_VERSION = 1;
+  private readonly SALT_ROUNDS = 12;
+  private oauthService: OAuthService;
+
+  constructor() {
+    this.oauthService = new OAuthService();
+  }
+
+  async register(userData: {
+    email: string;
+    password: string;
+    firstName?: string;
+    lastName?: string;
+    deviceId: string;
+  }): Promise<{
+    user: {
+      id: string;
+      email: string;
+      firstName: string | null;
+      lastName: string | null;
+      role: string;
+    };
+    tokens: {
+      accessToken: string;
+      refreshToken: string;
+      expiresIn: number;
+    };
+  }> {
+    const { email, password, firstName, lastName, deviceId } = userData;
+
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      throw new Error('User with this email already exists');
+    }
+
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, this.SALT_ROUNDS);
+
+    // Create user
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash,
+        firstName,
+        lastName,
+        lastLoginAt: new Date(),
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+      },
+    });
+
+    // Generate tokens
+    const tokens = await this.generateTokens(user.id, deviceId);
+
+    logger.info({
+      message: 'User registered successfully',
+      userId: user.id,
+      email: user.email,
+    });
+
+    return { user, tokens };
+  }
+
+  async login(credentials: {
+    email: string;
+    password: string;
+    deviceId: string;
+  }): Promise<{
+    user: {
+      id: string;
+      email: string;
+      firstName: string | null;
+      lastName: string | null;
+      role: string;
+    };
+    tokens: {
+      accessToken: string;
+      refreshToken: string;
+      expiresIn: number;
+    };
+  }> {
+    const { email, password, deviceId } = credentials;
+
+    // Find user
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        passwordHash: true,
+        isEmailVerified: true,
+        deletedAt: true,
+      },
+    });
+
+    if (!user || user.deletedAt) {
+      throw new Error('Invalid email or password');
+    }
+
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+    if (!isValidPassword) {
+      throw new Error('Invalid email or password');
+    }
+
+    // Update last login
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+
+    // Generate tokens
+    const tokens = await this.generateTokens(user.id, deviceId);
+
+    logger.info({
+      message: 'User logged in successfully',
+      userId: user.id,
+      email: user.email,
+      deviceId,
+    });
+
+    const { passwordHash, deletedAt, ...userResponse } = user;
+    return { user: userResponse, tokens };
+  }
+
+  async refreshTokens(refreshToken: string): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    expiresIn: number;
+  }> {
+    try {
+      // Verify refresh token
+      const decoded = jwt.verify(
+        refreshToken,
+        process.env.JWT_REFRESH_SECRET!,
+        {
+          issuer: 'lotus-app',
+          audience: 'lotus-api',
+        }
+      ) as JWTPayload;
+
+      if (decoded.type !== 'refresh') {
+        throw new Error('Invalid token type');
+      }
+
+      // Check if refresh token exists in database and is not revoked
+      const storedToken = await prisma.refreshToken.findUnique({
+        where: { token: refreshToken },
+        include: { user: true },
+      });
+
+      if (!storedToken || storedToken.revokedAt) {
+        throw new Error('Invalid or revoked refresh token');
+      }
+
+      if (storedToken.expiresAt < new Date()) {
+        throw new Error('Refresh token expired');
+      }
+
+      // Revoke old refresh token
+      await prisma.refreshToken.update({
+        where: { id: storedToken.id },
+        data: { revokedAt: new Date() },
+      });
+
+      // Generate new tokens
+      const newTokens = await this.generateTokens(decoded.userId, decoded.deviceId);
+
+      logger.info({
+        message: 'Tokens refreshed successfully',
+        userId: decoded.userId,
+        deviceId: decoded.deviceId,
+      });
+
+      return newTokens;
+    } catch (error) {
+      logger.warn({
+        message: 'Token refresh failed',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw new Error('Invalid refresh token');
+    }
+  }
+
+  async logout(refreshToken: string): Promise<void> {
+    try {
+      // Revoke refresh token
+      await prisma.refreshToken.updateMany({
+        where: { token: refreshToken },
+        data: { revokedAt: new Date() },
+      });
+
+      logger.info({
+        message: 'User logged out successfully',
+      });
+    } catch (error) {
+      logger.warn({
+        message: 'Logout failed',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw new Error('Logout failed');
+    }
+  }
+
+  async revokeAllTokens(userId: string): Promise<void> {
+    await prisma.refreshToken.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+
+    logger.info({
+      message: 'All tokens revoked for user',
+      userId,
+    });
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { passwordHash: true },
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    if (!user.passwordHash) {
+      throw new Error('Password not set for this account. This account uses OAuth authentication.');
+    }
+
+    // Verify current password
+    const isValidPassword = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isValidPassword) {
+      throw new Error('Current password is incorrect');
+    }
+
+    // Hash new password
+    const newPasswordHash = await bcrypt.hash(newPassword, this.SALT_ROUNDS);
+
+    // Update password and revoke all tokens
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: userId },
+        data: {
+          passwordHash: newPasswordHash,
+          passwordChangedAt: new Date(),
+        },
+      }),
+      prisma.refreshToken.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+
+    logger.info({
+      message: 'Password changed successfully',
+      userId,
+    });
+  }
+
+  /**
+   * Google OAuth login
+   */
+  async googleLogin(idToken: string, deviceId: string): Promise<{
+    user: {
+      id: string;
+      email: string;
+      firstName: string | null;
+      lastName: string | null;
+      role: string;
+      isNewUser: boolean;
+    };
+    tokens: {
+      accessToken: string;
+      refreshToken: string;
+      expiresIn: number;
+    };
+  }> {
+    try {
+      // Verify Google token and get user info
+      const oauthInfo = await this.oauthService.verifyGoogleToken(idToken);
+      
+      // Find or create user
+      const { user, isNewUser } = await this.oauthService.findOrCreateOAuthUser(oauthInfo, deviceId);
+
+      // Generate tokens
+      const tokens = await this.generateTokens(user.id, deviceId);
+
+      logger.info({
+        message: 'Google login successful',
+        userId: user.id,
+        email: user.email,
+        isNewUser,
+      });
+
+      return { user: { ...user, isNewUser }, tokens };
+    } catch (error) {
+      logger.error({
+        message: 'Google login failed',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Apple OAuth login
+   */
+  async appleLogin(idToken: string, deviceId: string): Promise<{
+    user: {
+      id: string;
+      email: string;
+      firstName: string | null;
+      lastName: string | null;
+      role: string;
+      isNewUser: boolean;
+    };
+    tokens: {
+      accessToken: string;
+      refreshToken: string;
+      expiresIn: number;
+    };
+  }> {
+    try {
+      // Verify Apple token and get user info
+      const oauthInfo = await this.oauthService.verifyAppleToken(idToken);
+      
+      // Find or create user
+      const { user, isNewUser } = await this.oauthService.findOrCreateOAuthUser(oauthInfo, deviceId);
+
+      // Generate tokens
+      const tokens = await this.generateTokens(user.id, deviceId);
+
+      logger.info({
+        message: 'Apple login successful',
+        userId: user.id,
+        email: user.email,
+        isNewUser,
+      });
+
+      return { user: { ...user, isNewUser }, tokens };
+    } catch (error) {
+      logger.error({
+        message: 'Apple login failed',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Link OAuth provider to existing user
+   */
+  async linkOAuthProvider(
+    userId: string, 
+    provider: 'google' | 'apple', 
+    idToken: string
+  ): Promise<void> {
+    try {
+      let oauthInfo;
+      
+      if (provider === 'google') {
+        oauthInfo = await this.oauthService.verifyGoogleToken(idToken);
+      } else {
+        oauthInfo = await this.oauthService.verifyAppleToken(idToken);
+      }
+
+      await this.oauthService.linkOAuthProvider(userId, oauthInfo);
+
+      logger.info({
+        message: 'OAuth provider linked successfully',
+        userId,
+        provider,
+      });
+    } catch (error) {
+      logger.error({
+        message: 'OAuth provider linking failed',
+        userId,
+        provider,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Unlink OAuth provider from user
+   */
+  async unlinkOAuthProvider(userId: string, provider: 'google' | 'apple'): Promise<void> {
+    await this.oauthService.unlinkOAuthProvider(userId, provider);
+  }
+
+  /**
+   * Get user's OAuth providers
+   */
+  async getUserOAuthProviders(userId: string): Promise<Array<{
+    provider: string;
+    email: string;
+    createdAt: Date;
+  }>> {
+    return this.oauthService.getUserOAuthProviders(userId);
+  }
+
+  /**
+   * Set password for OAuth-only users
+   */
+  async setPasswordForOAuthUser(userId: string, newPassword: string): Promise<void> {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { passwordHash: true, authProvider: true },
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      if (user.passwordHash) {
+        throw new Error('Password is already set for this account. Use change password instead.');
+      }
+
+      // Hash new password
+      const passwordHash = await bcrypt.hash(newPassword, this.SALT_ROUNDS);
+
+      // Update user with password and change auth provider to multiple if needed
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          passwordHash,
+          authProvider: user.authProvider === 'email' ? 'email' : 'multiple',
+          passwordChangedAt: new Date(),
+        },
+      });
+
+      logger.info({
+        message: 'Password set for OAuth user',
+        userId,
+      });
+    } catch (error) {
+      logger.error({
+        message: 'Failed to set password for OAuth user',
+        userId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+  }
+
+  private async generateTokens(userId: string, deviceId: string): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    expiresIn: number;
+  }> {
+    const tokenId = crypto.randomBytes(16).toString('hex');
+
+    const accessToken = jwt.sign(
+      {
+        userId,
+        deviceId,
+        tokenId,
+        type: 'access',
+        version: this.TOKEN_VERSION,
+      },
+      process.env.JWT_SECRET!,
+      {
+        expiresIn: this.ACCESS_TOKEN_EXPIRY,
+        issuer: 'lotus-app',
+        audience: 'lotus-api',
+        algorithm: 'HS256',
+      }
+    );
+
+    const refreshToken = jwt.sign(
+      {
+        userId,
+        deviceId,
+        tokenId,
+        type: 'refresh',
+        version: this.TOKEN_VERSION,
+      },
+      process.env.JWT_REFRESH_SECRET!,
+      {
+        expiresIn: this.REFRESH_TOKEN_EXPIRY,
+        issuer: 'lotus-app',
+        audience: 'lotus-api',
+        algorithm: 'HS256',
+      }
+    );
+
+    // Store refresh token in database
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+
+    await prisma.refreshToken.create({
+      data: {
+        token: refreshToken,
+        userId,
+        deviceId,
+        expiresAt,
+      },
+    });
+
+    return {
+      accessToken,
+      refreshToken,
+      expiresIn: 900, // 15 minutes in seconds
+    };
+  }
+
+  async verifyToken(token: string, type: 'access' | 'refresh'): Promise<JWTPayload> {
+    const secret = type === 'access'
+      ? process.env.JWT_SECRET!
+      : process.env.JWT_REFRESH_SECRET!;
+
+    try {
+      const decoded = jwt.verify(token, secret, {
+        issuer: 'lotus-app',
+        audience: 'lotus-api',
+      }) as JWTPayload;
+
+      if (decoded.type !== type) {
+        throw new Error('Invalid token type');
+      }
+
+      if (decoded.version !== this.TOKEN_VERSION) {
+        throw new Error('Token version mismatch');
+      }
+
+      return decoded;
+    } catch (error) {
+      logger.warn({
+        message: 'Token verification failed',
+        tokenType: type,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw new Error('Invalid token');
+    }
+  }
+}
