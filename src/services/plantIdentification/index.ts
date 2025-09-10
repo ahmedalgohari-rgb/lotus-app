@@ -1,0 +1,1 @@
+export { plantIdentificationService } from './plantIdentification';

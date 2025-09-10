@@ -1,0 +1,144 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Button Component matches snapshot for primary variant 1`] = `
+<View
+  accessibilityLabel="Snapshot Primary"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": false,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  collapsable={false}
+  focusable={false}
+  onClick={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  style={
+    {
+      "alignItems": "center",
+      "borderRadius": 12,
+      "justifyContent": "center",
+      "minHeight": 48,
+      "opacity": 1,
+      "padding": 12,
+      "paddingHorizontal": 16,
+      "width": "100%",
+    }
+  }
+>
+  <ViewManagerAdapter_ExpoLinearGradient
+    colors={
+      [
+        4281163583,
+        4283076772,
+      ]
+    }
+    style={
+      {
+        "alignItems": "center",
+        "borderRadius": 12,
+        "bottom": 0,
+        "justifyContent": "center",
+        "left": 0,
+        "position": "absolute",
+        "right": 0,
+        "top": 0,
+      }
+    }
+  >
+    <Text
+      style={
+        {
+          "color": "#FFFFFF",
+          "fontFamily": "SF Pro Display",
+          "fontSize": 16,
+          "fontWeight": "400",
+          "lineHeight": 22.4,
+        }
+      }
+    >
+      Snapshot Primary
+    </Text>
+  </ViewManagerAdapter_ExpoLinearGradient>
+</View>
+`;
+
+exports[`Button Component matches snapshot for secondary variant 1`] = `
+<View
+  accessibilityLabel="Snapshot Secondary"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": false,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  collapsable={false}
+  focusable={false}
+  onClick={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  style={
+    {
+      "alignItems": "center",
+      "borderColor": "#2D5F3F",
+      "borderRadius": 12,
+      "borderWidth": 1,
+      "justifyContent": "center",
+      "minHeight": 48,
+      "opacity": 1,
+      "padding": 12,
+      "paddingHorizontal": 16,
+      "width": "100%",
+    }
+  }
+>
+  <Text
+    style={
+      {
+        "color": "#2D5F3F",
+        "fontFamily": "SF Pro Display",
+        "fontSize": 16,
+        "fontWeight": "400",
+        "lineHeight": 22.4,
+      }
+    }
+  >
+    Snapshot Secondary
+  </Text>
+</View>
+`;

@@ -1,0 +1,193 @@
+{
+  "app": {
+    "name": "Lotus",
+    "tagline": "Your plant buddy"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "cancel": "Cancel",
+    "ok": "OK",
+    "close": "Close",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "continue": "Continue",
+    "skip": "Skip",
+    "next": "Next",
+    "back": "Back",
+    "done": "Done",
+    "retry": "Retry",
+    "refresh": "Refresh"
+  },
+  "auth": {
+    "welcome": "Welcome to Lotus",
+    "signInWithApple": "Sign in with Apple",
+    "signInWithGoogle": "Sign in with Google",
+    "continueAsGuest": "Continue as Guest",
+    "termsText": "By continuing, you agree to our Terms of Service and Privacy Policy"
+  },
+  "onboarding": {
+    "screen1": {
+      "title": "Identify Your Plants",
+      "subtitle": "Take a photo and instantly identify any houseplant",
+      "description": "Our AI-powered plant identification helps you discover the name and care instructions for your plants"
+    },
+    "screen2": {
+      "title": "Smart Care Reminders",
+      "subtitle": "Get notified when your plants need water or care",
+      "description": "Never forget to water your plants again with personalized care schedules"
+    },
+    "screen3": {
+      "title": "Egyptian Plant Database",
+      "subtitle": "Specialized care tips for Cairo's climate",
+      "description": "Get location-specific advice for growing plants in Egypt's unique environment"
+    }
+  },
+  "home": {
+    "greeting": "Hello, {{name}}! 👋",
+    "title": "Plant Care Basics",
+    "scanPlant": "Scan Plant",
+    "accessibility": {
+      "languageToggle": "Switch language between English and Arabic",
+      "scanPlantFAB": "Open camera to scan and identify plants"
+    },
+    "careTips": {
+      "watering": {
+        "title": "Watering",
+        "content": ["Most plants", "need water", "every 5-7 days"],
+        "tip": "Tip: Check soil moisture with finger"
+      },
+      "light": {
+        "title": "Light",
+        "content": ["Bright indirect", "is best for", "most plants"],
+        "tip": "Cairo Tip: North windows ideal"
+      },
+      "position": {
+        "title": "Position",
+        "content": ["Window direction", "matters for", "plant health"],
+        "tip": "East windows get morning sun"
+      }
+    }
+  },
+  "scan": {
+    "title": "Plant Scanner",
+    "instructions": {
+      "center": "Center your plant",
+      "hold": "Hold steady and capture"
+    },
+    "buttons": {
+      "flash": "Flash",
+      "gallery": "Gallery",
+      "tips": "Tips"
+    },
+    "tips": {
+      "title": "Photography Tips 📸",
+      "content": "• Hold the camera steady\n• Ensure good lighting\n• Focus on leaves and stems\n• Avoid shadows\n• Fill the frame with the plant",
+      "gotIt": "Got it!"
+    },
+    "permissions": {
+      "title": "Camera Access Needed",
+      "message": "We need camera access to identify your plants",
+      "grant": "Grant Permission"
+    },
+    "processing": "Identifying plant...",
+    "describe": {
+      "title": "Describe Your Plant 🌱",
+      "message": "Help us identify your plant by describing it (e.g., \"green leaves, small flowers\")",
+      "placeholder": "Green plant with leaves",
+      "identify": "Identify"
+    },
+    "results": {
+      "confidence": "Confidence: {{percent}}%",
+      "category": "Category: {{category}}",
+      "careTips": "Care Tips:",
+      "cairoTip": "Cairo Tip: {{tip}}",
+      "tryAgain": "Try Again",
+      "addToPlants": "Add to My Plants"
+    },
+    "errors": {
+      "invalidImage": "Invalid Image",
+      "processingFailed": "Failed to process image. Please try again.",
+      "identificationFailed": "Identification Failed",
+      "couldNotIdentify": "Could not identify the plant. Please try with a clearer image or different description.",
+      "networkError": "Failed to identify plant. Please check your internet connection and try again."
+    }
+  },
+  "plants": {
+    "title": "{{name}}'s Garden 🌿",
+    "subtitle": "{{count}} plant in your collection",
+    "subtitle_other": "{{count}} plants in your collection",
+    "filters": {
+      "all": "All Plants",
+      "healthy": "Healthy",
+      "needCare": "Need Care",
+      "overdue": "Overdue"
+    },
+    "healthStatus": {
+      "healthy": "Healthy",
+      "needsAttention": "Needs Care",
+      "critical": "Critical",
+      "unknown": "Unknown"
+    },
+    "watering": {
+      "dueToday": "Due today",
+      "dueTomorrow": "Due tomorrow",
+      "dueIn": "Due in {{days}} days",
+      "dueIn_other": "Due in {{days}} days",
+      "overdue": "Overdue by {{days}} day",
+      "overdue_other": "Overdue by {{days}} days"
+    },
+    "actions": {
+      "water": "💧 Water",
+      "careLog": "Care Log",
+      "quickWater": {
+        "title": "Water Plant 💧",
+        "message": "Mark this plant as watered?",
+        "success": "✅ Watered!",
+        "successMessage": "Plant watering has been logged."
+      }
+    },
+    "empty": {
+      "title": "No Plants Yet",
+      "message": "Start building your plant collection by scanning your first plant!",
+      "button": "Scan My First Plant"
+    },
+    "noResults": "No plants match your filter",
+    "comingSoon": "Coming Soon!",
+    "features": {
+      "careLog": "Care logging feature will be available soon.",
+      "editPlant": "Edit plant feature will be available soon.",
+      "addToPlants": "Add to My Plants feature will be available soon."
+    }
+  },
+  "care": {
+    "watering": "Every 5-7 days",
+    "light": "Bright indirect light",
+    "environment": "Indoor plant",
+    "instructions": {
+      "watering": "Water when top soil feels dry",
+      "light": "Place near a bright window, avoid direct sun",
+      "humidity": "Mist leaves occasionally",
+      "temperature": "Keep at room temperature (18-24°C)"
+    }
+  },
+  "plantNames": {
+    "pothos": "Pothos",
+    "snakePlant": "Snake Plant", 
+    "aloeVera": "Aloe Vera",
+    "mint": "Mint",
+    "basil": "Basil",
+    "jasmine": "Jasmine",
+    "rose": "Rose",
+    "ficus": "Ficus"
+  },
+  "locations": {
+    "livingRoom": "Living Room",
+    "bedroom": "Bedroom",
+    "kitchen": "Kitchen",
+    "balcony": "Balcony",
+    "office": "Office",
+    "bathroom": "Bathroom"
+  }
+}
