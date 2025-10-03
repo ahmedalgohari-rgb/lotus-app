@@ -1,0 +1,612 @@
+{
+  "plants": [
+    {
+      "id": "snake_plant",
+      "names": {
+        "scientific": ["Dracaena trifasciata", "Sansevieria trifasciata"],
+        "common": ["Snake Plant", "Mother-in-law's Tongue", "Viper's Bowstring Hemp"],
+        "arabic": ["نبات الثعبان", "سيف سيدنا يوسف", "لسان الحماة"],
+        "aliases": ["snake", "sansevieria", "dracaena trifasciata", "mother in law"]
+      },
+      "care": {
+        "plant_info": "Snake Plant (Dracaena trifasciata) - extremely low-maintenance succulent. Tolerates neglect and low light. Great air purifier.",
+        "plant_type": "succulent",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "every_2_weeks",
+          "schedule": "100_dry",
+          "description": "Water only when soil is completely dry. Overwatering kills this plant.",
+          "arabic_description": "اسقي فقط عندما تكون التربة جافة تماماً. الإفراط في الري يقتل هذا النبات."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": ["low_light", "direct_partial"],
+          "description": "Tolerates low light but prefers bright indirect light",
+          "arabic_description": "يتحمل الضوء المنخفض لكنه يفضل الضوء الساطع غير المباشر"
+        },
+        "humidity": "low",
+        "temperature": { "min": 15, "max": 35, "optimal": 22 },
+        "soil": "well_draining",
+        "fertilizer": "monthly_growing_season"
+      },
+      "characteristics": {
+        "family": "Asparagaceae",
+        "origin": "West Africa",
+        "mature_size": { "height": "60-120cm", "spread": "30-60cm" },
+        "growth_rate": "slow",
+        "air_purifying": true,
+        "pet_safe": false,
+        "flowering": false,
+        "propagation": "leaf_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "both",
+        "seasonal_care": {
+          "summer": "Move away from direct afternoon sun, reduce watering frequency",
+          "winter": "Minimal watering, protect from cold drafts below 15°C",
+          "summer_arabic": "ابعده عن شمس بعد الظهر المباشرة، قلل من الري",
+          "winter_arabic": "ري قليل جداً، احميه من التيارات الباردة تحت 15 درجة"
+        }
+      }
+    },
+    {
+      "id": "golden_pothos",
+      "names": {
+        "scientific": ["Epipremnum aureum"],
+        "common": ["Golden Pothos", "Devil's Ivy", "Money Plant"],
+        "arabic": ["بوتوس ذهبي", "لبلاب الشيطان", "نبات المال"],
+        "aliases": ["pothos", "devil ivy", "epipremnum"]
+      },
+      "care": {
+        "plant_info": "Easy-care trailing vine, perfect for beginners. Thrives in various light conditions and purifies air.",
+        "plant_type": "tropical",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "60_dry",
+          "description": "Water when top 2-3cm of soil is dry. Very forgiving with watering.",
+          "arabic_description": "اسقي عندما تجف أعلى 2-3 سم من التربة. يتسامح في الري."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": ["low_light", "medium_light"],
+          "description": "Adapts to various light conditions, golden variegation best in brighter light",
+          "arabic_description": "يتكيف مع ظروف إضاءة مختلفة، اللون الذهبي أجمل في ضوء أسطع"
+        },
+        "humidity": "medium",
+        "temperature": { "min": 16, "max": 30, "optimal": 24 },
+        "soil": "well_draining",
+        "fertilizer": "monthly_growing_season"
+      },
+      "characteristics": {
+        "family": "Araceae",
+        "origin": "Solomon Islands",
+        "mature_size": { "height": "200cm trailing", "spread": "60-90cm" },
+        "growth_rate": "fast",
+        "air_purifying": true,
+        "pet_safe": false,
+        "flowering": false,
+        "propagation": "stem_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "indoor_preferred",
+        "seasonal_care": {
+          "summer": "Increase watering frequency, provide humidity through misting",
+          "winter": "Reduce watering, avoid cold drafts",
+          "summer_arabic": "زد عدد مرات الري، ارش بالماء لزيادة الرطوبة",
+          "winter_arabic": "قلل الري، تجنب التيارات الباردة"
+        }
+      }
+    },
+    {
+      "id": "monstera_deliciosa",
+      "names": {
+        "scientific": ["Monstera deliciosa"],
+        "common": ["Monstera", "Swiss Cheese Plant", "Split-leaf Philodendron"],
+        "arabic": ["مونستيرا", "نبات الجبن السويسري", "فيلودندرون مشقوق الأوراق"],
+        "aliases": ["monstera", "swiss cheese"]
+      },
+      "care": {
+        "plant_info": "Stunning tropical plant with split leaves. Loves humidity and bright indirect light.",
+        "plant_type": "tropical",
+        "difficulty": "intermediate",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "60_dry",
+          "description": "Keep soil consistently moist but not soggy. Prefers slightly higher moisture.",
+          "arabic_description": "حافظ على رطوبة التربة باستمرار لكن دون غمر. يفضل رطوبة أعلى قليلاً."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": ["east_morning_sun"],
+          "description": "Bright indirect light essential for fenestration (holes). Morning sun OK.",
+          "arabic_description": "ضوء ساطع غير مباشر ضروري لتكوين الثقوب. شمس الصباح مقبولة."
+        },
+        "humidity": "high",
+        "temperature": { "min": 18, "max": 30, "optimal": 25 },
+        "soil": "aroid_mix",
+        "fertilizer": "bi_weekly_growing_season"
+      },
+      "characteristics": {
+        "family": "Araceae",
+        "origin": "Central America",
+        "mature_size": { "height": "300cm+", "spread": "120-200cm" },
+        "growth_rate": "medium",
+        "air_purifying": true,
+        "pet_safe": false,
+        "flowering": false,
+        "propagation": "stem_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "good",
+        "indoor_outdoor": "indoor_only",
+        "seasonal_care": {
+          "summer": "Increase humidity with pebble trays, mist regularly, protect from AC drafts",
+          "winter": "Reduce watering, provide extra humidity, keep above 18°C",
+          "summer_arabic": "زد الرطوبة بأطباق الحصى، ارش بانتظام، احمي من تيارات التكييف",
+          "winter_arabic": "قلل الري، ارفع الرطوبة، حافظ على حرارة فوق 18 درجة"
+        }
+      }
+    },
+    {
+      "id": "zz_plant",
+      "names": {
+        "scientific": ["Zamioculcas zamiifolia"],
+        "common": ["ZZ Plant", "Zanzibar Gem", "Zuzu Plant"],
+        "arabic": ["نبات زي زي", "جوهرة زنجبار", "زاميوكولكاس"],
+        "aliases": ["zz", "zamioculcas", "zanzibar"]
+      },
+      "care": {
+        "plant_info": "ZZ Plant - drought-tolerant with glossy leaves. Perfect for low-light areas.",
+        "plant_type": "tropical",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "every_3_weeks",
+          "schedule": "100_dry",
+          "description": "Water deeply but infrequently. Extremely drought tolerant.",
+          "arabic_description": "اسقي بعمق لكن نادراً. مقاوم للجفاف جداً."
+        },
+        "light": {
+          "requirement": "low_light",
+          "tolerance": ["bright_indirect", "fluorescent"],
+          "description": "Thrives in low light, perfect for offices and windowless rooms",
+          "arabic_description": "يزدهر في الضوء المنخفض، مثالي للمكاتب والغرف بدون نوافذ"
+        },
+        "humidity": "low",
+        "temperature": { "min": 15, "max": 32, "optimal": 24 },
+        "soil": "well_draining",
+        "fertilizer": "quarterly"
+      },
+      "characteristics": {
+        "family": "Araceae",
+        "origin": "Eastern Africa",
+        "mature_size": { "height": "60-90cm", "spread": "60-75cm" },
+        "growth_rate": "very_slow",
+        "air_purifying": true,
+        "pet_safe": false,
+        "flowering": false,
+        "propagation": "leaf_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "both",
+        "seasonal_care": {
+          "summer": "Can handle Cairo heat well, minimal care needed",
+          "winter": "Perfect for heated indoor spaces, reduce watering further",
+          "summer_arabic": "يتحمل حر القاهرة جيداً، يحتاج رعاية قليلة",
+          "winter_arabic": "مثالي للأماكن الدافئة، قلل الري أكتر"
+        }
+      }
+    },
+    {
+      "id": "rubber_plant",
+      "names": {
+        "scientific": ["Ficus elastica"],
+        "common": ["Rubber Plant", "Rubber Tree", "Indian Rubber Bush"],
+        "arabic": ["نبات المطاط", "شجرة المطاط", "فيكس"],
+        "aliases": ["ficus", "rubber"]
+      },
+      "care": {
+        "plant_info": "Rubber plant with thick, glossy leaves. Loves bright light and consistent care.",
+        "plant_type": "tropical",
+        "difficulty": "intermediate",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "60_dry",
+          "description": "Water when top soil is dry. Prefers consistent moisture.",
+          "arabic_description": "اسقي عندما تجف التربة العلوية. يفضل رطوبة مستقرة."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": ["east_morning_sun"],
+          "description": "Bright indirect light essential for healthy growth",
+          "arabic_description": "ضوء ساطع غير مباشر ضروري لنمو صحي"
+        },
+        "humidity": "medium",
+        "temperature": { "min": 16, "max": 30, "optimal": 24 },
+        "soil": "well_draining",
+        "fertilizer": "monthly_growing_season"
+      },
+      "characteristics": {
+        "family": "Moraceae",
+        "origin": "India",
+        "mature_size": { "height": "200-300cm", "spread": "90-120cm" },
+        "growth_rate": "medium",
+        "air_purifying": true,
+        "pet_safe": false,
+        "flowering": false,
+        "propagation": "stem_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "good",
+        "indoor_outdoor": "indoor_preferred",
+        "seasonal_care": {
+          "summer": "Wipe leaves weekly to remove dust, increase watering",
+          "winter": "Reduce watering, protect from cold drafts",
+          "summer_arabic": "امسح الأوراق أسبوعياً لإزالة الغبار، زد الري",
+          "winter_arabic": "قلل الري، احمي من التيارات الباردة"
+        }
+      }
+    },
+    {
+      "id": "peace_lily",
+      "names": {
+        "scientific": ["Spathiphyllum wallisii", "Spathiphyllum"],
+        "common": ["Peace Lily", "White Sails", "Spathe Flower"],
+        "arabic": ["زنبق السلام", "الزهرة البيضاء", "سباثيفيلوم"],
+        "aliases": ["spathiphyllum", "peace lily"]
+      },
+      "care": {
+        "plant_info": "Peace Lily - elegant white flowers. Prefers moist soil and medium light.",
+        "plant_type": "flowering",
+        "difficulty": "intermediate",
+        "watering": {
+          "frequency": "twice_weekly",
+          "schedule": "30_dry",
+          "description": "Keep soil consistently moist, droops when thirsty.",
+          "arabic_description": "حافظ على رطوبة التربة، يذبل عند العطش."
+        },
+        "light": {
+          "requirement": "medium_indirect",
+          "tolerance": ["low_light"],
+          "description": "Medium to low light, blooms more in brighter conditions",
+          "arabic_description": "ضوء متوسط إلى منخفض، يزهر أكتر في ضوء أقوى"
+        },
+        "humidity": "high",
+        "temperature": { "min": 18, "max": 30, "optimal": 24 },
+        "soil": "moisture_retaining",
+        "fertilizer": "monthly_growing_season"
+      },
+      "characteristics": {
+        "family": "Araceae",
+        "origin": "Tropical Americas",
+        "mature_size": { "height": "60-90cm", "spread": "60-75cm" },
+        "growth_rate": "medium",
+        "air_purifying": true,
+        "pet_safe": false,
+        "flowering": true,
+        "propagation": "division"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "moderate",
+        "indoor_outdoor": "indoor_only",
+        "seasonal_care": {
+          "summer": "Increase humidity, protect from AC, may need daily watering",
+          "winter": "Reduce watering slightly, maintain humidity with humidifier",
+          "summer_arabic": "زد الرطوبة، احمي من التكييف، قد يحتاج ري يومي",
+          "winter_arabic": "قلل الري قليلاً، حافظ على الرطوبة بمرطب الهواء"
+        }
+      }
+    },
+    {
+      "id": "spider_plant",
+      "names": {
+        "scientific": ["Chlorophytum comosum"],
+        "common": ["Spider Plant", "Airplane Plant", "Spider Ivy"],
+        "arabic": ["نبات العنكبوت", "نبات الطائرة", "كلوروفيتم"],
+        "aliases": ["chlorophytum", "spider", "airplane"]
+      },
+      "care": {
+        "plant_info": "Spider Plant - produces baby plants. Very resilient and easy to care for.",
+        "plant_type": "foliage",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "60_dry",
+          "description": "Regular watering, very forgiving if you forget occasionally.",
+          "arabic_description": "ري منتظم، يتسامح إذا نسيت أحياناً."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": ["medium_light"],
+          "description": "Adaptable to various light conditions, variegation best in bright light",
+          "arabic_description": "يتكيف مع ظروف إضاءة مختلفة، التلون أجمل في ضوء ساطع"
+        },
+        "humidity": "medium",
+        "temperature": { "min": 15, "max": 30, "optimal": 22 },
+        "soil": "well_draining",
+        "fertilizer": "monthly_growing_season"
+      },
+      "characteristics": {
+        "family": "Asparagaceae",
+        "origin": "South Africa",
+        "mature_size": { "height": "30-40cm", "spread": "45-60cm" },
+        "growth_rate": "fast",
+        "air_purifying": true,
+        "pet_safe": true,
+        "flowering": true,
+        "propagation": "plantlets"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "both",
+        "seasonal_care": {
+          "summer": "Perfect for Cairo summers, may produce more babies",
+          "winter": "Keep in bright spots, reduce fertilizing",
+          "summer_arabic": "مثالي لصيف القاهرة، قد ينتج نباتات صغيرة أكتر",
+          "winter_arabic": "ضعه في أماكن مضيئة، قلل التسميد"
+        }
+      }
+    },
+    {
+      "id": "aloe_vera",
+      "names": {
+        "scientific": ["Aloe vera", "Aloe barbadensis"],
+        "common": ["Aloe Vera", "True Aloe", "Medicinal Aloe"],
+        "arabic": ["صبار الألوة", "الصبار الطبي", "ألوة فيرا"],
+        "aliases": ["aloe", "vera"]
+      },
+      "care": {
+        "plant_info": "Medicinal succulent with healing gel. Prefers dry conditions and bright light.",
+        "plant_type": "succulent",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "every_3_weeks",
+          "schedule": "100_dry",
+          "description": "Deep watering when completely dry. Less is more.",
+          "arabic_description": "ري عميق عند الجفاف الكامل. الأقل أفضل."
+        },
+        "light": {
+          "requirement": "bright_direct",
+          "tolerance": ["bright_indirect"],
+          "description": "Loves bright light, can handle some direct sun",
+          "arabic_description": "يحب الضوء الساطع، يتحمل بعض أشعة الشمس المباشرة"
+        },
+        "humidity": "low",
+        "temperature": { "min": 10, "max": 40, "optimal": 24 },
+        "soil": "cactus_succulent",
+        "fertilizer": "rarely"
+      },
+      "characteristics": {
+        "family": "Asphodelaceae",
+        "origin": "Arabian Peninsula",
+        "mature_size": { "height": "60-90cm", "spread": "60cm" },
+        "growth_rate": "slow",
+        "air_purifying": true,
+        "pet_safe": false,
+        "flowering": true,
+        "propagation": "offsets"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "both",
+        "seasonal_care": {
+          "summer": "Perfect for Cairo heat, can go outside in partial shade",
+          "winter": "Bring indoors, water very rarely",
+          "summer_arabic": "مثالي لحر القاهرة، يمكن وضعه في ظل جزئي بالخارج",
+          "winter_arabic": "أدخله للداخل، ري نادر جداً"
+        }
+      }
+    },
+    {
+      "id": "philodendron",
+      "names": {
+        "scientific": ["Philodendron hederaceum", "Philodendron scandens"],
+        "common": ["Heart-leaf Philodendron", "Sweetheart Plant", "Philodendron"],
+        "arabic": ["فيلودندرون", "نبات القلب", "فيلو الحبيب"],
+        "aliases": ["philodendron", "heart leaf"]
+      },
+      "care": {
+        "plant_info": "Heart-shaped leaves, fast-growing vine. Very adaptable and easy to propagate.",
+        "plant_type": "tropical",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "60_dry",
+          "description": "Water when top soil is dry. Very forgiving.",
+          "arabic_description": "اسقي عندما تجف التربة العلوية. يتسامح جداً."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": ["low_light", "medium_light"],
+          "description": "Adapts to various light conditions, grows faster in brighter light",
+          "arabic_description": "يتكيف مع ظروف إضاءة مختلفة، ينمو أسرع في ضوء أقوى"
+        },
+        "humidity": "medium",
+        "temperature": { "min": 16, "max": 32, "optimal": 24 },
+        "soil": "well_draining",
+        "fertilizer": "monthly_growing_season"
+      },
+      "characteristics": {
+        "family": "Araceae",
+        "origin": "Central America",
+        "mature_size": { "height": "300cm trailing", "spread": "90cm" },
+        "growth_rate": "fast",
+        "air_purifying": true,
+        "pet_safe": false,
+        "flowering": false,
+        "propagation": "stem_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "indoor_preferred",
+        "seasonal_care": {
+          "summer": "Fast growth season, may need weekly watering and monthly fertilizing",
+          "winter": "Slower growth, reduce watering and stop fertilizing",
+          "summer_arabic": "موسم نمو سريع، قد يحتاج ري أسبوعي وتسميد شهري",
+          "winter_arabic": "نمو أبطأ، قلل الري وأوقف التسميد"
+        }
+      }
+    }
+  ],
+  "categories": {
+    "beginner_friendly": {
+      "name": "Beginner Plants",
+      "arabic_name": "نباتات للمبتدئين",
+      "description": "Easy-care plants perfect for beginners",
+      "arabic_description": "نباتات سهلة الرعاية مثالية للمبتدئين",
+      "plants": ["snake_plant", "golden_pothos", "zz_plant", "spider_plant", "aloe_vera", "philodendron"]
+    },
+    "air_purifying": {
+      "name": "Air Purifiers",
+      "arabic_name": "منقيات الهواء",
+      "description": "Plants that improve indoor air quality",
+      "arabic_description": "نباتات تحسن جودة الهواء الداخلي",
+      "plants": ["snake_plant", "golden_pothos", "monstera_deliciosa", "zz_plant", "rubber_plant", "peace_lily", "spider_plant", "aloe_vera", "philodendron"]
+    },
+    "low_light": {
+      "name": "Low Light Tolerant",
+      "arabic_name": "متحملة للضوء المنخفض",
+      "description": "Plants that thrive in low light conditions",
+      "arabic_description": "نباتات تزدهر في ظروف الضوء المنخفض",
+      "plants": ["snake_plant", "zz_plant", "peace_lily", "philodendron"]
+    },
+    "pet_safe": {
+      "name": "Pet Safe",
+      "arabic_name": "آمنة للحيوانات",
+      "description": "Non-toxic plants safe for pets",
+      "arabic_description": "نباتات غير سامة آمنة للحيوانات",
+      "plants": ["spider_plant"]
+    },
+    "succulents": {
+      "name": "Succulents",
+      "arabic_name": "عصاريات",
+      "description": "Water-storing plants perfect for dry conditions",
+      "arabic_description": "نباتات تخزن الماء مثالية للظروف الجافة",
+      "plants": ["snake_plant", "aloe_vera"]
+    },
+    "fast_growing": {
+      "name": "Fast Growing",
+      "arabic_name": "سريعة النمو",
+      "description": "Plants that grow quickly and fill space",
+      "arabic_description": "نباتات تنمو بسرعة وتملأ المساحة",
+      "plants": ["golden_pothos", "spider_plant", "philodendron"]
+    },
+    "cairo_excellent": {
+      "name": "Perfect for Cairo",
+      "arabic_name": "مثالية للقاهرة",
+      "description": "Plants that thrive in Cairo's climate",
+      "arabic_description": "نباتات تزدهر في مناخ القاهرة",
+      "plants": ["snake_plant", "golden_pothos", "zz_plant", "spider_plant", "aloe_vera", "philodendron"]
+    }
+  },
+  "families": {
+    "Araceae": {
+      "name": "Araceae (Aroid Family)",
+      "arabic_name": "عائلة القلقاسية",
+      "description": "Large family of tropical plants, often with heart-shaped leaves",
+      "care": {
+        "plant_info": "Tropical plant from the Araceae family. Generally prefers indirect light and regular watering.",
+        "plant_type": "tropical",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "60_dry",
+          "description": "Regular watering when soil partially dry"
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "description": "Bright indirect light preferred"
+        },
+        "humidity": "medium",
+        "temperature": { "min": 16, "max": 30, "optimal": 24 }
+      }
+    },
+    "Asparagaceae": {
+      "name": "Asparagaceae",
+      "arabic_name": "عائلة الهليونية",
+      "description": "Diverse family including many drought-tolerant species",
+      "care": {
+        "plant_info": "Hardy plant from the Asparagaceae family. Often drought-tolerant and low-maintenance.",
+        "plant_type": "foliage",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "bi_weekly",
+          "schedule": "100_dry",
+          "description": "Infrequent deep watering when completely dry"
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "description": "Adaptable to various light conditions"
+        },
+        "humidity": "low",
+        "temperature": { "min": 15, "max": 32, "optimal": 22 }
+      }
+    },
+    "Moraceae": {
+      "name": "Moraceae (Fig Family)",
+      "arabic_name": "عائلة التينية",
+      "description": "Family including figs and rubber plants",
+      "care": {
+        "plant_info": "Tree-like plants that prefer consistent care and bright conditions.",
+        "plant_type": "tropical",
+        "difficulty": "intermediate",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "60_dry",
+          "description": "Regular watering with good drainage"
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "description": "Bright indirect light essential"
+        },
+        "humidity": "medium",
+        "temperature": { "min": 16, "max": 30, "optimal": 24 }
+      }
+    },
+    "Asphodelaceae": {
+      "name": "Asphodelaceae (Aloe Family)",
+      "arabic_name": "عائلة الصبارية",
+      "description": "Succulent family adapted to arid conditions",
+      "care": {
+        "plant_info": "Succulent plants adapted to dry conditions. Very low water needs.",
+        "plant_type": "succulent",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "monthly",
+          "schedule": "100_dry",
+          "description": "Minimal watering, drought tolerant"
+        },
+        "light": {
+          "requirement": "bright_direct",
+          "description": "Bright light, can handle direct sun"
+        },
+        "humidity": "low",
+        "temperature": { "min": 10, "max": 40, "optimal": 24 }
+      }
+    },
+    "default": {
+      "name": "Unknown Family",
+      "arabic_name": "عائلة غير معروفة",
+      "description": "General care for unknown plant families",
+      "care": {
+        "plant_info": "A beautiful plant that will add life to your space. Research specific care needs for best results.",
+        "plant_type": "foliage",
+        "difficulty": "intermediate",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "60_dry",
+          "description": "Moderate watering when soil is partially dry"
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "description": "Bright indirect light generally preferred"
+        },
+        "humidity": "medium",
+        "temperature": { "min": 16, "max": 30, "optimal": 22 }
+      }
+    }
+  }
+}

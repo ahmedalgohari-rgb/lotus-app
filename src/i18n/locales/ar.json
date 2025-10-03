@@ -1,0 +1,309 @@
+{
+  "common": {
+    "loading": "جاري التحميل...",
+    "error": "خطأ",
+    "success": "تم بنجاح",
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "add": "إضافة",
+    "search": "بحث",
+    "back": "رجوع",
+    "next": "التالي",
+    "done": "تم",
+    "retry": "حاول تاني",
+    "close": "إغلاق"
+  },
+  "navigation": {
+    "home": "البيت",
+    "scan": "صور",
+    "plants": "نباتاتي",
+    "profile": "الملف الشخصي", 
+    "settings": "الإعدادات"
+  },
+  "auth": {
+    "title": "أهلاً بيك في لوتس",
+    "subtitle": "رفيقك في العناية بالنباتات في القاهرة",
+    "signInWithGoogle": "دخول بجوجل",
+    "signInWithApple": "دخول بآبل",
+    "continueAsGuest": "استمر كضيف",
+    "signingIn": "جاري تسجيل الدخول...",
+    "signInError": "فشل تسجيل الدخول. حاول تاني.",
+    "guestMode": "وضع الضيف",
+    "guestDescription": "خصائص محدودة متاحة في وضع الضيف"
+  },
+  "home": {
+    "welcome": "أهلاً وسهلاً يا حبيبي",
+    "guestWelcome": "أهلاً بيك في لوتس",
+    "plantsNeedCare": "النباتات دي عايزة اهتمام",
+    "noPlantsTitle": "لسه مافيش نباتات",
+    "noPlantsSubtitle": "صور أول نبتة عشان تبدأ!",
+    "careReminders": "اللي لازم تعمله النهاردة",
+    "cairoTips": "نصايح من القاهرة",
+    "weatherTitle": "الجو إيه في القاهرة النهاردة",
+    "temperature": "الحرارة",
+    "humidity": "الرطوبة",
+    "rainfall": "المطر",
+    "careBasics": "أساسيات العناية بالنباتات",
+    "quickActions": "إجراءات سريعة"
+  },
+  "scan": {
+    "title": "اعرف نبتتك",
+    "subtitle": "وجه الكاميرا على ورقة النبتة",
+    "takePhoto": "خد صورة",
+    "retakePhoto": "صور تاني",
+    "usePhoto": "استخدم الصورة دي",
+    "analyzing": "جاري تحليل النبتة...",
+    "identificationResults": "تم تحديد النبتة!",
+    "confidence": "نسبة التأكد",
+    "addToCollection": "ضيف لنباتاتي",
+    "tryAgain": "جرب صورة تانية",
+    "cameraPermission": "محتاجين إذن الكاميرا",
+    "grantPermission": "ادي الإذن",
+    "noResults": "معرفناش النبتة دي",
+    "manualAdd": "ضيف يدوي",
+    "instructions": {
+      "centerPlant": "حط النبتة في النص",
+      "gallery": "معرض الصور",
+      "tips": "نصايح"
+    },
+    "permissions": {
+      "requesting": "محتاجين الكاميرا عشان نصور النباتات",
+      "noAccess": "تم رفض إذن الكاميرا",
+      "grantButton": "ادي الإذن"
+    },
+    "results": {
+      "title": "تم تحديد النبتة!"
+    }
+  },
+  "plants": {
+    "title": "نباتاتي",
+    "searchPlaceholder": "دور في نباتاتك...",
+    "noPlantsTitle": "مافيش نباتات لسه",
+    "noPlantsSubtitle": "امسح أول نبتة عشان تبدأ مجموعتك",
+    "lastWatered": "آخر ري",
+    "needsWater": "محتاجة مياه",
+    "healthy": "بصحة كويسة",
+    "needsAttention": "محتاجة اهتمام",
+    "critical": "حالة خطيرة",
+    "waterNow": "اسقيها دلوقتي",
+    "daysAgo": "يوم فات",
+    "filterAll": "الكل",
+    "filterHealthy": "بصحة كويسة",
+    "filterNeedsAttention": "محتاجة اهتمام"
+  },
+  "plantDetail": {
+    "careHistory": "تاريخ العناية",
+    "nextWatering": "الري الجاي",
+    "lastCare": "آخر عناية",
+    "plantInfo": "معلومات النبتة",
+    "location": "المكان",
+    "windowDirection": "اتجاه الشباك",
+    "healthStatus": "الحالة الصحية",
+    "careActions": "أعمال العناية",
+    "water": "ري",
+    "fertilize": "تسميد",
+    "prune": "تقليم",
+    "repot": "نقل إصيص",
+    "addNote": "ضيف ملاحظة",
+    "careNote": "ملاحظة العناية (اختياري)",
+    "careRecorded": "تم تسجيل العناية بنجاح",
+    "deletePlant": "احذف النبتة",
+    "confirmDelete": "متأكد إنك عايز تحذف النبتة دي؟",
+    "careReminder": "اعمل تذكير عناية",
+    "plantAge": "عمر النبتة",
+    "careStreak": "سلسلة العناية",
+    "careGuide": "دليل العناية بالنبتة",
+    "careLabels": {
+      "type": "النوع:",
+      "watering": "الري:",
+      "humidity": "الرطوبة:",
+      "light": "الإضاءة:"
+    }
+  },
+  "addPlant": {
+    "title": "ضيف نبتة جديدة",
+    "customizeTitle": "خصص نبتتك",
+    "plantNickname": "اسم النبتة",
+    "enterNickname": "ادخل اسم لنبتتك",
+    "plantLocation": "موقع النبتة",
+    "windowDirection": "اتجاه النافذة",
+    "plantSpecies": "نوع النبتة",
+    "searchSpecies": "دور على نوع النبتة...",
+    "customWateringSchedule": "جدول ري مخصوص",
+    "everyDays": "كل {{days}} يوم",
+    "saveToCollection": "احفظ في المجموعة",
+    "plantAdded": "تمت إضافة النبتة لمجموعتك!",
+    "careTips": "نصائح العناية",
+    "selectedDirection": "المحدد:",
+    "locations": {
+      "living_room": "الصالة",
+      "bedroom": "أوضة النوم",
+      "kitchen": "المطبخ",
+      "bathroom": "الحمام",
+      "balcony": "البلكونة"
+    },
+    "directions": {
+      "north": "شمال",
+      "east": "شرق",
+      "south": "جنوب",
+      "west": "غرب"
+    },
+    "plantPhoto": "صورة النبتة",
+    "addPhoto": "ضيف صورة",
+    "changePhoto": "غير الصورة"
+  },
+  "care": {
+    "careTypes": {
+      "water": "تم الري",
+      "fertilize": "تم التسميد",
+      "prune": "تم التقليم",
+      "repot": "تم نقل الإصيص"
+    },
+    "smartRecommendations": "توصيات ذكية",
+    "weatherBasedCare": "حسب جو القاهرة",
+    "skipToday": "استنى لبكرة",
+    "scheduleNext": "حدد موعد العناية الجاية"
+  },
+  "weather": {
+    "current": "الجو دلوقتي في القاهرة",
+    "hot": "حر",
+    "warm": "دافي",
+    "mild": "معتدل",
+    "cool": "برد",
+    "dry": "ناشف",
+    "humid": "رطب",
+    "rainy": "مطر",
+    "sunny": "مشمس",
+    "cloudy": "غيوم",
+    "recommendation": "توصية الري",
+    "increaseWatering": "زود الري عشان الحر",
+    "normalWatering": "جدول ري عادي",
+    "reduceWatering": "قلل الري عشان الرطوبة/المطر"
+  },
+  "careMatrix": {
+    "placements": {
+      "South Window": "شباك جنوبي",
+      "East Window": "شباك شرقي", 
+      "North Window": "شباك شمالي",
+      "Indirect East": "شرق غير مباشر",
+      "NE / Shaded": "شمال شرق / ظل",
+      "Shaded North": "شمال مظلل"
+    },
+    "watering": {
+      "Light Water": "ري خفيف",
+      "Mod Water": "ري معتدل",
+      "Daily Check": "فحص يومي"
+    },
+    "misting": {
+      "Mist Low": "رش قليل",
+      "Mist Med": "رش متوسط", 
+      "Mist High": "رش كتير"
+    },
+    "seasons": {
+      "Winter": "الشتا",
+      "Spring": "الربيع",
+      "Summer": "الصيف",
+      "Autumn": "الخريف"
+    },
+    "labels": {
+      "temp": "الحرارة",
+      "humidity": "الرطوبة",
+      "placement": "الموقع",
+      "watering": "الري",
+      "misting": "الرش",
+      "condition": "الحالة",
+      "season": "الموسم"
+    }
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "language": "اللغة",
+    "notifications": "التنبيهات",
+    "account": "الحساب",
+    "about": "عن التطبيق",
+    "signOut": "تسجيل خروج",
+    "deleteAccount": "حذف الحساب",
+    "version": "الإصدار",
+    "languages": {
+      "en": "English (إنجليزي)",
+      "ar": "العربية"
+    },
+    "changeLanguage": "غير اللغة",
+    "languageChanged": "تم تغيير اللغة بنجاح",
+    "profile": "الملف الشخصي",
+    "profileSubtitle": "إدارة معلومات حسابك",
+    "notificationsSubtitle": "تذكيرات ونصايح العناية",
+    "helpSupport": "المساعدة والدعم",
+    "helpSupportSubtitle": "احصل على مساعدة في العناية بالنباتات",
+    "signOutConfirm": "متأكد إنك عايز تسجل خروج؟",
+    "aboutMessage": "تطبيق لوتس للعناية بالنباتات\\nالإصدار 2.0.0\\nمصنوع لمحبي النباتات المصريين في القاهرة 🌿🇪🇬"
+  },
+  "errors": {
+    "networkError": "مشكلة في النت. شيك على الاتصال.",
+    "imageError": "مشكلة في معالجة الصورة",
+    "cameraError": "مشكلة في الكاميرا",
+    "saveError": "مشكلة في حفظ البيانات",
+    "loadError": "مشكلة في تحميل البيانات",
+    "authError": "مشكلة في تسجيل الدخول",
+    "weatherError": "مش قادرين نجيب بيانات الجو",
+    "identificationError": "فشل في تحديد النبتة"
+  },
+  "tips": {
+    "watering": {
+      "description": "معظم النباتات محتاجة مية كل 5-7 أيام"
+    },
+    "light": {
+      "description": "ضوء مشرق غير مباشر مناسب لمعظم النباتات"
+    },
+    "position": {
+      "description": "اتجاه الشباك مهم لصحة النباتات"
+    },
+    "humidity": {
+      "description": "معظم النباتات بتحب رطوبة 40-60%"
+    },
+    "cairo": {
+      "seasonal": "نصايح موسمية للقاهرة",
+      "summer": "في صيف القاهرة: زود الري عشان الحر",
+      "winter": "في شتا القاهرة: قلل الري عشان البرد"
+    }
+  },
+  "scan": {
+    "title": "تحديد النبات",
+    "permissions": {
+      "requesting": "طلب إذن الكاميرا...",
+      "noAccess": "مفيش إذن للكاميرا",
+      "grantButton": "السماح بالوصول"
+    },
+    "instructions": {
+      "centerPlant": "وسط النبات في الكاميرا",
+      "tips": "نصايح",
+      "gallery": "الصور"
+    },
+    "analyzing": "بحلل النبات...",
+    "results": {
+      "title": "النبات اتحدد!",
+      "family": "العائلة: {{family}}",
+      "confidence": "{{confidence}}% ثقة",
+      "alternatives": "احتمالات تانية",
+      "suggestions": "نباتات شائعة في مصر",
+      "suggestionsSubtitle": "فكر في النباتات دي المشهورة في البيت:",
+      "addButton": "ضيف لنباتاتي",
+      "retryButton": "جرب تاني"
+    }
+  },
+  "plants": {
+    "title": "نباتاتي",
+    "signInRequired": "لازم تسجل الدخول عشان تشوف نباتاتك",
+    "empty": {
+      "title": "مفيش نباتات لسه",
+      "description": "ابدأ بتصوير أول نبتة بالكاميرا",
+      "scanButton": "صور أول نبات"
+    },
+    "actions": {
+      "waterAll": "اسقي الكل",
+      "addNew": "ضيف نبات جديد"
+    }
+  }
+}

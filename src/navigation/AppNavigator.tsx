@@ -1,0 +1,160 @@
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
+import { Ionicons } from '@expo/vector-icons';
+
+// Screens
+import HomeScreen from '../screens/HomeScreen';
+import ScanScreen from '../screens/ScanScreen';
+import PlantsScreen from '../screens/PlantsScreen';
+import PlantDetailScreen from '../screens/PlantDetailScreen';
+import AddPlantScreen from '../screens/AddPlantScreen';
+import PlantResultScreen from '../screens/PlantResultScreen';
+import AuthScreen from '../screens/AuthScreen';
+import EmailAuthScreen from '../screens/EmailAuthScreen';
+
+// Types
+import { NavigationParamList } from '../types';
+import { COLORS } from '../constants';
+import { useStore } from '../store';
+import { useTranslation } from 'react-i18next';
+
+const Tab = createBottomTabNavigator<any>();
+const Stack = createStackNavigator<any>();
+
+// Stack navigator for Plants tab (includes detail screens)
+function PlantsStack() {
+  return (
+    // @ts-ignore - Navigation types are working correctly at runtime
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="PlantsList" component={PlantsScreen} />
+      <Stack.Screen name="PlantDetail" component={PlantDetailScreen} />
+    </Stack.Navigator>
+  );
+}
+
+// Main stack navigator that includes all screens
+function MainStack() {
+  return (
+    // @ts-ignore - Navigation types are working correctly at runtime
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="MainTabs" component={MainTabs} />
+      <Stack.Screen name="PlantResult" component={PlantResultScreen} />
+      <Stack.Screen name="AddPlant" component={AddPlantScreen} />
+    </Stack.Navigator>
+  );
+}
+
+// Main tab navigator
+function MainTabs() {
+  const { t } = useTranslation();
+  
+  return (
+    // @ts-ignore - Navigation types are working correctly at runtime
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName: keyof typeof Ionicons.glyphMap;
+
+          if (route.name === 'Home') {
+            iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'Scan') {
+            iconName = focused ? 'camera' : 'camera-outline';
+          } else if (route.name === 'Plants') {
+            iconName = focused ? 'leaf' : 'leaf-outline';
+          } else {
+            iconName = 'help-outline';
+          }
+
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: COLORS.primary,
+        tabBarInactiveTintColor: '#8E8E93', // Better contrast for inactive state
+        tabBarStyle: {
+          backgroundColor: COLORS.white,
+          borderTopColor: '#F2F2F7', // Lighter border for better contrast
+          borderTopWidth: 0.5,
+          paddingBottom: 8, // More padding for better touch targets
+          paddingTop: 8,
+          height: 68, // Increased height for better accessibility
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -1 },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+          elevation: 8, // Better shadow on Android
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
+          marginTop: 2, // Better spacing between icon and label
+        },
+        tabBarIconStyle: {
+          marginBottom: -2, // Better icon alignment
+        },
+      })}
+    >
+      <Tab.Screen 
+        name="Home" 
+        component={HomeScreen}
+        options={{
+          tabBarLabel: t('navigation.home'),
+        }}
+      />
+      <Tab.Screen 
+        name="Scan" 
+        component={ScanScreen}
+        options={{
+          tabBarLabel: t('navigation.scan'),
+        }}
+      />
+      <Tab.Screen 
+        name="Plants" 
+        component={PlantsStack}
+        options={{
+          tabBarLabel: t('navigation.plants'),
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
+
+// Root navigator
+export default function AppNavigator() {
+  const { user, isAuthenticated, isGuest } = useStore();
+  
+  console.log('🔍 AppNavigator - Auth state:', { 
+    isAuthenticated, 
+    isGuest, 
+    userId: user?.id,
+    showingAuthScreen: !isAuthenticated && !isGuest 
+  });
+
+  const shouldShowAuth = !isAuthenticated && !isGuest;
+  
+  return (
+    <NavigationContainer key={`nav-${isAuthenticated}-${isGuest}`}>
+      {/* @ts-ignore - Navigation types are working correctly at runtime */}
+      <Stack.Navigator 
+        screenOptions={{ headerShown: false }}
+        initialRouteName={shouldShowAuth ? "Auth" : "Main"}
+      >
+        {shouldShowAuth ? (
+          // Not authenticated - show auth screens only
+          <>
+            <Stack.Screen name="Auth" component={AuthScreen} />
+            <Stack.Screen name="EmailAuth" component={EmailAuthScreen} />
+          </>
+        ) : (
+          // Authenticated or guest user - show main app
+          <>
+            <Stack.Screen name="Main" component={MainStack} />
+            <Stack.Screen name="Auth" component={AuthScreen} />
+            <Stack.Screen name="EmailAuth" component={EmailAuthScreen} />
+          </>
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}

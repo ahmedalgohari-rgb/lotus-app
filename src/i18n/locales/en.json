@@ -1,0 +1,250 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "back": "Back",
+    "next": "Next",
+    "done": "Done",
+    "retry": "Retry",
+    "close": "Close"
+  },
+  "navigation": {
+    "home": "Home",
+    "scan": "Scan",
+    "plants": "My Plants",
+    "profile": "Profile",
+    "settings": "Settings"
+  },
+  "auth": {
+    "title": "Welcome to Lotus",
+    "subtitle": "Your personal plant care companion for Cairo",
+    "signInWithGoogle": "Sign in with Google",
+    "signInWithApple": "Sign in with Apple",
+    "continueAsGuest": "Continue as Guest",
+    "signingIn": "Signing in...",
+    "signInError": "Sign in failed. Please try again.",
+    "guestMode": "Guest Mode",
+    "guestDescription": "Limited features available in guest mode"
+  },
+  "home": {
+    "welcome": "Welcome back",
+    "guestWelcome": "Welcome to Lotus",
+    "plantsNeedCare": "Plants needing care",
+    "noPlantsTitle": "No plants yet",
+    "noPlantsSubtitle": "Scan your first plant to get started!",
+    "careReminders": "Today's Care",
+    "cairoTips": "Cairo Care Tips",
+    "weatherTitle": "Cairo Weather",
+    "temperature": "Temperature",
+    "humidity": "Humidity",
+    "rainfall": "Rainfall",
+    "careBasics": "Plant Care Basics",
+    "quickActions": "Quick Actions"
+  },
+  "scan": {
+    "title": "Identify Your Plant",
+    "subtitle": "Point your camera at a plant leaf",
+    "takePhoto": "Take Photo",
+    "retakePhoto": "Retake Photo",
+    "usePhoto": "Use This Photo",
+    "analyzing": "Analyzing plant...",
+    "identificationResults": "Plant Identified!",
+    "confidence": "Confidence",
+    "addToCollection": "Add to My Plants",
+    "tryAgain": "Try Another Photo",
+    "cameraPermission": "Camera permission required",
+    "grantPermission": "Grant Permission",
+    "noResults": "Could not identify this plant",
+    "manualAdd": "Add Manually",
+    "instructions": {
+      "centerPlant": "Center your plant in the frame",
+      "gallery": "Gallery",
+      "tips": "Tips"
+    },
+    "permissions": {
+      "requesting": "Camera access is needed to scan plants",
+      "noAccess": "Camera access denied",
+      "grantButton": "Grant Permission"
+    },
+    "results": {
+      "title": "Plant Identified!"
+    }
+  },
+  "plants": {
+    "title": "My Plants",
+    "searchPlaceholder": "Search your plants...",
+    "noPlantsTitle": "No plants yet",
+    "noPlantsSubtitle": "Scan your first plant to start your collection",
+    "lastWatered": "Last watered",
+    "needsWater": "Needs water",
+    "healthy": "Healthy",
+    "needsAttention": "Needs attention",
+    "critical": "Critical",
+    "waterNow": "Water now",
+    "daysAgo": "days ago",
+    "filterAll": "All",
+    "filterHealthy": "Healthy",
+    "filterNeedsAttention": "Needs Attention"
+  },
+  "plantDetail": {
+    "careHistory": "Care History",
+    "nextWatering": "Next watering",
+    "lastCare": "Last care",
+    "plantInfo": "Plant Information",
+    "location": "Location",
+    "windowDirection": "Window Direction",
+    "healthStatus": "Health Status",
+    "careActions": "Care Actions",
+    "water": "Water",
+    "fertilize": "Fertilize",
+    "prune": "Prune",
+    "repot": "Repot",
+    "addNote": "Add Note",
+    "careNote": "Care note (optional)",
+    "careRecorded": "Care recorded successfully",
+    "deletePlant": "Delete Plant",
+    "confirmDelete": "Are you sure you want to delete this plant?",
+    "careReminder": "Set up care reminders",
+    "plantAge": "Plant age",
+    "careStreak": "Care streak",
+    "careGuide": "Plant Care Guide",
+    "careLabels": {
+      "type": "Type:",
+      "watering": "Watering:",
+      "humidity": "Humidity:",
+      "light": "Light:"
+    }
+  },
+  "addPlant": {
+    "title": "Add New Plant",
+    "customizeTitle": "Customize Your Plant",
+    "plantNickname": "Plant Nickname",
+    "enterNickname": "Enter a nickname for your plant",
+    "plantLocation": "Plant Location",
+    "windowDirection": "Window Direction",
+    "plantSpecies": "Plant Species",
+    "searchSpecies": "Search plant species...",
+    "customWateringSchedule": "Custom Watering Schedule",
+    "everyDays": "Every {{days}} days",
+    "saveToCollection": "Save to my garden",
+    "plantAdded": "Plant added to your garden!",
+    "careTips": "Care Tips",
+    "selectedDirection": "Selected:",
+    "locations": {
+      "living_room": "Living Room",
+      "bedroom": "Bedroom", 
+      "kitchen": "Kitchen",
+      "bathroom": "Bathroom",
+      "balcony": "Balcony"
+    },
+    "directions": {
+      "north": "North",
+      "east": "East", 
+      "south": "South",
+      "west": "West"
+    },
+    "plantPhoto": "Plant Photo",
+    "addPhoto": "Add Photo",
+    "changePhoto": "Change Photo"
+  },
+  "care": {
+    "careTypes": {
+      "water": "Watered",
+      "fertilize": "Fertilized",
+      "prune": "Pruned", 
+      "repot": "Repotted"
+    },
+    "smartRecommendations": "Smart Recommendations",
+    "weatherBasedCare": "Based on Cairo weather",
+    "skipToday": "Skip today",
+    "scheduleNext": "Schedule next care"
+  },
+  "weather": {
+    "current": "Current weather in Cairo",
+    "hot": "Hot",
+    "warm": "Warm",
+    "mild": "Mild",
+    "cool": "Cool",
+    "dry": "Dry",
+    "humid": "Humid",
+    "rainy": "Rainy",
+    "sunny": "Sunny",
+    "cloudy": "Cloudy",
+    "recommendation": "Watering recommendation",
+    "increaseWatering": "Increase watering due to heat",
+    "normalWatering": "Normal watering schedule",
+    "reduceWatering": "Reduce watering due to humidity/rain"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "notifications": "Notifications",
+    "account": "Account",
+    "about": "About",
+    "signOut": "Sign Out",
+    "deleteAccount": "Delete Account",
+    "version": "Version",
+    "languages": {
+      "en": "English",
+      "ar": "العربية (Arabic)"
+    },
+    "changeLanguage": "Change Language",
+    "languageChanged": "Language changed successfully",
+    "profile": "Profile",
+    "profileSubtitle": "Manage your profile information",
+    "notificationsSubtitle": "Care reminders and tips",
+    "helpSupport": "Help & Support",
+    "helpSupportSubtitle": "Get help with plant care",
+    "signOutConfirm": "Are you sure you want to sign out?",
+    "aboutMessage": "Lotus Plant Care App\\nVersion 2.0.0\\nMade for Egyptian plant lovers in Cairo 🌿🇪🇬"
+  },
+  "errors": {
+    "networkError": "Network error. Please check your connection.",
+    "imageError": "Error processing image",
+    "cameraError": "Camera error occurred", 
+    "saveError": "Error saving data",
+    "loadError": "Error loading data",
+    "authError": "Authentication error",
+    "weatherError": "Unable to get weather data",
+    "identificationError": "Plant identification failed"
+  },
+  "tips": {
+    "watering": {
+      "description": "Most plants need water every 5-7 days"
+    },
+    "light": {
+      "description": "Bright indirect light is best for most plants"
+    },
+    "position": {
+      "description": "Window direction matters for plant health"
+    },
+    "humidity": {
+      "description": "Most houseplants prefer 40-60% humidity"
+    },
+    "cairo": {
+      "seasonal": "Seasonal Cairo Tips",
+      "summer": "Cairo summer: Water more during hot months",
+      "winter": "Cairo winter: Reduce watering during cool months"
+    }
+  },
+  "plants": {
+    "title": "My Plants",
+    "signInRequired": "Please sign in to view your plants",
+    "empty": {
+      "title": "No plants yet",
+      "description": "Start by scanning your first plant with the camera",
+      "scanButton": "Scan Your First Plant"
+    },
+    "actions": {
+      "waterAll": "Water All",
+      "addNew": "Add New Plant"
+    }
+  }
+}
