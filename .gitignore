@@ -31,7 +31,10 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
+.env.development
+.env.production
 
 # typescript
 *.tsbuildinfo
@@ -43,3 +46,7 @@ yarn-error.*
 # Build artifacts
 *.app
 *.ipa
+
+# Claude Code settings (contains API keys)
+.claude/settings.local.json
+.claude/*.local.json
