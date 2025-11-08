@@ -1,15 +1,16 @@
 import { IdentificationResult } from '../types';
 import { plantDatabaseService } from './plantDatabase';
 import { plantNetCache, createCachedApiCall } from '../utils/apiCache';
-import { 
-  enhanceImageForPlantIdentification, 
-  assessImageQualityForPlants, 
+import {
+  enhanceImageForPlantIdentification,
+  assessImageQualityForPlants,
   isImageSuitableForPlantIdentification,
-  ImageQualityMetrics 
+  ImageQualityMetrics
 } from '../utils/imageUtils';
 import { plantDetectionService } from '../utils/plantDetection';
 import * as FileSystem from 'expo-file-system';
 import CryptoJS from 'crypto-js';
+import { plantScanLimiter, RateLimiter, isRateLimitError } from '../utils/rateLimiter';
 
 const PLANTNET_API_KEY = process.env.EXPO_PUBLIC_PLANTNET_API_KEY || '';
 const PLANTNET_API_URL = 'https://my-api.plantnet.org/v2/identify/weurope';
@@ -183,15 +184,54 @@ export const plantNetService = {
   /**
    * Enhanced plant identification with caching and multiple attempts
    * Updated to use centralized PlantDatabaseService and smart caching
+   * Now includes rate limiting for API protection
    */
   identifyPlant: async (
-    imageUri: string, 
+    imageUri: string,
     organ: string = 'leaf',
     language: 'en' | 'ar' = 'en'
   ): Promise<IdentificationResult | null> => {
     try {
       console.log('🌿 Starting enhanced plant identification with quality validation...');
-      
+
+      // Security: Check rate limit before processing
+      const rateLimitCheck = await plantScanLimiter.checkLimit();
+      if (!rateLimitCheck.allowed) {
+        const retryTime = RateLimiter.formatRetryTime(rateLimitCheck.retryAfter);
+        const message = language === 'ar'
+          ? `لقد وصلت إلى حد المسح الخاص بك. حاول مرة أخرى بعد ${retryTime}.`
+          : `You've reached your scan limit. Please try again in ${retryTime}.`;
+
+        console.warn('🚫 Rate limit exceeded:', rateLimitCheck);
+
+        // Return a special result indicating rate limit
+        return {
+          confidence: 0,
+          common_name: language === 'ar' ? 'حد المسح مكتمل' : 'Scan Limit Reached',
+          scientific_name: 'Rate Limited',
+          family: 'System',
+          genus: 'Limit',
+          plant_info: message,
+          plant_type: 'system_message',
+          watering_schedule: language === 'ar'
+            ? `المتبقي: ${rateLimitCheck.remaining} مسح`
+            : `Remaining: ${rateLimitCheck.remaining} scans`,
+          preferred_humidity: 'N/A',
+          preferred_orientation: language === 'ar'
+            ? `أعد المحاولة بعد ${retryTime}`
+            : `Retry in ${retryTime}`,
+          alternatives: [],
+          suggestions: [
+            language === 'ar'
+              ? 'يتم إعادة تعيين الحد كل ساعة'
+              : 'Limit resets every hour',
+            language === 'ar'
+              ? 'هذا يحمي التطبيق من الاستخدام المفرط'
+              : 'This protects the app from excessive usage'
+          ]
+        };
+      }
+
       if (!PLANTNET_API_KEY) {
         console.warn('PlantNet API key not configured, using enhanced mock data');
         return plantNetService.mockIdentify(imageUri, language);
@@ -295,10 +335,19 @@ export const plantNetService = {
       }
 
       const finalResult = bestResult || plantNetService.mockIdentify(imageUri, language);
+
+      // Security: Record successful API call for rate limiting
+      // Only record if we made an actual API call (not mock data)
+      if (finalResult && PLANTNET_API_KEY) {
+        await plantScanLimiter.recordRequest();
+        console.log('✅ Scan recorded for rate limiting');
+      }
+
       console.log('🎯 Plant identification complete with quality validation');
       return finalResult;
     } catch (error) {
       console.error('PlantNet identification error:', error);
+      // Don't record failed requests in rate limit
       return plantNetService.mockIdentify(imageUri, language);
     }
   },

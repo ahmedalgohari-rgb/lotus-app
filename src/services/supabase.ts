@@ -3,6 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { makeRedirectUri } from 'expo-auth-session';
 import { readAsStringAsync, EncodingType } from 'expo-file-system/legacy';
 import { Plant, PlantSpecies, CareEvent, User } from '../types';
+import { plantOperationsLimiter, RateLimiter } from '../utils/rateLimiter';
+import { validateImageForUpload, resizeImageIfNeeded } from '../utils/validation';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -112,36 +114,95 @@ export const dbService = {
   getPlants: async (userId: string) => {
     const { data, error } = await supabase
       .from('plants')
-      .select('*')
+      .select('id, user_id, species_id, nickname, location, window_direction, image_url, health_status, last_watered_at, next_watering_at, created_at, updated_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
     return { data, error };
   },
 
   addPlant: async (plant: Omit<Plant, 'id' | 'created_at' | 'updated_at'>) => {
+    // Security: Check rate limit before operation
+    const rateLimitCheck = await plantOperationsLimiter.checkLimit();
+    if (!rateLimitCheck.allowed) {
+      const retryTime = RateLimiter.formatRetryTime(rateLimitCheck.retryAfter);
+      return {
+        data: null,
+        error: {
+          message: `Too many plant operations. Please wait ${retryTime} before trying again.`,
+          details: `Rate limit: ${rateLimitCheck.remaining} operations remaining`,
+          hint: 'This limit resets every hour to protect the database',
+        } as any,
+      };
+    }
+
     const { data, error } = await supabase
       .from('plants')
       .insert([plant])
       .select()
       .single();
+
+    // Record successful operation
+    if (!error) {
+      await plantOperationsLimiter.recordRequest();
+    }
+
     return { data, error };
   },
 
   updatePlant: async (id: string, updates: Partial<Plant>) => {
+    // Security: Check rate limit before operation
+    const rateLimitCheck = await plantOperationsLimiter.checkLimit();
+    if (!rateLimitCheck.allowed) {
+      const retryTime = RateLimiter.formatRetryTime(rateLimitCheck.retryAfter);
+      return {
+        data: null,
+        error: {
+          message: `Too many plant operations. Please wait ${retryTime} before trying again.`,
+          details: `Rate limit: ${rateLimitCheck.remaining} operations remaining`,
+          hint: 'This limit resets every hour to protect the database',
+        } as any,
+      };
+    }
+
     const { data, error } = await supabase
       .from('plants')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
       .single();
+
+    // Record successful operation
+    if (!error) {
+      await plantOperationsLimiter.recordRequest();
+    }
+
     return { data, error };
   },
 
   deletePlant: async (id: string) => {
+    // Security: Check rate limit before operation
+    const rateLimitCheck = await plantOperationsLimiter.checkLimit();
+    if (!rateLimitCheck.allowed) {
+      const retryTime = RateLimiter.formatRetryTime(rateLimitCheck.retryAfter);
+      return {
+        error: {
+          message: `Too many plant operations. Please wait ${retryTime} before trying again.`,
+          details: `Rate limit: ${rateLimitCheck.remaining} operations remaining`,
+          hint: 'This limit resets every hour to protect the database',
+        } as any,
+      };
+    }
+
     const { error } = await supabase
       .from('plants')
       .delete()
       .eq('id', id);
+
+    // Record successful operation
+    if (!error) {
+      await plantOperationsLimiter.recordRequest();
+    }
+
     return { error };
   },
 
@@ -149,7 +210,7 @@ export const dbService = {
   getPlantSpecies: async () => {
     const { data, error } = await supabase
       .from('plant_species')
-      .select('*')
+      .select('id, name_en, name_ar, scientific_name, watering_frequency_days, light_requirement, window_ratings, care_tips_en, care_tips_ar, cairo_specific_tips, created_at')
       .order('name_en');
     return { data, error };
   },
@@ -157,7 +218,7 @@ export const dbService = {
   getPlantSpeciesById: async (id: string) => {
     const { data, error } = await supabase
       .from('plant_species')
-      .select('*')
+      .select('id, name_en, name_ar, scientific_name, watering_frequency_days, light_requirement, window_ratings, care_tips_en, care_tips_ar, cairo_specific_tips, created_at')
       .eq('id', id)
       .single();
     return { data, error };
@@ -167,7 +228,7 @@ export const dbService = {
   getCareEvents: async (plantId: string) => {
     const { data, error } = await supabase
       .from('care_events')
-      .select('*')
+      .select('id, plant_id, user_id, event_type, completed_at, notes, created_at')
       .eq('plant_id', plantId)
       .order('completed_at', { ascending: false });
     return { data, error };
@@ -186,7 +247,7 @@ export const dbService = {
   getProfile: async (userId: string) => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, first_name, last_name, avatar_url, language, created_at, updated_at')
       .eq('id', userId)
       .single();
     return { data, error };
@@ -205,10 +266,28 @@ export const dbService = {
   // Storage
   uploadImage: async (file: { uri: string; type: string; name: string }, bucket: string = 'plant-images') => {
     try {
+      // Security: Validate image before upload
+      console.log('🔒 Validating image for upload...');
+      const validation = await validateImageForUpload(file.uri, file.type);
+
+      if (!validation.isValid) {
+        const errorMessage = validation.errors.join(', ');
+        console.error('❌ Image validation failed:', errorMessage);
+        throw new Error(`Image validation failed: ${errorMessage}`);
+      }
+
+      // Log warnings (e.g., large images)
+      if (validation.warnings.length > 0) {
+        console.warn('⚠️ Image warnings:', validation.warnings.join(', '));
+      }
+
+      // Security: Resize image if needed (prevents uploading huge images)
+      const resizedUri = await resizeImageIfNeeded(file.uri);
+
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
 
-      const base64 = await readAsStringAsync(file.uri, {
+      const base64 = await readAsStringAsync(resizedUri, {
         encoding: EncodingType.Base64,
       });
 
@@ -218,6 +297,8 @@ export const dbService = {
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
+
+      console.log(`✅ Uploading validated image (${validation.dimensions?.width}x${validation.dimensions?.height}, ${(validation.fileSize || 0 / 1024).toFixed(0)}KB)...`);
 
       const { error: uploadError } = await supabase.storage
         .from(bucket)
@@ -242,6 +323,7 @@ export const dbService = {
         throw new Error('Failed to get public URL for the uploaded image.');
       }
 
+      console.log('✅ Image upload successful');
       return data.publicUrl;
     } catch (error) {
       console.error('Upload error:', error);
