@@ -1,5 +1,6 @@
 import * as FileSystem from 'expo-file-system';
 import React from 'react';
+import { logger } from './logger';
 
 export interface MemoryStats {
   totalMemoryMB: number;
@@ -23,29 +24,24 @@ export class MemoryManager {
    */
   static registerTempFile(uri: string): void {
     this.tempFiles.add(uri);
-    console.log('📝 Registered temp file:', uri);
   }
 
   /**
    * Clean up all temporary files
    */
   static async cleanupTempFiles(): Promise<void> {
-    console.log('🧹 Cleaning up', this.tempFiles.size, 'temporary files...');
-    
     const cleanupPromises = Array.from(this.tempFiles).map(async (uri) => {
       try {
         await FileSystem.deleteAsync(uri, { idempotent: true });
         this.tempFiles.delete(uri);
-        console.log('✅ Deleted temp file:', uri);
       } catch (error) {
-        console.warn('⚠️ Failed to delete temp file:', uri, error);
+        logger.warn('⚠️ Failed to delete temp file:', uri, error);
         // Remove from set anyway to prevent memory leaks
         this.tempFiles.delete(uri);
       }
     });
 
     await Promise.allSettled(cleanupPromises);
-    console.log('✅ Temp file cleanup complete');
   }
 
   /**
@@ -76,10 +72,6 @@ export class MemoryManager {
       toRemove.forEach(([key]) => {
         this.imageCache.delete(key);
       });
-    }
-
-    if (entriesToRemove.length > 0) {
-      console.log('🧹 Cleaned up', entriesToRemove.length, 'cached images from memory');
     }
   }
 
@@ -125,12 +117,9 @@ export class MemoryManager {
       // Try to force GC (this is platform dependent and may not work)
       if (global.gc) {
         global.gc();
-        console.log('🗑️ Forced garbage collection');
-      } else {
-        console.log('♻️ Garbage collection not available');
       }
     } catch (error) {
-      console.warn('⚠️ Garbage collection failed:', error);
+      logger.warn('⚠️ Garbage collection failed:', error);
     }
   }
 
@@ -160,7 +149,7 @@ export class MemoryManager {
         tempFilesCount: this.tempFiles.size
       };
     } catch (error) {
-      console.error('❌ Failed to get memory stats:', error);
+      logger.error('❌ Failed to get memory stats:', error);
       return {
         totalMemoryMB: 0,
         usedMemoryMB: 0,
@@ -175,19 +164,15 @@ export class MemoryManager {
    * Memory pressure handler - called when app is running low on memory
    */
   static handleMemoryPressure(): void {
-    console.log('⚠️ Memory pressure detected, cleaning up...');
-    
     // Clean up all caches
     this.cleanupImageCache();
     this.imageCache.clear();
-    
+
     // Clean up temp files
     this.cleanupTempFiles();
-    
+
     // Force garbage collection
     this.forceGarbageCollection();
-    
-    console.log('✅ Memory pressure cleanup complete');
   }
 
   /**
@@ -203,8 +188,6 @@ export class MemoryManager {
     setInterval(() => {
       this.cleanupTempFiles();
     }, 10 * 60 * 1000);
-
-    console.log('🚀 Memory manager initialized');
   }
 
   /**
@@ -214,7 +197,6 @@ export class MemoryManager {
     this.cleanupImageCache();
     this.imageCache.clear();
     this.cleanupTempFiles();
-    console.log('🧹 Memory manager cleanup complete');
   }
 }
 

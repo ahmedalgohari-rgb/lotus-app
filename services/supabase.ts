@@ -11,7 +11,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 const redirectTo = makeRedirectUri();
-console.log('Generated Redirect URI for Supabase:', redirectTo);
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

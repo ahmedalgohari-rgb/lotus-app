@@ -136,24 +136,9 @@ export function getComprehensivePlantCare(
 }
 
 /**
- * Development/Testing utility: Test plant name matching
+ * Development/Testing utility: Test plant name matching (logging removed)
  */
 export function debugPlantMatching(scientificName: string, commonName?: string) {
-  console.log('🧪 DEBUG: Testing plant matching for:', scientificName, commonName);
-  
-  const searchNames = [scientificName];
-  if (commonName) searchNames.push(commonName);
-  
-  console.log('📝 Normalized search terms:', searchNames.map(normalizePlantName));
-  console.log('🔑 Key words:', searchNames.map(extractKeyWords));
-  
   const match = findPlantMatch(scientificName, commonName);
-  console.log('🎯 Best match result:', match);
-  
-  if (match) {
-    const careData = getPlantCareData(match.id);
-    console.log('🌿 Care data:', careData);
-  }
-  
   return match;
 }

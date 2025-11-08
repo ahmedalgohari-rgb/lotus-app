@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,9 +7,11 @@ import {
   Image,
   ScrollView,
   Modal,
+  Dimensions,
   Alert,
   ActivityIndicator,
-  Dimensions,
+  TextInput,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,10 +19,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 
-import { COLORS } from '../constants';
+import {
+  COLORS,
+  FIBONACCI,
+  TYPOGRAPHY,
+  ELEMENT_SIZES,
+} from '../constants';
 import { useStore } from '../store';
-import { authService } from '../services/supabase';
 import type { IdentificationResult } from '../types';
+import { authService, dbService } from '../services/supabase';
+import NameCollectionModal from '../components/NameCollectionModal';
+import { logger, timer } from '../utils/logger';
+import { useRTL } from '../utils/rtl';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -37,113 +47,262 @@ export default function PlantResultScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { t } = useTranslation();
-  
-  const { identificationResult, capturedImage } = route.params as PlantResultScreenProps['route']['params'];
-  
-  const { user, isAuthenticated, isGuest, setUser, setAuthenticated } = useStore();
-  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
-  const [authMode, setAuthMode] = useState<'signup' | 'signin'>('signup');
-  const [isLoading, setIsLoading] = useState(false);
+  const isRTL = useRTL();
 
-  // Debug logging for auth state
+  const { identificationResult, capturedImage } = route.params as PlantResultScreenProps['route']['params'];
+
+  const { user, isAuthenticated, isGuest, setUser, setAuthenticated, updateUserName } = useStore();
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPhoneAuth, setShowPhoneAuth] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [isVerifyingOTP, setIsVerifyingOTP] = useState(false);
+  const [showNameCollection, setShowNameCollection] = useState(false);
+  const [pendingUser, setPendingUser] = useState<any>(null);
+
+  // Animation for phone modal slide-up and fade-in
+  const phoneModalSlideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const phoneModalFadeAnim = useRef(new Animated.Value(0)).current;
+
+  // Animate phone modal when it appears/disappears
   useEffect(() => {
-    console.log('🔍 PlantResultScreen - showAuthPrompt state changed to:', showAuthPrompt);
-  }, [showAuthPrompt]);
+    if (showPhoneAuth) {
+      // Parallel animations: fade in overlay + slide up card
+      Animated.parallel([
+        Animated.timing(phoneModalFadeAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.spring(phoneModalSlideAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 65,
+          friction: 11,
+        }),
+      ]).start();
+    } else {
+      // Parallel animations: fade out overlay + slide down card
+      Animated.parallel([
+        Animated.timing(phoneModalFadeAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(phoneModalSlideAnim, {
+          toValue: SCREEN_HEIGHT,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [showPhoneAuth]);
+
+  const handlePostAuthSuccess = () => {
+    // Close all modals
+    setShowAuthPrompt(false);
+    setShowPhoneAuth(false);
+    setShowNameCollection(false);
+
+    // Navigate to AddPlant screen with the identification result
+    if (identificationResult) {
+      navigation.navigate('AddPlant', {
+        identificationResult,
+        capturedImage,
+      });
+    }
+  };
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
+    logger.group('🔐 Google Sign-In Flow (Modal)');
+    timer.start('google-signin-modal');
+
     try {
+      logger.debug('Initiating Google OAuth from modal...');
       const { data, error } = await authService.signInWithGoogle();
       if (error) throw error;
-      
+
       if (data && 'user' in data && data.user) {
-        setUser({
+        logger.debug('Google OAuth successful', { userId: data.user.id, email: data.user.email });
+
+        const { data: profileData } = await dbService.getProfile(data.user.id);
+        const hasFirstName = profileData?.first_name && profileData.first_name.trim().length > 0;
+
+        const googleFullName = data.user.user_metadata?.name;
+        const googleFirstName = googleFullName?.split(' ')[0]?.trim();
+
+        const userData = {
           id: data.user.id,
           email: data.user.email,
-          name: data.user.user_metadata?.name || data.user.email,
+          name: profileData?.first_name || googleFullName || data.user.email,
+          first_name: profileData?.first_name || googleFirstName,
           avatar_url: data.user.user_metadata?.avatar_url,
           created_at: data.user.created_at,
-        });
-        setAuthenticated(true);
-        setShowAuthPrompt(false);
-        
-        // Auto-save plant after successful auth
-        setTimeout(() => {
-          navigation.navigate('AddPlant', {
-            identificationResult,
-            capturedImage,
-          });
-        }, 500);
+        };
+
+        if (!hasFirstName && googleFirstName) {
+          // Auto-save Google-provided name
+          logger.info('Auto-saving Google-provided name', { firstName: googleFirstName });
+          try {
+            await dbService.updateUserProfile(data.user.id, googleFirstName);
+            setUser({
+              ...userData,
+              first_name: googleFirstName,
+              name: googleFirstName,
+            });
+            updateUserName(googleFirstName);
+            setAuthenticated(true);
+            logger.success('User authenticated with auto-saved name');
+            timer.end('google-signin-modal');
+            logger.groupEnd();
+            setIsLoading(false);
+            handlePostAuthSuccess();
+          } catch (saveError) {
+            logger.error('Error auto-saving Google name:', saveError);
+            setPendingUser(userData);
+            setShowNameCollection(true);
+            logger.groupEnd();
+            setIsLoading(false);
+          }
+        } else if (!hasFirstName && !googleFirstName) {
+          // Show name collection modal
+          logger.info('Showing name collection modal');
+          setPendingUser(userData);
+          setShowNameCollection(true);
+          timer.end('google-signin-modal');
+          logger.groupEnd();
+          setIsLoading(false);
+        } else {
+          // Existing user with first_name
+          logger.success('Returning user authenticated', { firstName: userData.first_name });
+          setUser(userData);
+          setAuthenticated(true);
+          timer.end('google-signin-modal');
+          logger.groupEnd();
+          setIsLoading(false);
+          handlePostAuthSuccess();
+        }
       }
     } catch (error) {
-      console.error('Google sign in error:', error);
+      logger.error('Google sign in error:', error);
+      logger.groupEnd();
       Alert.alert('Sign In Failed', 'Please try again.');
-    } finally {
       setIsLoading(false);
     }
   };
 
-  const handleAppleSignIn = async () => {
+  const handlePhoneSignIn = async () => {
+    if (!phoneNumber.trim()) {
+      Alert.alert('Error', 'Please enter your phone number');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const { data, error } = await authService.signInWithApple();
+      const fullPhoneNumber = `+20${phoneNumber}`;
+      const { error } = await authService.signInWithOtp(fullPhoneNumber);
       if (error) throw error;
-      
-      if (data && 'user' in data && data.user) {
-        setUser({
-          id: data.user.id,
-          email: data.user.email,
-          name: data.user.user_metadata?.name || data.user.email,
-          avatar_url: data.user.user_metadata?.avatar_url,
-          created_at: data.user.created_at,
-        });
-        setAuthenticated(true);
-        setShowAuthPrompt(false);
-        
-        // Auto-save plant after successful auth
-        setTimeout(() => {
-          navigation.navigate('AddPlant', {
-            identificationResult,
-            capturedImage,
-          });
-        }, 500);
-      }
+
+      Alert.alert('OTP Sent', `A verification code has been sent to ${fullPhoneNumber}.`);
+      setIsVerifyingOTP(true);
     } catch (error) {
-      console.error('Apple sign in error:', error);
-      Alert.alert('Sign In Failed', 'Please try again.');
+      logger.error('Phone auth error:', error);
+      Alert.alert('Error', 'Failed to send verification code. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handlePhoneAuth = async () => {
-    Alert.alert('Phone Authentication', 'Phone authentication coming soon!');
+  const handleOTPVerification = async () => {
+    if (!otpCode.trim()) {
+      Alert.alert('Error', 'Please enter the verification code');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const fullPhoneNumber = `+20${phoneNumber}`;
+      const { data, error } = await authService.verifyOtp(fullPhoneNumber, otpCode);
+      if (error) throw error;
+
+      if (data && data.user) {
+        const { data: profileData } = await dbService.getProfile(data.user.id);
+        const hasFirstName = profileData?.first_name && profileData.first_name.trim().length > 0;
+
+        const userData = {
+          id: data.user.id,
+          phone: data.user.phone,
+          name: profileData?.first_name || data.user.user_metadata?.name || `User ${data.user.phone?.slice(-4)}`,
+          first_name: profileData?.first_name,
+          created_at: data.user.created_at,
+        };
+
+        if (!hasFirstName) {
+          setPendingUser(userData);
+          setShowNameCollection(true);
+          setIsLoading(false);
+        } else {
+          setUser(userData);
+          setAuthenticated(true);
+          setIsLoading(false);
+          resetPhoneAuth();
+          handlePostAuthSuccess();
+        }
+      } else {
+        Alert.alert('Error', 'Could not verify OTP. Please try again.');
+        setIsLoading(false);
+      }
+    } catch (error) {
+      logger.error('OTP verification error:', error);
+      Alert.alert('Error', 'Verification failed. Invalid code or server error.');
+      setIsLoading(false);
+    }
+  };
+
+  const handleNameSubmit = async (firstName: string) => {
+    if (!pendingUser) return;
+
+    setIsLoading(true);
+    try {
+      const { error } = await dbService.updateUserProfile(pendingUser.id, firstName);
+      if (error) throw error;
+
+      const updatedUser = {
+        ...pendingUser,
+        first_name: firstName,
+        name: firstName,
+      };
+
+      setUser(updatedUser);
+      updateUserName(firstName);
+      setAuthenticated(true);
+      setShowNameCollection(false);
+      setPendingUser(null);
+      handlePostAuthSuccess();
+    } catch (error) {
+      logger.error('Error saving user name:', error);
+      Alert.alert('Error', 'Failed to save your name. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetPhoneAuth = () => {
+    setShowPhoneAuth(false);
+    setIsVerifyingOTP(false);
+    setPhoneNumber('');
+    setOtpCode('');
   };
 
   const saveToMyPlants = () => {
-    console.log('🔍 saveToMyPlants called from PlantResultScreen');
-    console.log('🔍 isAuthenticated:', isAuthenticated, 'isGuest:', isGuest);
-    console.log('🔍 user:', user);
-    
-    if (isGuest) {
-      // Guest users need to create account to save plants
-      console.log('🚨 Guest user detected - showing auth modal overlay');
-      setAuthMode('signup');
+    if (isGuest || !isAuthenticated || !user) {
       setShowAuthPrompt(true);
       return;
     }
 
-    if (!isAuthenticated || !user) {
-      // Unauthenticated users should not be here, but redirect to auth just in case
-      console.log('🚨 Unauthenticated user detected - showing auth modal');
-      setAuthMode('signup');
-      setShowAuthPrompt(true);
-      return;
-    }
-
-    console.log('🔍 Authenticated user, navigating to AddPlant...');
     if (identificationResult) {
-      // Navigate to AddPlant screen with identification result
       navigation.navigate('AddPlant', {
         identificationResult,
         capturedImage,
@@ -152,28 +311,206 @@ export default function PlantResultScreen() {
   };
 
   const handleSignInPress = () => {
-    console.log('🔍 Sign in pressed');
-    setAuthMode('signin');
-    setShowAuthPrompt(true);
-  };
-
-  const switchAuthMode = () => {
-    setAuthMode(authMode === 'signup' ? 'signin' : 'signup');
+    setShowAuthPrompt(false);
+    navigation.navigate('Auth');
   };
 
   const retryCapture = () => {
-    // Navigate back to camera screen
     navigation.goBack();
   };
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Name Collection Modal */}
+      <NameCollectionModal
+        visible={showNameCollection}
+        onSubmit={handleNameSubmit}
+      />
+
+      {/* Inline Authentication Modal */}
+      <Modal
+        visible={showAuthPrompt}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowAuthPrompt(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <LinearGradient
+            colors={[COLORS.primary, COLORS.secondary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.modalGradient}
+          >
+            {/* Close Button */}
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowAuthPrompt(false)}
+            >
+              <Ionicons name="close" size={FIBONACCI.LG} color={COLORS.white} />
+            </TouchableOpacity>
+
+            <View style={styles.modalContent}>
+              {/* Auth Buttons */}
+              <View style={styles.authButtons}>
+                <TouchableOpacity
+                  style={styles.phoneButton}
+                  onPress={() => {
+                    console.log('📱 Phone button pressed!');
+                    logger.debug('Opening phone auth modal');
+                    setShowPhoneAuth(true);
+                  }}
+                  disabled={isLoading}
+                >
+                  <Ionicons name="call" size={FIBONACCI.LG} color={COLORS.primary} />
+                  <Text style={styles.phoneButtonText}>{t('auth.continueWithPhone')}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.googleButton}
+                  onPress={handleGoogleSignIn}
+                  disabled={isLoading}
+                >
+                  <Ionicons name="logo-google" size={FIBONACCI.LG} color={COLORS.primary} />
+                  <Text style={styles.googleButtonText}>{t('auth.continueWithGoogle')}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.appleButton} disabled={true}>
+                  <View style={styles.appleButtonContent}>
+                    <Ionicons name="logo-apple" size={FIBONACCI.LG} color={COLORS.primary} />
+                    <Text style={styles.appleButtonText}>{t('auth.continueWithApple')}</Text>
+                    <View style={styles.comingSoonBadge}>
+                      <Text style={styles.comingSoonText}>{t('auth.comingSoon')}</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              {/* Loading State */}
+              {isLoading && (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color={COLORS.white} />
+                  <Text style={styles.loadingText}>{t('auth.signingIn')}</Text>
+                </View>
+              )}
+
+              {/* Already a member? Sign in */}
+              <TouchableOpacity onPress={handleSignInPress} style={styles.signInLink}>
+                <Text style={styles.signInText}>{t('auth.alreadyMember')}</Text>
+              </TouchableOpacity>
+
+              {/* Maybe later */}
+              <TouchableOpacity
+                onPress={() => setShowAuthPrompt(false)}
+                style={styles.maybeLaterButton}
+              >
+                <Text style={styles.maybeLaterText}>{t('auth.maybeLater')}</Text>
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
+
+          {/* Phone Auth Modal - Nested INSIDE Auth Modal with Slide Animation */}
+          {showPhoneAuth && (
+            <Animated.View style={[styles.phoneModalOverlay, { opacity: phoneModalFadeAnim }]}>
+              <Animated.View
+                style={[
+                  styles.phoneModalContent,
+                  {
+                    transform: [{ translateY: phoneModalSlideAnim }],
+                  },
+                ]}
+              >
+                <TouchableOpacity
+                  activeOpacity={1}
+                  onPress={(e) => e.stopPropagation()}
+                >
+                  <View style={styles.phoneAuthCard}>
+                  {!isVerifyingOTP ? (
+                    <>
+                      <Text style={styles.phoneModalTitle}>Enter your phone number</Text>
+                      <View style={styles.phoneModalInputContainer}>
+                        <Text style={styles.phoneModalCountryCode}>+20</Text>
+                        <TextInput
+                          style={styles.phoneModalInput}
+                          placeholder="1xxxxxxxxx"
+                          placeholderTextColor={COLORS.textSecondary}
+                          value={phoneNumber}
+                          onChangeText={setPhoneNumber}
+                          keyboardType="phone-pad"
+                          maxLength={10}
+                          autoFocus
+                        />
+                      </View>
+                      <View style={styles.phoneModalButtons}>
+                        <TouchableOpacity
+                          style={styles.phoneModalBackButton}
+                          onPress={resetPhoneAuth}
+                          disabled={isLoading}
+                        >
+                          <Text style={styles.phoneModalBackButtonText}>Back</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.phoneModalSendButton}
+                          onPress={handlePhoneSignIn}
+                          disabled={isLoading || !phoneNumber.trim()}
+                        >
+                          {isLoading ? (
+                            <ActivityIndicator size="small" color={COLORS.white} />
+                          ) : (
+                            <Text style={styles.phoneModalSendButtonText}>Send Code</Text>
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={styles.phoneModalTitle}>Enter verification code</Text>
+                      <Text style={styles.phoneModalSubtitle}>Sent to +20{phoneNumber}</Text>
+                      <TextInput
+                        style={styles.phoneModalOtpInput}
+                        placeholder="123456"
+                        placeholderTextColor={COLORS.textSecondary}
+                        value={otpCode}
+                        onChangeText={setOtpCode}
+                        keyboardType="number-pad"
+                        maxLength={6}
+                        autoFocus
+                      />
+                      <View style={styles.phoneModalButtons}>
+                        <TouchableOpacity
+                          style={styles.phoneModalBackButton}
+                          onPress={resetPhoneAuth}
+                          disabled={isLoading}
+                        >
+                          <Text style={styles.phoneModalBackButtonText}>Back</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.phoneModalSendButton}
+                          onPress={handleOTPVerification}
+                          disabled={isLoading || !otpCode.trim()}
+                        >
+                          {isLoading ? (
+                            <ActivityIndicator size="small" color={COLORS.white} />
+                          ) : (
+                            <Text style={styles.phoneModalSendButtonText}>Verify</Text>
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                    </>
+                  )}
+                  </View>
+                </TouchableOpacity>
+              </Animated.View>
+            </Animated.View>
+          )}
+        </View>
+      </Modal>
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="close" size={24} color={COLORS.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Plant Identified!</Text>
+        <Text style={[styles.headerTitle, isRTL && styles.headerTitleRTL]}>{t('plantResult.title')}</Text>
         <View style={styles.headerButton} />
       </View>
 
@@ -186,29 +523,30 @@ export default function PlantResultScreen() {
           bounces={true}
           scrollEnabled={true}
         >
-          {capturedImage && <Image source={{ uri: capturedImage }} style={styles.resultImage} />}
-          
-          <View style={styles.confidenceBadge}>
-            <Text style={styles.confidenceText}>
-              {identificationResult.confidence}% confidence
-            </Text>
+          <View style={styles.imageContainer}>
+            {capturedImage && <Image source={{ uri: capturedImage }} style={styles.resultImage} />}
+            <View style={styles.confidenceBadge}>
+              <Text style={styles.confidenceText}>
+                {identificationResult.confidence}% confidence
+              </Text>
+            </View>
           </View>
 
           <View style={styles.plantInfo}>
-            <Text style={styles.plantName}>{identificationResult.common_name}</Text>
-            <Text style={styles.scientificName}>
+            <Text style={[styles.plantName, isRTL && styles.plantNameRTL]}>{identificationResult.common_name}</Text>
+            <Text style={[styles.scientificName, isRTL && styles.scientificNameRTL]}>
               {identificationResult.scientific_name}
             </Text>
             {identificationResult.family && (
-              <Text style={styles.familyName}>Family: {identificationResult.family}</Text>
+              <Text style={[styles.familyName, isRTL && styles.familyNameRTL]}>Family: {identificationResult.family}</Text>
             )}
           </View>
 
           {/* Plant Description */}
           {identificationResult.plant_info && (
             <View style={styles.careSection}>
-              <Text style={styles.careTitle}>Your Plant's Story</Text>
-              <Text style={styles.plantDescription}>
+              <Text style={[styles.careTitle, isRTL && styles.careTitleRTL]}>{t('plantResult.plantStory')}</Text>
+              <Text style={[styles.plantDescription, isRTL && styles.plantDescriptionRTL]}>
                 {identificationResult.plant_info}
               </Text>
             </View>
@@ -216,187 +554,59 @@ export default function PlantResultScreen() {
 
           {/* Unlock Plant's Full Potential */}
           <View style={styles.careSection}>
-            <Text style={styles.careTitle}>Unlock Your Plant's Full Potential:</Text>
+            <Text style={styles.careTitle}>{t('plantResult.unlockPotential')}</Text>
             
             <View style={styles.careDetails}>
               <View style={styles.unlockItem}>
                 <Ionicons name="heart-outline" size={20} color={COLORS.primary} style={styles.unlockIcon} />
-                <Text style={styles.unlockLabel}>Save to My Garden</Text>
+                <Text style={styles.unlockLabel}>{t('plantResult.features.saveToGarden')}</Text>
                 {isGuest && <Ionicons name="lock-closed" size={16} color={COLORS.textSecondary} />}
               </View>
-              
+
               <View style={styles.unlockItem}>
                 <Ionicons name="water-outline" size={20} color={COLORS.primary} style={styles.unlockIcon} />
-                <Text style={styles.unlockLabel}>Smart Watering Tips</Text>
+                <Text style={styles.unlockLabel}>{t('plantResult.features.smartWatering')}</Text>
                 {isGuest && <Ionicons name="lock-closed" size={16} color={COLORS.textSecondary} />}
               </View>
-              
+
               <View style={styles.unlockItem}>
                 <Ionicons name="compass-outline" size={20} color={COLORS.primary} style={styles.unlockIcon} />
-                <Text style={styles.unlockLabel}>Placement Tips</Text>
+                <Text style={styles.unlockLabel}>{t('plantResult.features.placementTips')}</Text>
                 {isGuest && <Ionicons name="lock-closed" size={16} color={COLORS.textSecondary} />}
               </View>
-              
+
               <View style={styles.unlockItem}>
                 <Ionicons name="book-outline" size={20} color={COLORS.primary} style={styles.unlockIcon} />
-                <Text style={styles.unlockLabel}>Detailed Care Guides</Text>
+                <Text style={styles.unlockLabel}>{t('plantResult.features.careGuides')}</Text>
                 {isGuest && <Ionicons name="lock-closed" size={16} color={COLORS.textSecondary} />}
               </View>
             </View>
           </View>
 
           <View style={styles.actionButtons}>
-            <TouchableOpacity 
-              style={styles.saveButton} 
-              onPress={() => {
-                console.log('🚨 BUTTON PRESS DETECTED! User:', user?.id, 'isAuthenticated:', isAuthenticated);
-                console.log('🚨 About to call saveToMyPlants...');
-                saveToMyPlants();
-              }}
+            <TouchableOpacity
+              style={styles.saveButton}
+              onPress={saveToMyPlants}
               activeOpacity={0.8}
             >
               <Text style={styles.saveButtonText}>
-                {isAuthenticated && !isGuest ? 'Add to My Plants' : 'Save my plant'}
+                {isAuthenticated && !isGuest ? t('plantResult.buttons.saveAuth') : t('plantResult.buttons.saveGuest')}
               </Text>
             </TouchableOpacity>
-
-            {isGuest && (
-              <TouchableOpacity onPress={handleSignInPress}>
-                <Text style={styles.signInText}>
-                  Already a member? Sign in
-                </Text>
-              </TouchableOpacity>
-            )}
 
             <TouchableOpacity style={styles.retryButton} onPress={retryCapture}>
               <Ionicons name="camera-outline" size={24} color={COLORS.primary} />
-              <Text style={styles.retryButtonText}>Try Another</Text>
+              <Text style={styles.retryButtonText}>{t('plantResult.buttons.tryAnother')}</Text>
             </TouchableOpacity>
           </View>
-          
+
           {/* Footer */}
           <View style={styles.footer}>
-            <Ionicons name="information-circle" size={16} color={COLORS.textSecondary} />
-            <Text style={styles.footerText}>Image processing complete, but quality could improved</Text>
+            <Ionicons name="information-circle" size={FIBONACCI.MD} color={COLORS.textSecondary} />
+            <Text style={styles.footerText}>{t('plantResult.imageProcessingNote')}</Text>
           </View>
-          
-          <View style={styles.bottomPadding} />
         </ScrollView>
       )}
-
-      {/* Authentication Modal - Matches AuthScreen Design */}
-      {showAuthPrompt && (
-        <Modal
-          visible={showAuthPrompt}
-          animationType="slide"
-          transparent={true}
-          onRequestClose={() => setShowAuthPrompt(false)}
-          presentationStyle="overFullScreen"
-        >
-        <View style={styles.authModalOverlay}>
-          <LinearGradient
-            colors={[COLORS.primary, COLORS.secondary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.authModalGradient}
-          >
-            {/* Close Button */}
-            <TouchableOpacity
-              style={styles.authCloseButton}
-              onPress={() => setShowAuthPrompt(false)}
-            >
-              <Text style={styles.authCloseText}>×</Text>
-            </TouchableOpacity>
-
-            {/* Logo and Header */}
-            <View style={styles.authHeader}>
-              <Text style={styles.logo}>🌿</Text>
-              <Text style={styles.appName}>LOTUS</Text>
-              <Text style={styles.tagline}>
-                {authMode === 'signup'
-                  ? 'Unlock your plant\'s full potential with personalized care guides'
-                  : 'Continue your plant care journey'
-                }
-              </Text>
-            </View>
-
-            {/* Auth Buttons - Order: Phone, Google, Apple */}
-            <View style={styles.authButtons}>
-              <TouchableOpacity
-                style={styles.phoneButton}
-                onPress={handlePhoneAuth}
-                disabled={isLoading}
-              >
-                <Ionicons name="call" size={20} color={COLORS.primary} />
-                <Text style={styles.phoneButtonText}>Continue with Phone</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.googleButton}
-                onPress={handleGoogleSignIn}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator size="small" color={COLORS.primary} />
-                ) : (
-                  <>
-                    <Ionicons name="logo-google" size={20} color={COLORS.primary} />
-                    <Text style={styles.googleButtonText}>Continue with Google</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.appleButton}
-                disabled={true}
-              >
-                <View style={styles.appleButtonContent}>
-                  <Ionicons name="logo-apple" size={20} color={COLORS.primary} />
-                  <Text style={styles.appleButtonText}>Continue with Apple</Text>
-                  <View style={styles.comingSoonContainer}>
-                    <Text style={styles.comingSoonText}>Coming Soon</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            </View>
-
-            {/* Loading State */}
-            {isLoading && (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={COLORS.white} />
-                <Text style={styles.loadingText}>Signing you in...</Text>
-              </View>
-            )}
-
-            {/* Legal Text */}
-            <View style={styles.legalSection}>
-              <Text style={styles.legalText}>
-                By continuing you agree to our{' '}
-                <Text style={styles.legalLink}>Terms of Service</Text>.{'\n'}
-                Lotus services are subject to our{' '}
-                <Text style={styles.legalLink}>Privacy Policy</Text>.
-              </Text>
-            </View>
-
-            {/* Mode Switch Option */}
-            <TouchableOpacity onPress={switchAuthMode} style={styles.switchModeButton}>
-              <Text style={styles.switchModeText}>
-                {authMode === 'signup'
-                  ? 'Already a member? Sign in'
-                  : 'New to Lotus? Create account'
-                }
-              </Text>
-            </TouchableOpacity>
-
-            {/* Skip Option */}
-            <TouchableOpacity onPress={() => setShowAuthPrompt(false)} style={styles.skipButton}>
-              <Text style={styles.skipText}>Maybe later</Text>
-            </TouchableOpacity>
-          </LinearGradient>
-        </View>
-        </Modal>
-      )}
-
     </SafeAreaView>
   );
 }
@@ -410,115 +620,139 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: FIBONACCI.MD, // 13px - Golden ratio
+    paddingVertical: FIBONACCI.MD, // 13px
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
+    height: ELEMENT_SIZES.INPUT_MD, // 55px - Fibonacci
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: TYPOGRAPHY.MD, // 18px - Golden ratio
     fontWeight: '600',
     color: COLORS.text,
   },
+  headerTitleRTL: {
+    textAlign: 'center',
+  },
   headerButton: {
-    width: 24,
-    height: 24,
+    width: FIBONACCI.LG, // 21px - Fibonacci
+    height: FIBONACCI.LG, // 21px
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    padding: 16,
+    paddingHorizontal: FIBONACCI.MD, // 13px - Golden ratio
+    paddingVertical: FIBONACCI.SM, // 8px - Reduced vertical padding
     flexGrow: 1,
+  },
+  imageContainer: {
+    marginBottom: FIBONACCI.SM, // 8px
   },
   resultImage: {
     width: '100%',
-    height: 200,
-    borderRadius: 12,
-    marginBottom: 16,
+    height: FIBONACCI.HUGE, // 144px
+    borderRadius: ELEMENT_SIZES.RADIUS_MD, // 13px
   },
   confidenceBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginBottom: 16,
+    position: 'absolute',
+    top: FIBONACCI.SM, // 8px
+    left: FIBONACCI.SM, // 8px
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: FIBONACCI.SM, // 8px
+    paddingVertical: FIBONACCI.XXS, // 3px
+    borderRadius: ELEMENT_SIZES.RADIUS_SM, // 8px
+    zIndex: 1,
   },
   confidenceText: {
     color: COLORS.white,
-    fontSize: 12,
+    fontSize: TYPOGRAPHY.XS, // 12px - Golden ratio
     fontWeight: '600',
   },
   plantInfo: {
-    marginBottom: 24,
+    marginBottom: FIBONACCI.MD, // 13px - Reduced spacing
   },
   plantName: {
-    fontSize: 24,
+    fontSize: TYPOGRAPHY.XXL, // 34px
     fontWeight: 'bold',
     color: COLORS.text,
-    marginBottom: 4,
+    marginBottom: FIBONACCI.XXS, // 3px
+  },
+  plantNameRTL: {
+    textAlign: 'right',
   },
   scientificName: {
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.BASE, // 16px
     fontStyle: 'italic',
     color: COLORS.textSecondary,
-    marginBottom: 4,
+    marginBottom: FIBONACCI.XXS, // 3px
+  },
+  scientificNameRTL: {
+    textAlign: 'right',
   },
   familyName: {
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.SM, // 14px
     color: COLORS.textSecondary,
+  },
+  familyNameRTL: {
+    textAlign: 'right',
   },
   careSection: {
-    marginBottom: 24,
+    marginBottom: FIBONACCI.MD, // 13px - Reduced spacing
   },
   careTitle: {
-    fontSize: 18,
+    fontSize: TYPOGRAPHY.LG, // 21px
     fontWeight: '600',
     color: COLORS.text,
-    marginBottom: 12,
+    marginBottom: FIBONACCI.SM, // 8px - Reduced spacing
+  },
+  careTitleRTL: {
+    textAlign: 'right',
   },
   plantDescription: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.BASE, // 16px
+    lineHeight: TYPOGRAPHY.XL, // 26px
     color: COLORS.textSecondary,
   },
+  plantDescriptionRTL: {
+    textAlign: 'right',
+  },
   careDetails: {
-    gap: 12,
+    gap: FIBONACCI.SM, // 8px - Reduced spacing for compactness
   },
   unlockItem: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   unlockIcon: {
-    marginRight: 12,
+    marginRight: FIBONACCI.MD, // 13px - Golden ratio
   },
   unlockLabel: {
     flex: 1,
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.BASE, // 16px - Golden ratio
     color: COLORS.text,
   },
   actionButtons: {
-    gap: 16,
-    marginBottom: 24,
+    gap: FIBONACCI.SM, // 8px - Reduced spacing
+    marginTop: FIBONACCI.SM, // 8px - Small top margin
   },
   saveButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.primary,
-    paddingVertical: 16,
-    borderRadius: 12,
-    marginHorizontal: 20,
+    paddingVertical: FIBONACCI.MD, // 13px
+    borderRadius: ELEMENT_SIZES.RADIUS_MD, // 13px - Fibonacci
+    height: ELEMENT_SIZES.BUTTON_MD, // 55px - Fibonacci button height
   },
   saveButtonText: {
     color: COLORS.white,
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.BASE, // 16px - Golden ratio
     fontWeight: '600',
   },
   bottomText: {
     textAlign: 'center',
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.SM, // 14px - Golden ratio
     color: COLORS.textSecondary,
   },
   retryButton: {
@@ -527,112 +761,81 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: COLORS.primary,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginHorizontal: 20,
-    gap: 8,
+    paddingVertical: FIBONACCI.MD, // 13px
+    borderRadius: ELEMENT_SIZES.RADIUS_MD, // 13px - Fibonacci
+    gap: FIBONACCI.SM, // 8px - Fibonacci
+    height: ELEMENT_SIZES.BUTTON_MD, // 55px - Fibonacci button height
   },
   retryButtonText: {
     color: COLORS.primary,
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.BASE, // 16px - Golden ratio
     fontWeight: '500',
   },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    marginBottom: 16,
+    gap: FIBONACCI.XS, // 5px - Fibonacci micro-spacing
+    marginTop: FIBONACCI.SM, // 8px - Fibonacci spacing
+    paddingBottom: FIBONACCI.SM, // 8px - Small bottom padding
   },
   footerText: {
-    fontSize: 12,
+    fontSize: TYPOGRAPHY.XXS, // 10px - Smallest Fibonacci typography
     color: COLORS.textSecondary,
-  },
-  bottomPadding: {
-    height: 20,
+    flex: 1,
+    flexWrap: 'wrap',
   },
 
-  // Auth Modal Styles - Matches AuthScreen Design
-  authModalOverlay: {
+  // Inline Authentication Modal Styles - Pure Fibonacci Golden Ratio System
+  modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent overlay
+    position: 'relative', // Allow absolute positioning for nested phone modal
   },
-  authModalGradient: {
-    width: SCREEN_WIDTH * 0.9,
-    maxWidth: 400,
-    borderRadius: 24,
-    paddingHorizontal: SCREEN_WIDTH * 0.08,
-    paddingTop: SCREEN_HEIGHT * 0.06,
-    paddingBottom: SCREEN_HEIGHT * 0.04,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.4,
-    shadowRadius: 30,
-    elevation: 25,
+  modalGradient: {
+    borderTopLeftRadius: FIBONACCI.LG, // 21px - Golden ratio rounded corners
+    borderTopRightRadius: FIBONACCI.LG, // 21px
+    paddingTop: FIBONACCI.XXL, // 55px - Fibonacci top padding
+    paddingHorizontal: FIBONACCI.XL, // 34px - Fibonacci horizontal padding
+    paddingBottom: FIBONACCI.XXXL, // 89px - Extra safe area padding (Fibonacci)
   },
-  authCloseButton: {
+  closeButton: {
     position: 'absolute',
-    top: 20,
-    right: 20,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    top: FIBONACCI.LG, // 21px - Fibonacci positioning
+    right: FIBONACCI.LG, // 21px - Fibonacci positioning
+    width: ELEMENT_SIZES.ICON_MD, // 34px - Standard icon size (Fibonacci)
+    height: ELEMENT_SIZES.ICON_MD, // 34px
+    borderRadius: FIBONACCI.MD + 4, // 17px - Perfect circle (half of 34)
+    backgroundColor: 'rgba(255, 255, 255, 0.2)', // Subtle white background
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1,
+    zIndex: 10,
   },
-  authCloseText: {
-    fontSize: 24,
-    fontWeight: '300',
-    color: COLORS.white,
-  },
-  authHeader: {
-    alignItems: 'center',
-    marginBottom: SCREEN_HEIGHT * 0.04,
-  },
-  logo: {
-    fontSize: SCREEN_HEIGHT * 0.08,
-    marginBottom: SCREEN_HEIGHT * 0.02,
-  },
-  appName: {
-    fontSize: SCREEN_HEIGHT * 0.05,
-    fontWeight: '700',
-    color: COLORS.white,
-    marginBottom: SCREEN_HEIGHT * 0.02,
-    letterSpacing: 2,
-  },
-  tagline: {
-    fontSize: SCREEN_HEIGHT * 0.02,
-    color: COLORS.white,
-    textAlign: 'center',
-    lineHeight: SCREEN_HEIGHT * 0.028,
-    fontWeight: '500',
-    opacity: 0.95,
+  modalContent: {
+    marginTop: FIBONACCI.MD, // 13px - Fibonacci spacing
   },
   authButtons: {
-    marginTop: SCREEN_HEIGHT * 0.02,
+    gap: FIBONACCI.LG, // 21px - Fibonacci button gaps
+    marginBottom: FIBONACCI.XL, // 34px - Fibonacci section spacing
   },
   phoneButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 56,
-    borderRadius: 28,
     backgroundColor: COLORS.white,
-    marginBottom: 16,
+    height: ELEMENT_SIZES.BUTTON_MD, // 55px - Fibonacci button height
+    borderRadius: FIBONACCI.XL, // 34px - Pill shape
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    gap: 8,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: FIBONACCI.SM,
+    elevation: 4,
+    gap: FIBONACCI.SM, // 8px - Icon spacing
   },
   phoneButtonText: {
     color: COLORS.primary,
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.BASE, // 16px - Golden ratio typography
     fontWeight: '600',
   },
   googleButton: {
@@ -640,31 +843,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.white,
-    height: 56,
-    borderRadius: 28,
-    marginBottom: 16,
+    height: ELEMENT_SIZES.BUTTON_MD, // 55px - Fibonacci button height
+    borderRadius: FIBONACCI.XL, // 34px - Pill shape
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: FIBONACCI.SM,
+    elevation: 4,
   },
   googleButtonText: {
     color: COLORS.primary,
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.BASE, // 16px - Golden ratio typography
     fontWeight: '600',
-    marginLeft: 12,
+    marginLeft: FIBONACCI.MD,
   },
   appleButton: {
     backgroundColor: COLORS.white,
-    height: 56,
-    borderRadius: 28,
-    marginBottom: 16,
+    height: ELEMENT_SIZES.BUTTON_MD, // 55px - Fibonacci button height
+    borderRadius: FIBONACCI.XL, // 34px - Pill shape
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: FIBONACCI.SM,
+    elevation: 4,
     position: 'relative',
   },
   appleButtonContent: {
@@ -676,76 +877,166 @@ const styles = StyleSheet.create({
   },
   appleButtonText: {
     color: COLORS.primary,
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.BASE, // 16px - Golden ratio typography
     fontWeight: '600',
-    marginLeft: 12,
+    marginLeft: FIBONACCI.MD,
   },
-  comingSoonContainer: {
+  comingSoonBadge: {
     position: 'absolute',
-    bottom: 6,
-    right: -1,
-    backgroundColor: '#F4D03F',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    transform: [{ rotate: '345deg' }],
+    top: -FIBONACCI.SM, // -8px - Anchored to Apple button top edge
+    right: FIBONACCI.SM, // 8px - Closer to right edge
+    backgroundColor: '#2D5F3F', // Lotus Green - dark teal/green
+    paddingHorizontal: FIBONACCI.SM, // 8px - Compact padding
+    paddingVertical: FIBONACCI.XXS, // 3px - Minimal vertical padding
+    borderRadius: FIBONACCI.MD, // 13px - Pill-shaped badge
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: FIBONACCI.XXS }, // 3px - Subtle depth
+    shadowOpacity: 0.2,
+    shadowRadius: FIBONACCI.XS, // 5px - Soft shadow
+    elevation: 3,
   },
   comingSoonText: {
     fontSize: 8,
-    color: COLORS.secondary,
+    color: '#FFFFFF', // Pure white for maximum brightness
     fontWeight: '700',
+  },
+  signInLink: {
+    alignItems: 'center',
+    paddingVertical: FIBONACCI.MD, // 13px - Fibonacci tappable area
+    marginTop: FIBONACCI.SM, // 8px - Fibonacci spacing after buttons
+  },
+  signInText: {
+    fontSize: TYPOGRAPHY.SM, // 14px - Golden ratio typography
+    color: COLORS.white,
+    fontWeight: '500',
+    textDecorationLine: 'underline',
+  },
+  maybeLaterButton: {
+    alignItems: 'center',
+    paddingVertical: FIBONACCI.MD, // 13px - Fibonacci tappable area
+    marginTop: FIBONACCI.LG, // 21px - Fibonacci spacing from sign in link
+  },
+  maybeLaterText: {
+    fontSize: TYPOGRAPHY.SM, // 14px - Consistent with sign in text
+    color: COLORS.white,
+    fontWeight: '500',
+    opacity: 0.8, // Slightly muted to de-emphasize
   },
   loadingContainer: {
     alignItems: 'center',
-    marginVertical: 20,
+    marginVertical: FIBONACCI.LG,
   },
   loadingText: {
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.SM,
     color: COLORS.white,
-    marginTop: 8,
+    marginTop: FIBONACCI.SM,
     opacity: 0.8,
   },
-  legalSection: {
-    marginTop: SCREEN_HEIGHT * 0.03,
-    paddingHorizontal: SCREEN_WIDTH * 0.02,
+
+  // Phone Auth Modal Styles (Nested Inside Auth Modal)
+  phoneModalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
   },
-  legalText: {
-    fontSize: 12,
-    color: COLORS.white,
-    textAlign: 'center',
-    lineHeight: 16,
-    opacity: 0.8,
+  phoneModalContent: {
+    width: '90%',
+    maxWidth: 400,
   },
-  legalLink: {
+  phoneAuthCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: FIBONACCI.LG, // 21px - Golden ratio rounding
+    padding: FIBONACCI.XL, // 34px - Generous padding
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: FIBONACCI.SM }, // 8px shadow
+    shadowOpacity: 0.25,
+    shadowRadius: FIBONACCI.LG, // 21px blur
+    elevation: 10,
+  },
+  phoneModalTitle: {
+    color: COLORS.primary,
+    fontSize: TYPOGRAPHY.MD, // 18px - Golden ratio typography
     fontWeight: '600',
-    textDecorationLine: 'underline',
+    textAlign: 'center',
+    marginBottom: FIBONACCI.LG, // 21px - Golden ratio spacing
   },
-  switchModeButton: {
-    marginTop: 20,
-    paddingVertical: 8,
+  phoneModalSubtitle: {
+    color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.SM, // 14px - Golden ratio typography
+    textAlign: 'center',
+    marginBottom: FIBONACCI.MD, // 13px - Golden ratio spacing
   },
-  switchModeText: {
-    fontSize: 15,
+  phoneModalInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+    borderRadius: ELEMENT_SIZES.RADIUS_MD, // 13px - Golden ratio rounding
+    paddingHorizontal: FIBONACCI.MD, // 13px - Golden ratio padding
+    marginBottom: FIBONACCI.LG, // 21px - Golden ratio spacing
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  phoneModalCountryCode: {
+    fontSize: TYPOGRAPHY.BASE, // 16px - Golden ratio typography
+    fontWeight: '600',
+    color: COLORS.primary,
+    marginRight: FIBONACCI.SM, // 8px - Fibonacci spacing
+  },
+  phoneModalInput: {
+    flex: 1,
+    height: ELEMENT_SIZES.INPUT_MD, // 55px - Fibonacci input height
+    fontSize: TYPOGRAPHY.BASE, // 16px - Golden ratio typography
+    color: COLORS.text,
+  },
+  phoneModalOtpInput: {
+    backgroundColor: COLORS.background,
+    borderRadius: ELEMENT_SIZES.RADIUS_MD, // 13px - Golden ratio rounding
+    paddingHorizontal: FIBONACCI.MD, // 13px - Golden ratio padding
+    height: ELEMENT_SIZES.INPUT_MD, // 55px - Fibonacci input height
+    fontSize: TYPOGRAPHY.MD, // 18px - Golden ratio typography
+    textAlign: 'center',
+    color: COLORS.text,
+    letterSpacing: FIBONACCI.SM, // 8px - Fibonacci letter spacing
+    marginBottom: FIBONACCI.LG, // 21px - Golden ratio spacing
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  phoneModalButtons: {
+    flexDirection: 'row',
+    gap: FIBONACCI.MD, // 13px - Golden ratio gap
+  },
+  phoneModalBackButton: {
+    flex: 1,
+    height: ELEMENT_SIZES.BUTTON_MD, // 55px - Fibonacci button height
+    borderRadius: ELEMENT_SIZES.RADIUS_MD, // 13px - Golden ratio rounding
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  phoneModalBackButtonText: {
+    color: COLORS.primary,
+    fontSize: TYPOGRAPHY.BASE, // 16px - Golden ratio typography
+    fontWeight: '500',
+  },
+  phoneModalSendButton: {
+    flex: 2,
+    height: ELEMENT_SIZES.BUTTON_MD, // 55px - Fibonacci button height
+    borderRadius: ELEMENT_SIZES.RADIUS_MD, // 13px - Golden ratio rounding
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  phoneModalSendButtonText: {
     color: COLORS.white,
-    textAlign: 'center',
-    fontWeight: '500',
-    textDecorationLine: 'underline',
-  },
-  skipButton: {
-    marginTop: 12,
-    paddingVertical: 8,
-  },
-  skipText: {
-    fontSize: 16,
-    color: COLORS.white,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  signInText: {
-    textAlign: 'center',
-    fontSize: 14,
-    color: COLORS.secondary,
-    textDecorationLine: 'underline',
-    fontWeight: '500',
+    fontSize: TYPOGRAPHY.BASE, // 16px - Golden ratio typography
+    fontWeight: '600',
   },
 });

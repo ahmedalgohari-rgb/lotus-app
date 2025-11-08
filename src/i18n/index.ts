@@ -2,6 +2,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import * as Localization from 'expo-localization';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logger } from '../utils/logger';
 
 // Import translations
 import en from './locales/en.json';
@@ -30,7 +31,7 @@ const LANGUAGE_DETECTOR = {
         callback('en');
       }
     } catch (error) {
-      console.log('Language detection using fallback:', error.message || error);
+      logger.warn('Language detection using fallback:', error.message || error);
       callback('en'); // Fallback to English
     }
   },
@@ -39,7 +40,7 @@ const LANGUAGE_DETECTOR = {
     try {
       await AsyncStorage.setItem('user-language', language);
     } catch (error) {
-      console.error('Error saving language preference:', error);
+      logger.error('Error saving language preference:', error);
     }
   },
 };
@@ -71,7 +72,7 @@ export const changeLanguage = async (language: string) => {
     await i18n.changeLanguage(language);
     await AsyncStorage.setItem('user-language', language);
   } catch (error) {
-    console.error('Error changing language:', error);
+    logger.error('Error changing language:', error);
   }
 };
 

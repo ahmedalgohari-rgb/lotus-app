@@ -18,20 +18,20 @@ import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { PinchGestureHandler, State } from 'react-native-gesture-handler';
 
-import { COLORS } from '../constants';
+import { COLORS, FIBONACCI, TYPOGRAPHY, ELEMENT_SIZES, GOLDEN_RECTANGLES } from '../constants';
 import { plantNetService } from '../services/plantnet';
 import { IdentificationResult } from '../types';
 import { getCurrentLanguage } from '../i18n';
 import { useStore } from '../store';
 import SmartCameraOverlay from '../components/SmartCameraOverlay';
 import { plantDetectionService } from '../utils/plantDetection';
+import { logger, timer } from '../utils/logger';
+import { useRTL } from '../utils/rtl';
 
 export default function ScanScreen({ route }: any) {
   const { t } = useTranslation();
+  const isRTL = useRTL();
   const { user, isAuthenticated } = useStore();
-  
-  // Debug: Log current auth state
-  console.log('🔍 ScanScreen - Current auth state:', { user: user?.id, isAuthenticated });
   const [permission, requestPermission] = useCameraPermissions();
   const [cameraType, setCameraType] = useState<CameraType>('back');
   const [isLoading, setIsLoading] = useState(false);
@@ -51,14 +51,14 @@ export default function ScanScreen({ route }: any) {
   // Handle navigation parameters when returning from auth
   useEffect(() => {
     if (route?.params?.showResult && route?.params?.identificationResult) {
-      setCapturedImage(route.params.capturedImage);
+      // Don't set capturedImage - navigate directly to results
       setIdentificationResult(route.params.identificationResult);
       // Navigate to PlantResultScreen instead of showing modal
       navigation.navigate('PlantResult', {
         identificationResult: route.params.identificationResult,
         capturedImage: route.params.capturedImage,
       });
-      
+
       // Clear the parameters to prevent re-triggering
       navigation.setParams({
         showResult: undefined,
@@ -71,7 +71,7 @@ export default function ScanScreen({ route }: any) {
   // Cleanup on component unmount
   useEffect(() => {
     return () => {
-      console.log('🧹 ScanScreen unmounting...');
+      // Component cleanup
     };
   }, [capturedImage]);
 
@@ -94,31 +94,38 @@ export default function ScanScreen({ route }: any) {
 
   // Simplified image handling - no optimization
   const processImage = async (uri: string) => {
-    console.log('📷 Processing image:', uri);
     return uri; // Return image as-is without optimization
   };
 
   const takePicture = async () => {
     if (cameraRef.current) {
       try {
-        console.log('📷 Starting smart capture process...');
         setIsLoading(true);
-        
+        timer.start('camera-capture');
+        logger.debug('Camera capture initiated', { enableSmartDetection, zoom });
+
         const photo = await cameraRef.current.takePictureAsync({
           quality: 0.8,
           base64: false,
         });
-        
+
         if (photo) {
-          console.log('📷 Photo captured, performing validation...');
-          
+          logger.debug('Photo captured', { uri: photo.uri, width: photo.width, height: photo.height });
+
           // Smart validation before processing
           if (enableSmartDetection) {
+            timer.start('image-validation');
             const validation = await plantNetService.validateImageForCapture(photo.uri);
+            timer.end('image-validation');
             setValidationResult(validation);
-            
+
+            logger.debug('Image validation result', {
+              shouldCapture: validation.shouldCapture,
+              confidence: validation.confidence,
+              feedback: validation.feedback
+            });
+
             if (!validation.shouldCapture) {
-              console.log('❌ Image validation failed:', validation.feedback);
               Alert.alert(
                 'Image Quality Issue',
                 validation.feedback + '\n\nTips:\n' + validation.improvements.join('\n• '),
@@ -126,7 +133,6 @@ export default function ScanScreen({ route }: any) {
                   { text: 'Try Again', onPress: () => setIsLoading(false) },
                   { text: 'Continue Anyway', onPress: async () => {
                     const processedUri = await processImage(photo.uri);
-                    setCapturedImage(processedUri);
                     await identifyPlant(processedUri);
                   }}
                 ]
@@ -134,14 +140,13 @@ export default function ScanScreen({ route }: any) {
               return;
             }
           }
-          
-          console.log('✅ Image validation passed, proceeding with identification...');
+
           const processedUri = await processImage(photo.uri);
-          setCapturedImage(processedUri);
           await identifyPlant(processedUri);
+          timer.end('camera-capture');
         }
       } catch (error) {
-        console.error('❌ Error in smart capture:', error);
+        logger.error('Error in smart capture:', error);
         Alert.alert('Camera Error', 'Failed to take picture. Please try again.');
       } finally {
         setIsLoading(false);
@@ -151,14 +156,12 @@ export default function ScanScreen({ route }: any) {
 
   const pickImage = async () => {
     try {
-      console.log('🖼️ Picking image from gallery...');
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permission Required', 'Please allow photo library access');
         return;
       }
 
-      setIsLoading(true);
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -167,37 +170,83 @@ export default function ScanScreen({ route }: any) {
       });
 
       if (!result.canceled && result.assets[0]) {
-        console.log('🖼️ Image selected:', result.assets[0].uri);
+        setIsLoading(true);
         const processedUri = await processImage(result.assets[0].uri);
-        setCapturedImage(processedUri);
+        // Don't set capturedImage - keep camera view visible during identification
         await identifyPlant(processedUri);
       }
     } catch (error) {
-      console.error('❌ Error picking image:', error);
+      logger.error('Error picking image:', error);
       Alert.alert('Gallery Error', 'Failed to pick image. Please try again.');
-    } finally {
+    } finally{
       setIsLoading(false);
+    }
+  };
+
+  // PHASE 3: API Test Handler
+  const testPlantNetAPI = async () => {
+    try {
+      Alert.alert('API Test', 'Running diagnostics...');
+
+      const result = await plantNetService.testPlantNetAPI();
+
+      const statusEmoji = {
+        apiKey: result.apiKeyConfigured ? '✅' : '❌',
+        network: result.networkReachable ? '✅' : '❌',
+        authorized: result.apiAuthorized ? '✅' : '❌'
+      };
+
+      Alert.alert(
+        'PlantNet API Test Results',
+        `${statusEmoji.apiKey} API Key: ${result.apiKeyConfigured ? 'Configured' : 'Missing'}\n\n` +
+        `${statusEmoji.network} Network: ${result.networkReachable ? 'Connected' : 'Offline'}\n\n` +
+        `${statusEmoji.authorized} API Access: ${result.apiAuthorized ? 'Authorized' : 'Blocked'}\n\n` +
+        `Your IP: ${result.ipAddress || 'Unknown'}\n\n` +
+        `${result.errorDetails ? `⚠️ ${result.errorDetails}` : '🎉 All checks passed!'}`,
+        [{ text: 'OK', style: 'default' }]
+      );
+    } catch (error) {
+      logger.error('API test failed:', error);
+      Alert.alert('Test Failed', `Error: ${error.message}`);
     }
   };
 
   const identifyPlant = async (imageUri: string) => {
     try {
-      console.log('🌿 Identifying plant...');
       setIsLoading(true);
-      
+      logger.group('🌿 Plant Identification Flow');
+      timer.start('plant-identification');
+
       // Use plant identification service
       const currentLang = getCurrentLanguage() as 'en' | 'ar';
+      logger.debug('Starting plant identification', {
+        language: currentLang,
+        organ: 'leaf',
+        imageUri: imageUri.substring(0, 50) + '...'
+      });
+
       const result = await plantNetService.identifyPlant(imageUri, 'leaf', currentLang);
-      
+      timer.end('plant-identification');
+
       if (result) {
-        console.log('🌿 Plant identified successfully');
+        logger.success('Plant identified successfully!', {
+          name: result.common_name,
+          scientificName: result.scientific_name,
+          confidence: `${result.confidence}%`
+        });
+
         setIdentificationResult(result);
+        logger.groupEnd();
+
         // Navigate to PlantResultScreen instead of showing modal
         navigation.navigate('PlantResult', {
           identificationResult: result,
           capturedImage: imageUri,
         });
       } else {
+        logger.warn('No identification results returned');
+        logger.groupEnd();
+
         Alert.alert(
           'No Results',
           'Could not identify this plant. Please try a clearer photo of the leaves with good lighting.',
@@ -215,7 +264,9 @@ export default function ScanScreen({ route }: any) {
         );
       }
     } catch (error) {
-      console.error('❌ Error identifying plant:', error);
+      logger.error('Error identifying plant:', error);
+      logger.groupEnd();
+
       Alert.alert(
         'Identification Error',
         'Network error occurred. Please check your connection and try again.',
@@ -250,7 +301,7 @@ export default function ScanScreen({ route }: any) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.permissionText}>{t('scan.permissions.requesting')}</Text>
+        <Text style={[styles.permissionText, isRTL && styles.permissionTextRTL]}>{t('scan.permissions.requesting')}</Text>
       </View>
     );
   }
@@ -259,12 +310,12 @@ export default function ScanScreen({ route }: any) {
     return (
       <View style={styles.container}>
         <Ionicons name="camera-outline" size={64} color={COLORS.textSecondary} />
-        <Text style={styles.permissionText}>{t('scan.permissions.noAccess')}</Text>
-        <Text style={styles.permissionSubtext}>
-          Please enable camera access in settings to identify plants
+        <Text style={[styles.permissionText, isRTL && styles.permissionTextRTL]}>{t('scan.permissions.noAccess')}</Text>
+        <Text style={[styles.permissionSubtext, isRTL && styles.permissionSubtextRTL]}>
+          {t('scan.permissions.settingsPrompt')}
         </Text>
         <TouchableOpacity style={styles.button} onPress={requestPermission}>
-          <Text style={styles.buttonText}>{t('scan.permissions.grantButton')}</Text>
+          <Text style={[styles.buttonText, isRTL && styles.buttonTextRTL]}>{t('scan.permissions.grantButton')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -272,32 +323,31 @@ export default function ScanScreen({ route }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Camera View - Always Visible */}
+      <View style={styles.cameraContainer}>
+        <PinchGestureHandler onGestureEvent={onPinchGestureEvent}>
+          <View style={styles.camera}>
+            <CameraView
+              ref={cameraRef}
+              style={StyleSheet.absoluteFill}
+              facing={cameraType}
+              zoom={zoom}
+            />
+          </View>
+        </PinchGestureHandler>
 
-      {!capturedImage ? (
-        // Camera View
-        <View style={styles.cameraContainer}>
-          <PinchGestureHandler onGestureEvent={onPinchGestureEvent}>
-            <View style={styles.camera}>
-              <CameraView
-                ref={cameraRef}
-                style={StyleSheet.absoluteFill}
-                facing={cameraType}
-                zoom={zoom}
-              />
-            </View>
-          </PinchGestureHandler>
-          
-          {/* Enhanced Smart Camera Overlay */}
-          <SmartCameraOverlay
-            isVisible={shouldShowOverlay && !capturedImage}
-            isCapturing={isLoading}
-            onCapturePress={takePicture}
-            onRetryPress={retryCapture}
-            currentImageUri={capturedImage}
-            enableRealTimeDetection={enableSmartDetection}
-          />
-          
-          {/* Header Controls */}
+        {/* Enhanced Smart Camera Overlay */}
+        <SmartCameraOverlay
+          isVisible={shouldShowOverlay && !isLoading}
+          isCapturing={isLoading}
+          onCapturePress={takePicture}
+          onRetryPress={retryCapture}
+          currentImageUri={capturedImage}
+          enableRealTimeDetection={enableSmartDetection}
+        />
+
+        {/* Header Controls - Hidden during loading */}
+        {!isLoading && (
           <View style={styles.headerOverlay}>
             <TouchableOpacity
               style={styles.headerButton}
@@ -305,56 +355,58 @@ export default function ScanScreen({ route }: any) {
             >
               <Ionicons name="arrow-back" size={24} color={COLORS.white} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>{t('scan.title')}</Text>
+            <Text style={[styles.headerTitle, isRTL && styles.headerTitleRTL]}>{t('scan.title')}</Text>
             <TouchableOpacity
               style={styles.headerButton}
               onPress={() => setEnableSmartDetection(!enableSmartDetection)}
             >
-              <Ionicons 
-                name={enableSmartDetection ? "eye" : "eye-off"} 
-                size={24} 
-                color={enableSmartDetection ? COLORS.primary : COLORS.white} 
+              <Ionicons
+                name={enableSmartDetection ? "eye" : "eye-off"}
+                size={24}
+                color={enableSmartDetection ? COLORS.primary : COLORS.white}
               />
             </TouchableOpacity>
           </View>
+        )}
 
-          {/* Gallery and Tips Controls */}
+        {/* Gallery and Tips Controls - Hidden during loading */}
+        {!isLoading && (
           <View style={styles.bottomControls}>
             <TouchableOpacity style={styles.galleryButton} onPress={pickImage}>
               <Ionicons name="images-outline" size={24} color={COLORS.white} />
-              <Text style={styles.controlText}>{t('scan.instructions.gallery')}</Text>
+              <Text style={[styles.controlText, isRTL && styles.controlTextRTL]}>{t('scan.instructions.gallery')}</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.tipsButton}
               onPress={() => setShouldShowOverlay(!shouldShowOverlay)}
             >
               <Ionicons name="help-circle-outline" size={24} color={COLORS.white} />
-              <Text style={styles.controlText}>
-                {shouldShowOverlay ? 'Hide Guide' : 'Show Guide'}
+              <Text style={[styles.controlText, isRTL && styles.controlTextRTL]}>
+                {shouldShowOverlay ? t('scan.instructions.hideGuide') : t('scan.instructions.showGuide')}
               </Text>
             </TouchableOpacity>
+
+            {/* PHASE 3: API Test Button (Dev Only) */}
+            {__DEV__ && (
+              <TouchableOpacity style={styles.debugTestButton} onPress={testPlantNetAPI}>
+                <Ionicons name="bug-outline" size={24} color={COLORS.primary} />
+                <Text style={[styles.debugTestText, isRTL && styles.debugTestTextRTL]}>🧪 API Test</Text>
+              </TouchableOpacity>
+            )}
           </View>
-        </View>
-      ) : (
-        // Captured Image Preview
-        <View style={styles.previewContainer}>
-          <View style={styles.header}>
-            <TouchableOpacity style={styles.headerButton} onPress={retryCapture}>
-              <Ionicons name="arrow-back" size={24} color={COLORS.text} />
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: COLORS.text }]}>
-              {isLoading ? t('scan.analyzing') : t('scan.results.title')}
-            </Text>
-            <View style={styles.headerButton} />
+        )}
+
+        {/* Loading Overlay - Shows on Camera During Identification */}
+        {isLoading && (
+          <View style={styles.loadingOverlay}>
+            <View style={styles.loadingContent}>
+              <ActivityIndicator size="large" color={COLORS.primary} />
+              <Text style={[styles.loadingText, isRTL && styles.loadingTextRTL]}>{t('scan.analyzing')}</Text>
+            </View>
           </View>
-
-          {capturedImage && <Image source={{ uri: capturedImage }} style={styles.previewImage} />}
-        </View>
-      )}
-
-
-
+        )}
+      </View>
     </SafeAreaView>
   );
 }
@@ -362,7 +414,7 @@ export default function ScanScreen({ route }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.text,
+    backgroundColor: COLORS.white,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -381,33 +433,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 60,
+    paddingHorizontal: FIBONACCI.LG,
+    paddingTop: FIBONACCI.XXL,
     zIndex: 20,
   },
   bottomControls: {
     position: 'absolute',
-    bottom: 40,
+    bottom: FIBONACCI.XL,
     left: 0,
     right: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 40,
+    paddingHorizontal: FIBONACCI.XL,
     zIndex: 20,
   },
   headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: FIBONACCI.XL,
+    height: FIBONACCI.XL,
+    borderRadius: FIBONACCI.LG,
     backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: TYPOGRAPHY.MD,
     fontWeight: '600',
     color: COLORS.white,
+    textAlign: 'center',
+  },
+  headerTitleRTL: {
+    textAlign: 'center',
   },
   cameraGuide: {
     flex: 1,
@@ -415,14 +471,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   guideFrame: {
-    width: 280,
-    height: 280,
+    width: GOLDEN_RECTANGLES.LARGE.width,
+    height: GOLDEN_RECTANGLES.LARGE.width,
     position: 'relative',
   },
   corner: {
     position: 'absolute',
-    width: 40,
-    height: 40,
+    width: FIBONACCI.XL,
+    height: FIBONACCI.XL,
     borderColor: COLORS.primary,
     borderWidth: 3,
   },
@@ -431,28 +487,28 @@ const styles = StyleSheet.create({
     left: 0,
     borderRightWidth: 0,
     borderBottomWidth: 0,
-    borderTopLeftRadius: 20,
+    borderTopLeftRadius: FIBONACCI.LG,
   },
   topRight: {
     top: 0,
     right: 0,
     borderLeftWidth: 0,
     borderBottomWidth: 0,
-    borderTopRightRadius: 20,
+    borderTopRightRadius: FIBONACCI.LG,
   },
   bottomLeft: {
     bottom: 0,
     left: 0,
     borderRightWidth: 0,
     borderTopWidth: 0,
-    borderBottomLeftRadius: 20,
+    borderBottomLeftRadius: FIBONACCI.LG,
   },
   bottomRight: {
     bottom: 0,
     right: 0,
     borderLeftWidth: 0,
     borderTopWidth: 0,
-    borderBottomRightRadius: 20,
+    borderBottomRightRadius: FIBONACCI.LG,
   },
   instructions: {
     position: 'absolute',
@@ -462,7 +518,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   instructionText: {
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.BASE,
     fontWeight: '500',
     color: COLORS.white,
     textShadowColor: 'rgba(0,0,0,0.7)',
@@ -470,48 +526,72 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
   },
   instructionTextAr: {
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.SM,
     color: COLORS.white,
-    marginTop: 4,
+    marginTop: FIBONACCI.XXS,
     textShadowColor: 'rgba(0,0,0,0.7)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
   controls: {
     position: 'absolute',
-    bottom: 40,
+    bottom: FIBONACCI.XL,
     left: 0,
     right: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 40,
+    paddingHorizontal: FIBONACCI.XL,
   },
   galleryButton: {
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.3)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: FIBONACCI.MD,
+    paddingVertical: FIBONACCI.SM,
+    borderRadius: FIBONACCI.LG,
   },
   tipsButton: {
     alignItems: 'center',
     backgroundColor: 'rgba(0,0,0,0.3)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: FIBONACCI.MD,
+    paddingVertical: FIBONACCI.SM,
+    borderRadius: FIBONACCI.LG,
+  },
+  // PHASE 3: Debug Test Button Styles
+  debugTestButton: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    paddingHorizontal: FIBONACCI.LG,
+    paddingVertical: FIBONACCI.XXS,
+    borderRadius: FIBONACCI.LG,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  debugTestText: {
+    color: COLORS.primary,
+    fontSize: TYPOGRAPHY.XXS,
+    fontWeight: '700',
+    marginTop: FIBONACCI.XXS,
   },
   controlText: {
     color: COLORS.white,
-    fontSize: 12,
-    marginTop: 4,
+    fontSize: TYPOGRAPHY.XS,
+    marginTop: FIBONACCI.XXS,
     textShadowColor: 'rgba(0,0,0,0.7)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
+  controlTextRTL: {
+    textAlign: 'center',
+  },
   captureButton: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: FIBONACCI.XXXL,
+    height: FIBONACCI.XXXL,
+    borderRadius: FIBONACCI.XL,
     backgroundColor: COLORS.white,
     justifyContent: 'center',
     alignItems: 'center',
@@ -519,45 +599,48 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
   },
   captureInner: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: FIBONACCI.XXL,
+    height: FIBONACCI.XXL,
+    borderRadius: FIBONACCI.XL,
     backgroundColor: COLORS.primary,
   },
   permissionText: {
-    fontSize: 18,
+    fontSize: TYPOGRAPHY.MD,
     fontWeight: '600',
     color: COLORS.text,
-    marginTop: 20,
+    marginTop: FIBONACCI.LG,
+    textAlign: 'center',
+  },
+  permissionTextRTL: {
     textAlign: 'center',
   },
   permissionSubtext: {
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.SM,
     color: COLORS.textSecondary,
-    marginTop: 8,
+    marginTop: FIBONACCI.SM,
     textAlign: 'center',
     paddingHorizontal: 40,
   },
+  permissionSubtextRTL: {
+    textAlign: 'center',
+  },
   button: {
     backgroundColor: COLORS.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 24,
-    marginTop: 20,
+    paddingHorizontal: FIBONACCI.XL,
+    paddingVertical: FIBONACCI.MD,
+    borderRadius: FIBONACCI.XL,
+    marginTop: FIBONACCI.LG,
   },
   buttonText: {
     color: COLORS.white,
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.BASE,
     fontWeight: '600',
   },
-  previewContainer: {
-    flex: 1,
-    backgroundColor: COLORS.white,
+  buttonTextRTL: {
+    textAlign: 'center',
   },
-  previewImage: {
-    width: '100%',
-    height: 300,
-    resizeMode: 'cover',
+  debugTestTextRTL: {
+    textAlign: 'center',
   },
   modalContainer: {
     flex: 1,
@@ -567,13 +650,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: FIBONACCI.LG,
+    paddingVertical: FIBONACCI.LG,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: TYPOGRAPHY.MD,
     fontWeight: '600',
     color: COLORS.text,
   },
@@ -581,87 +664,87 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   resultContentContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingHorizontal: FIBONACCI.LG,
+    paddingBottom: FIBONACCI.XL,
     flexGrow: 1,
   },
   resultImage: {
     width: '100%',
     height: 200,
-    borderRadius: 16,
-    marginBottom: 20,
+    borderRadius: ELEMENT_SIZES.RADIUS_LG,
+    marginBottom: FIBONACCI.LG,
   },
   confidenceBadge: {
     position: 'absolute',
-    top: 36,
-    right: 36,
+    top: FIBONACCI.XL,
+    right: FIBONACCI.XL,
     backgroundColor: COLORS.success,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: FIBONACCI.MD,
+    paddingVertical: FIBONACCI.XS,
+    borderRadius: ELEMENT_SIZES.RADIUS_LG,
   },
   confidenceText: {
     color: COLORS.white,
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.SM,
     fontWeight: '600',
   },
   plantInfo: {
-    marginBottom: 24,
-    marginTop: 20,
+    marginBottom: FIBONACCI.XL,
+    marginTop: FIBONACCI.LG,
   },
   plantName: {
-    fontSize: 24,
+    fontSize: TYPOGRAPHY.XL,
     fontWeight: '700',
     color: COLORS.primary,
-    marginBottom: 8,
+    marginBottom: FIBONACCI.SM,
   },
   scientificName: {
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.BASE,
     fontStyle: 'italic',
     color: COLORS.textSecondary,
-    marginBottom: 4,
+    marginBottom: FIBONACCI.XXS,
   },
   familyName: {
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.SM,
     color: COLORS.textSecondary,
   },
   careSection: {
-    marginBottom: 24,
+    marginBottom: FIBONACCI.XL,
     backgroundColor: COLORS.background,
-    padding: 16,
-    borderRadius: 16,
+    padding: FIBONACCI.LG,
+    borderRadius: ELEMENT_SIZES.RADIUS_LG,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
   careTitle: {
-    fontSize: 18,
+    fontSize: TYPOGRAPHY.MD,
     fontWeight: '600',
     color: COLORS.primary,
-    marginBottom: 16,
+    marginBottom: FIBONACCI.LG,
   },
   plantDescription: {
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.SM,
     color: COLORS.text,
-    lineHeight: 20,
-    marginBottom: 20,
+    lineHeight: TYPOGRAPHY.LG,
+    marginBottom: FIBONACCI.LG,
   },
   careDetails: {
-    gap: 12,
+    gap: FIBONACCI.MD,
   },
   careItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingVertical: 8,
+    paddingVertical: FIBONACCI.SM,
   },
   careContent: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: FIBONACCI.MD,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   careLabel: {
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.SM,
     fontWeight: '600',
     color: COLORS.text,
     marginBottom: 2,
@@ -756,7 +839,7 @@ const styles = StyleSheet.create({
   authModalContent: {
     backgroundColor: COLORS.white,
     borderRadius: 20,
-    padding: 24,
+    padding: FIBONACCI.LG,
     width: '100%',
     maxWidth: 350,
     position: 'relative',
@@ -770,8 +853,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 16,
     right: 16,
-    width: 32,
-    height: 32,
+    width: FIBONACCI.XL,
+    height: FIBONACCI.XL,
     borderRadius: 16,
     backgroundColor: COLORS.lightGray,
     justifyContent: 'center',
@@ -789,7 +872,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   authTitle: {
-    fontSize: 24,
+    fontSize: TYPOGRAPHY.LG,
     fontWeight: '700',
     color: COLORS.primary,
     marginBottom: 8,
@@ -850,5 +933,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.primary,
     fontWeight: '600',
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  loadingContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.white,
+    padding: FIBONACCI.XL,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+    minWidth: 250,
+    maxWidth: 300,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.primary,
+    textAlign: 'center',
+    width: '100%',
+    flexWrap: 'wrap',
+  },
+  loadingTextRTL: {
+    textAlign: 'center',
   },
 });

@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User, Plant, PlantSpecies, AppState, WeatherData, CareRecommendation } from '../types';
 import { CACHE_KEYS } from '../constants';
 import { changeLanguage } from '../i18n';
+import { logger } from '../utils/logger';
 
 interface AppStore extends AppState {
   // Actions
@@ -10,28 +11,31 @@ interface AppStore extends AppState {
   setAuthenticated: (isAuthenticated: boolean) => void;
   setLoading: (isLoading: boolean) => void;
   signInAsGuest: () => void;
-  
+  updateUserName: (firstName: string) => void;
+  isFirstVisit: boolean;
+  markAsReturningUser: () => void;
+
   // Language actions
   setLanguage: (language: 'en' | 'ar') => Promise<void>;
   toggleLanguage: () => Promise<void>;
   setIsRTL: (isRTL: boolean) => void;
-  
+
   // Plant actions
   setPlants: (plants: Plant[]) => void;
   addPlant: (plant: Plant) => void;
   updatePlant: (id: string, updates: Partial<Plant>) => void;
   deletePlant: (id: string) => void;
-  
+
   // Species actions
   setSpecies: (species: PlantSpecies[]) => void;
-  
+
   // Weather actions
   setWeather: (weather: WeatherData) => void;
-  
+
   // Care recommendations actions
   setCareRecommendations: (recommendations: CareRecommendation[]) => void;
   addCareRecommendation: (recommendation: CareRecommendation) => void;
-  
+
   // Persistence
   loadFromStorage: () => Promise<void>;
   saveToStorage: () => Promise<void>;
@@ -50,6 +54,7 @@ export const useStore = create<AppStore>((set, get) => ({
   isRTL: false,
   weather: null,
   careRecommendations: [],
+  isFirstVisit: true, // Default to true for new users
 
   // User actions
   setUser: (user) => {
@@ -65,21 +70,37 @@ export const useStore = create<AppStore>((set, get) => ({
     }
   },
 
-  signInAsGuest: () => {
-    console.log('🚨 signInAsGuest() function called in store');
-    const guestId = `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    console.log('🚨 Setting guest state:', { isGuest: true, isAuthenticated: false, guestId });
+  signInAsGuest: async () => {
+    // Clear any cached authenticated user data
+    await AsyncStorage.removeItem(CACHE_KEYS.USER_PROFILE);
+    await AsyncStorage.removeItem(CACHE_KEYS.USER_PLANTS);
+
     set({
       isGuest: true,
       isAuthenticated: false,
-      user: {
-        id: guestId,
-        name: 'Guest User',
-        created_at: new Date().toISOString(),
-      }
+      user: null, // No user object for guests
+      plants: [], // No cached plants for guests
+      isFirstVisit: true,
     });
-    get().saveToStorage();
-    console.log('🚨 Guest state set successfully');
+    // Don't save to storage for guests
+  },
+
+  updateUserName: (firstName) => {
+    const { user } = get();
+    if (user) {
+      const updatedUser = {
+        ...user,
+        first_name: firstName,
+        name: user.name || firstName, // Also update name if it doesn't exist
+      };
+      set({ user: updatedUser });
+      get().saveToStorage();
+    }
+  },
+
+  markAsReturningUser: () => {
+    set({ isFirstVisit: false });
+    AsyncStorage.setItem('has_visited_before', 'true');
   },
 
   setLoading: (isLoading) => {
@@ -170,11 +191,29 @@ export const useStore = create<AppStore>((set, get) => ({
   // Persistence
   loadFromStorage: async () => {
     try {
-      const [userPlantsData, userProfileData, speciesData, languageData] = await Promise.all([
+      const { isGuest } = get();
+
+      // Don't load cached user data for guest users
+      if (isGuest) {
+        // Only load language preference for guests
+        const languageData = await AsyncStorage.getItem('user-language');
+        if (languageData) {
+          const language = languageData as 'en' | 'ar';
+          set({
+            language,
+            isRTL: language === 'ar'
+          });
+          await changeLanguage(language);
+        }
+        return;
+      }
+
+      const [userPlantsData, userProfileData, speciesData, languageData, hasVisitedBefore] = await Promise.all([
         AsyncStorage.getItem(CACHE_KEYS.USER_PLANTS),
         AsyncStorage.getItem(CACHE_KEYS.USER_PROFILE),
         AsyncStorage.getItem(CACHE_KEYS.PLANT_SPECIES),
         AsyncStorage.getItem('user-language'),
+        AsyncStorage.getItem('has_visited_before'),
       ]);
 
       if (userPlantsData) {
@@ -194,27 +233,37 @@ export const useStore = create<AppStore>((set, get) => ({
 
       if (languageData) {
         const language = languageData as 'en' | 'ar';
-        set({ 
-          language, 
-          isRTL: language === 'ar' 
+        set({
+          language,
+          isRTL: language === 'ar'
         });
         await changeLanguage(language);
       }
+
+      // Check if user has visited before
+      if (hasVisitedBefore === 'true') {
+        set({ isFirstVisit: false });
+      }
     } catch (error) {
-      console.error('Error loading from storage:', error);
+      logger.error('Error loading from storage:', error);
     }
   },
 
   saveToStorage: async () => {
     try {
-      const { user, plants } = get();
-      
+      const { user, plants, isGuest } = get();
+
+      // Don't cache data for guest users
+      if (isGuest) {
+        return;
+      }
+
       await Promise.all([
         AsyncStorage.setItem(CACHE_KEYS.USER_PLANTS, JSON.stringify(plants)),
         user ? AsyncStorage.setItem(CACHE_KEYS.USER_PROFILE, JSON.stringify(user)) : null,
       ]);
     } catch (error) {
-      console.error('Error saving to storage:', error);
+      logger.error('Error saving to storage:', error);
     }
   },
 
@@ -225,8 +274,9 @@ export const useStore = create<AppStore>((set, get) => ({
         AsyncStorage.removeItem(CACHE_KEYS.USER_PROFILE),
         AsyncStorage.removeItem(CACHE_KEYS.PLANT_SPECIES),
         AsyncStorage.removeItem('user-language'),
+        AsyncStorage.removeItem('has_visited_before'),
       ]);
-      
+
       set({
         user: null,
         plants: [],
@@ -237,9 +287,10 @@ export const useStore = create<AppStore>((set, get) => ({
         isRTL: false,
         weather: null,
         careRecommendations: [],
+        isFirstVisit: true, // Reset to first visit on logout
       });
     } catch (error) {
-      console.error('Error clearing storage:', error);
+      logger.error('Error clearing storage:', error);
     }
   },
 }));

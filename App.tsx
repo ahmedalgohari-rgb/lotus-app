@@ -21,8 +21,9 @@ LogBox.ignoreLogs([
 export default function App() {
   const { setUser, setAuthenticated, setLoading, isRTL } = useStore();
 
-  // Load Decotype Naskh Swashes font for bilingual compass
+  // Load Tharwat Emara Ruqaa font for bilingual compass
   const [fontsLoaded] = useFonts({
+    'TharwatEmaraRuqaa': require('./assets/fonts/TharwatEmaraRuqaa.ttf'),
     'DecotypeNaskhSwashes': require('./assets/fonts/DecotypeNaskhSwashes.ttf'),
     'PlusJakartaSans-Regular': PlusJakartaSans_400Regular,
     'PlusJakartaSans-Bold': PlusJakartaSans_700Bold,

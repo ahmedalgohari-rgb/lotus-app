@@ -16,7 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
-import { COLORS } from '../constants';
+import { COLORS, GOLDEN_RECTANGLES, FIBONACCI } from '../constants';
 import { PlantDetectionResult, plantDetectionService } from '../utils/plantDetection';
 import { plantNetService } from '../services/plantnet';
 
@@ -369,8 +369,8 @@ const styles = StyleSheet.create({
   // Detection Frame
   detectionFrame: {
     alignSelf: 'center',
-    width: 280,
-    height: 280,
+    width: GOLDEN_RECTANGLES.LARGE.width,
+    height: GOLDEN_RECTANGLES.LARGE.width,
     position: 'relative',
   },
   corner: {
@@ -484,8 +484,8 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   captureButton: {
-    width: 80,
-    height: 80,
+    width: FIBONACCI.XXXL,
+    height: FIBONACCI.XXXL,
     borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',

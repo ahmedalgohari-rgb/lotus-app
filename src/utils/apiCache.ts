@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import CryptoJS from 'crypto-js';
+import { logger } from './logger';
 
 export interface CacheEntry<T> {
   data: T;
@@ -70,10 +71,9 @@ export class ApiCache {
         return null;
       }
 
-      console.log('🎯 Cache hit for key:', cacheKey);
       return entry.data;
     } catch (error) {
-      console.error('❌ Cache get error:', error);
+      logger.error('❌ Cache get error:', error);
       return null;
     }
   }
@@ -95,12 +95,11 @@ export class ApiCache {
       };
 
       await AsyncStorage.setItem(fullKey, JSON.stringify(entry));
-      console.log('💾 Cached data for key:', cacheKey, 'TTL:', expirationTime / 1000, 's');
 
       // Clean up old entries if needed
       await this.cleanup();
     } catch (error) {
-      console.error('❌ Cache set error:', error);
+      logger.error('❌ Cache set error:', error);
     }
   }
 
@@ -112,9 +111,8 @@ export class ApiCache {
       const cacheKey = typeof key === 'string' ? key : this.generateKey(key);
       const fullKey = `${this.cacheKey}_${cacheKey}`;
       await AsyncStorage.removeItem(fullKey);
-      console.log('🗑️ Deleted cache entry:', cacheKey);
     } catch (error) {
-      console.error('❌ Cache delete error:', error);
+      logger.error('❌ Cache delete error:', error);
     }
   }
 
@@ -125,13 +123,13 @@ export class ApiCache {
     try {
       const keys = await AsyncStorage.getAllKeys();
       const cacheKeys = keys.filter(key => key.startsWith(this.cacheKey));
-      
+
+
       if (cacheKeys.length > 0) {
         await AsyncStorage.multiRemove(cacheKeys);
-        console.log('🧹 Cleared', cacheKeys.length, 'cache entries');
       }
     } catch (error) {
-      console.error('❌ Cache clear error:', error);
+      logger.error('❌ Cache clear error:', error);
     }
   }
 
@@ -148,7 +146,6 @@ export class ApiCache {
       return cached;
     }
 
-    console.log('🔄 Cache miss, fetching fresh data...');
     const data = await fetchFunction();
     await this.set(key, data, ttl);
     return data;
@@ -188,7 +185,6 @@ export class ApiCache {
       const expiredKeys = entries.filter(e => e.expired).map(e => e.key);
       if (expiredKeys.length > 0) {
         await AsyncStorage.multiRemove(expiredKeys);
-        console.log('🧹 Removed', expiredKeys.length, 'expired cache entries');
       }
 
       // If still over limit, remove oldest entries
@@ -197,12 +193,11 @@ export class ApiCache {
         const sorted = remainingEntries.sort((a, b) => a.timestamp - b.timestamp);
         const toRemove = sorted.slice(0, remainingEntries.length - this.maxEntries);
         const keysToRemove = toRemove.map(e => e.key);
-        
+
         await AsyncStorage.multiRemove(keysToRemove);
-        console.log('🧹 Removed', keysToRemove.length, 'old cache entries');
       }
     } catch (error) {
-      console.error('❌ Cache cleanup error:', error);
+      logger.error('❌ Cache cleanup error:', error);
     }
   }
 
@@ -249,7 +244,7 @@ export class ApiCache {
         newestEntry: timestamps.length > 0 ? new Date(Math.max(...timestamps)) : null
       };
     } catch (error) {
-      console.error('❌ Cache stats error:', error);
+      logger.error('❌ Cache stats error:', error);
       return {
         totalEntries: 0,
         expiredEntries: 0,

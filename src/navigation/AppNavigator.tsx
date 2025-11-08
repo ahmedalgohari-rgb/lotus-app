@@ -7,12 +7,13 @@ import { Ionicons } from '@expo/vector-icons';
 // Screens
 import HomeScreen from '../screens/HomeScreen';
 import ScanScreen from '../screens/ScanScreen';
+import AddScanScreen from '../screens/AddScanScreen';
 import PlantsScreen from '../screens/PlantsScreen';
 import PlantDetailScreen from '../screens/PlantDetailScreen';
 import AddPlantScreen from '../screens/AddPlantScreen';
 import PlantResultScreen from '../screens/PlantResultScreen';
 import AuthScreen from '../screens/AuthScreen';
-import EmailAuthScreen from '../screens/EmailAuthScreen';
+import EditPlantScreen from '../screens/EditPlantScreen';
 
 // Types
 import { NavigationParamList } from '../types';
@@ -30,6 +31,7 @@ function PlantsStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="PlantsList" component={PlantsScreen} />
       <Stack.Screen name="PlantDetail" component={PlantDetailScreen} />
+      <Stack.Screen name="EditPlant" component={EditPlantScreen} />
     </Stack.Navigator>
   );
 }
@@ -40,6 +42,7 @@ function MainStack() {
     // @ts-ignore - Navigation types are working correctly at runtime
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MainTabs" component={MainTabs} />
+      <Stack.Screen name="Camera" component={ScanScreen} />
       <Stack.Screen name="PlantResult" component={PlantResultScreen} />
       <Stack.Screen name="AddPlant" component={AddPlantScreen} />
     </Stack.Navigator>
@@ -102,9 +105,9 @@ function MainTabs() {
           tabBarLabel: t('navigation.home'),
         }}
       />
-      <Tab.Screen 
-        name="Scan" 
-        component={ScanScreen}
+      <Tab.Screen
+        name="Scan"
+        component={AddScanScreen}
         options={{
           tabBarLabel: t('navigation.scan'),
         }}
@@ -123,13 +126,6 @@ function MainTabs() {
 // Root navigator
 export default function AppNavigator() {
   const { user, isAuthenticated, isGuest } = useStore();
-  
-  console.log('🔍 AppNavigator - Auth state:', { 
-    isAuthenticated, 
-    isGuest, 
-    userId: user?.id,
-    showingAuthScreen: !isAuthenticated && !isGuest 
-  });
 
   const shouldShowAuth = !isAuthenticated && !isGuest;
   
@@ -144,14 +140,12 @@ export default function AppNavigator() {
           // Not authenticated - show auth screens only
           <>
             <Stack.Screen name="Auth" component={AuthScreen} />
-            <Stack.Screen name="EmailAuth" component={EmailAuthScreen} />
           </>
         ) : (
           // Authenticated or guest user - show main app
           <>
             <Stack.Screen name="Main" component={MainStack} />
             <Stack.Screen name="Auth" component={AuthScreen} />
-            <Stack.Screen name="EmailAuth" component={EmailAuthScreen} />
           </>
         )}
       </Stack.Navigator>

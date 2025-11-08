@@ -6,17 +6,22 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  TextInput,
   Platform,
   Dimensions,
+  ScrollView,
+  KeyboardAvoidingView,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
-import { COLORS } from '../constants';
-import { authService } from '../services/supabase';
+import { useTranslation } from 'react-i18next';
+import { COLORS, FIBONACCI, TYPOGRAPHY, ELEMENT_SIZES } from '../constants';
+import { authService, dbService } from '../services/supabase';
 import { useStore } from '../store';
+import NameCollectionModal from '../components/NameCollectionModal';
+import { logger, timer } from '../utils/logger';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -27,57 +32,107 @@ interface AuthScreenProps {
 
 export default function AuthScreen({ navigation, route }: AuthScreenProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [showPhoneAuth, setShowPhoneAuth] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [otpCode, setOtpCode] = useState('');
-  const [isVerifyingOTP, setIsVerifyingOTP] = useState(false);
-  const { setUser, setAuthenticated, signInAsGuest } = useStore();
-  
+  const [showNameCollection, setShowNameCollection] = useState(false);
+  const [pendingUser, setPendingUser] = useState<any>(null);
+  const { setUser, setAuthenticated, signInAsGuest, updateUserName } = useStore();
+
   // Get return navigation parameters
+  const { t } = useTranslation();
   const returnTo = route?.params?.returnTo;
   const identificationResult = route?.params?.identificationResult;
   const capturedImage = route?.params?.capturedImage;
-  
-  console.log('AuthScreen loaded with email button');
 
   const handlePostAuthNavigation = () => {
-    if (returnTo === 'ScanResults' && identificationResult) {
-      // Navigate back to scan screen and show results
-      navigation.navigate('Main', {
-        screen: 'Scan',
-        params: {
-          showResult: true,
-          identificationResult,
-          capturedImage,
-        }
-      });
-    } else {
-      // Default navigation to main app
-      navigation.navigate('Main');
-    }
+    // ✅ Navigation handled automatically by NavigationContainer's key-based re-mount
+    // When isAuthenticated/isGuest state changes, the entire nav tree rebuilds automatically
+    // and shows the correct screens. No manual navigation needed.
+    logger.debug('✅ Auth state updated - NavigationContainer will auto-navigate');
   };
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
+    logger.group('🔐 Google Sign-In Flow');
+    timer.start('google-signin');
+
     try {
+      logger.debug('Initiating Google OAuth...');
       const { data, error } = await authService.signInWithGoogle();
       if (error) throw error;
-      
+
       if (data && 'user' in data && data.user) {
-        setUser({
+        logger.debug('Google OAuth successful', { userId: data.user.id, email: data.user.email });
+
+        // Check if user has a first_name in their profile
+        const { data: profileData } = await dbService.getProfile(data.user.id);
+        const hasFirstName = profileData?.first_name && profileData.first_name.trim().length > 0;
+
+        // Try to extract first name from Google's full name
+        const googleFullName = data.user.user_metadata?.name;
+        const googleFirstName = googleFullName?.split(' ')[0]?.trim();
+
+        logger.debug('Profile status', {
+          hasStoredName: hasFirstName,
+          googleProvidedName: !!googleFirstName,
+          fullName: googleFullName
+        });
+
+        const userData = {
           id: data.user.id,
           email: data.user.email,
-          name: data.user.user_metadata?.name || data.user.email,
+          name: profileData?.first_name || googleFullName || data.user.email,
+          first_name: profileData?.first_name || googleFirstName,
           avatar_url: data.user.user_metadata?.avatar_url,
           created_at: data.user.created_at,
-        });
-        setAuthenticated(true);
-        handlePostAuthNavigation();
+        };
+
+        if (!hasFirstName && googleFirstName) {
+          // Google provided a name - auto-save it and skip modal
+          logger.info('Auto-saving Google-provided name', { firstName: googleFirstName });
+          try {
+            await dbService.updateUserProfile(data.user.id, googleFirstName);
+            setUser({
+              ...userData,
+              first_name: googleFirstName,
+              name: googleFirstName,
+            });
+            updateUserName(googleFirstName);
+            setAuthenticated(true);
+            logger.success('User authenticated with auto-saved name');
+            timer.end('google-signin');
+            logger.groupEnd();
+            setIsLoading(false);
+            handlePostAuthNavigation();
+          } catch (saveError) {
+            logger.error('Error auto-saving Google name:', saveError);
+            // Fall back to showing modal
+            setPendingUser(userData);
+            setShowNameCollection(true);
+            logger.groupEnd();
+            setIsLoading(false);
+          }
+        } else if (!hasFirstName && !googleFirstName) {
+          // No first_name in profile and Google didn't provide one - show modal
+          logger.info('Showing name collection modal');
+          setPendingUser(userData);
+          setShowNameCollection(true);
+          timer.end('google-signin');
+          logger.groupEnd();
+          setIsLoading(false);
+        } else {
+          // Existing user with first_name - proceed normally
+          logger.success('Returning user authenticated', { firstName: userData.first_name });
+          setUser(userData);
+          setAuthenticated(true);
+          timer.end('google-signin');
+          logger.groupEnd();
+          setIsLoading(false);
+          handlePostAuthNavigation();
+        }
       }
     } catch (error) {
-      console.error('Google sign in error:', error);
+      logger.error('Google sign in error:', error);
+      logger.groupEnd();
       Alert.alert('Sign In Failed', 'Please try again.');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -87,219 +142,309 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
     try {
       const { data, error } = await authService.signInWithApple();
       if (error) throw error;
-      
+
       if (data && 'user' in data && data.user) {
-        setUser({
+        // Check if user has a first_name in their profile
+        const { data: profileData } = await dbService.getProfile(data.user.id);
+        const hasFirstName = profileData?.first_name && profileData.first_name.trim().length > 0;
+
+        const userData = {
           id: data.user.id,
           email: data.user.email,
-          name: data.user.user_metadata?.name || data.user.email,
+          name: profileData?.first_name || data.user.user_metadata?.name || data.user.email,
+          first_name: profileData?.first_name,
           avatar_url: data.user.user_metadata?.avatar_url,
           created_at: data.user.created_at,
-        });
-        setAuthenticated(true);
-        handlePostAuthNavigation();
+        };
+
+        if (!hasFirstName) {
+          // New user without first_name - show name collection modal
+          setPendingUser(userData);
+          setShowNameCollection(true);
+          setIsLoading(false);
+        } else {
+          // Existing user with first_name - proceed normally
+          setUser(userData);
+          setAuthenticated(true);
+          setIsLoading(false);
+          handlePostAuthNavigation();
+        }
       }
     } catch (error) {
-      console.error('Apple sign in error:', error);
+      logger.error('Apple sign in error:', error);
       Alert.alert('Sign In Failed', 'Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleGuestMode = () => {
-    console.log('🚨 Skip button pressed - calling signInAsGuest()');
-    signInAsGuest();
-    console.log('🚨 signInAsGuest() called');
-  };
-
-  const handlePhoneSignIn = async () => {
-    if (!phoneNumber.trim()) {
-      Alert.alert('Error', 'Please enter your phone number');
-      return;
-    }
-
+  const handleFacebookSignIn = async () => {
     setIsLoading(true);
+    logger.group('🔐 Facebook Sign-In Flow');
+    timer.start('facebook-signin');
+
     try {
-      const fullPhoneNumber = `+20${phoneNumber}`;
-      const { error } = await authService.signInWithOtp(fullPhoneNumber);
+      logger.debug('Initiating Facebook OAuth...');
+      const { data, error } = await authService.signInWithFacebook();
       if (error) throw error;
 
-      Alert.alert('OTP Sent', `A verification code has been sent to ${fullPhoneNumber}.`);
-      setIsVerifyingOTP(true);
-    } catch (error) {
-      console.error('Phone auth error:', error);
-      Alert.alert('Error', 'Failed to send verification code. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      if (data && 'user' in data && data.user) {
+        logger.debug('Facebook OAuth successful', { userId: data.user.id, email: data.user.email });
 
-  const handleOTPVerification = async () => {
-    if (!otpCode.trim()) {
-      Alert.alert('Error', 'Please enter the verification code');
-      return;
-    }
+        // Check if user has a first_name in their profile
+        const { data: profileData } = await dbService.getProfile(data.user.id);
+        const hasFirstName = profileData?.first_name && profileData.first_name.trim().length > 0;
 
-    setIsLoading(true);
-    try {
-      const fullPhoneNumber = `+20${phoneNumber}`;
-      const { data, error } = await authService.verifyOtp(fullPhoneNumber, otpCode);
-      if (error) throw error;
+        // Try to extract first name from Facebook's full name
+        const facebookFullName = data.user.user_metadata?.name || data.user.user_metadata?.full_name;
+        const facebookFirstName = facebookFullName?.split(' ')[0]?.trim();
 
-      if (data && data.user) {
-        setUser({
-          id: data.user.id,
-          phone: data.user.phone,
-          name: data.user.user_metadata?.name || `User ${data.user.phone?.slice(-4)}`,
-          created_at: data.user.created_at,
+        logger.debug('Profile status', {
+          hasStoredName: hasFirstName,
+          facebookProvidedName: !!facebookFirstName,
+          fullName: facebookFullName
         });
-        setAuthenticated(true);
-        Alert.alert('Success', 'Phone number verified successfully!', [
-          { text: 'OK', onPress: handlePostAuthNavigation }
-        ]);
-      } else {
-        Alert.alert('Error', 'Could not verify OTP. Please try again.');
+
+        const userData = {
+          id: data.user.id,
+          email: data.user.email,
+          name: profileData?.first_name || facebookFullName || data.user.email,
+          first_name: profileData?.first_name || facebookFirstName,
+          avatar_url: data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture?.data?.url,
+          created_at: data.user.created_at,
+        };
+
+        if (!hasFirstName && facebookFirstName) {
+          // Facebook provided a name - auto-save it and skip modal
+          logger.info('Auto-saving Facebook-provided name', { firstName: facebookFirstName });
+          try {
+            await dbService.updateUserProfile(data.user.id, facebookFirstName);
+            setUser({
+              ...userData,
+              first_name: facebookFirstName,
+              name: facebookFirstName,
+            });
+            updateUserName(facebookFirstName);
+            setAuthenticated(true);
+            logger.success('User authenticated with auto-saved name');
+            timer.end('facebook-signin');
+            logger.groupEnd();
+            setIsLoading(false);
+            handlePostAuthNavigation();
+          } catch (saveError) {
+            logger.error('Error auto-saving Facebook name:', saveError);
+            // Fall back to showing modal
+            setPendingUser(userData);
+            setShowNameCollection(true);
+            logger.groupEnd();
+            setIsLoading(false);
+          }
+        } else if (!hasFirstName && !facebookFirstName) {
+          // No first_name in profile and Facebook didn't provide one - show modal
+          logger.info('Showing name collection modal');
+          setPendingUser(userData);
+          setShowNameCollection(true);
+          timer.end('facebook-signin');
+          logger.groupEnd();
+          setIsLoading(false);
+        } else {
+          // Existing user with first_name - proceed normally
+          logger.success('Returning user authenticated', { firstName: userData.first_name });
+          setUser(userData);
+          setAuthenticated(true);
+          timer.end('facebook-signin');
+          logger.groupEnd();
+          setIsLoading(false);
+          handlePostAuthNavigation();
+        }
       }
     } catch (error) {
-      console.error('OTP verification error:', error);
-      Alert.alert('Error', 'Verification failed. Invalid code or server error.');
-    } finally {
+      logger.error('Facebook sign in error:', error);
+      logger.groupEnd();
+      Alert.alert('Sign In Failed', 'Please try again.');
       setIsLoading(false);
     }
   };
 
-  const resetPhoneAuth = () => {
-    setShowPhoneAuth(false);
-    setIsVerifyingOTP(false);
-    setPhoneNumber('');
-    setOtpCode('');
+  const handleGuestMode = async () => {
+    await signInAsGuest();
+    handlePostAuthNavigation();
+  };
+
+  const handleTestUserSignIn = async () => {
+    setIsLoading(true);
+    logger.group('🧪 Test User Sign-In (Ahmad)');
+
+    try {
+      // Sign in with real Supabase credentials (bypasses RLS)
+      logger.info('Attempting to sign in with test@lotus.com...');
+      const { data, error } = await authService.signIn('test@lotus.com', 'testpassword123');
+
+      // Log detailed error for debugging
+      if (error) {
+        logger.error('Sign in error details:', {
+          message: error.message,
+          status: error.status,
+          name: error.name,
+        });
+        throw new Error(`Sign in failed: ${error.message}`);
+      }
+
+      if (!data?.user) {
+        throw new Error('No user data returned from sign in');
+      }
+
+      // Successfully signed in with existing Supabase account
+      const supabaseUser = data.user;
+      logger.info('Supabase user object:', {
+        id: supabaseUser.id,
+        email: supabaseUser.email,
+        confirmed: supabaseUser.email_confirmed_at,
+      });
+
+      const testUser = {
+        id: supabaseUser.id,
+        email: supabaseUser.email || 'test@lotus.com',
+        name: 'Ahmad', // Display name as "Ahmad" for test user
+        first_name: 'Ahmad',
+        avatar_url: null,
+        created_at: supabaseUser.created_at,
+      };
+
+      logger.success('✅ Ahmad (test user) signed in successfully!');
+      setUser(testUser);
+      updateUserName('Ahmad');
+      setAuthenticated(true);
+
+      logger.groupEnd();
+      setIsLoading(false);
+      handlePostAuthNavigation();
+    } catch (error: any) {
+      logger.error('❌ Test sign in error:', error);
+      logger.error('Error details:', error.message || error);
+      logger.groupEnd();
+
+      // Show helpful error message
+      const errorMessage = error.message || 'Unknown error';
+      Alert.alert(
+        'Sign In Failed',
+        `Could not sign in as Ahmad (test user).\n\nError: ${errorMessage}\n\nPlease check:\n1. Account exists in Supabase\n2. Email is confirmed\n3. Password is correct: testpassword123`
+      );
+      setIsLoading(false);
+    }
+  };
+
+  const handleNameSubmit = async (firstName: string) => {
+    if (!pendingUser) return;
+
+    setIsLoading(true);
+    try {
+      // Update user profile in Supabase
+      const { error } = await dbService.updateUserProfile(pendingUser.id, firstName);
+      if (error) throw error;
+
+      // Update user in store
+      const updatedUser = {
+        ...pendingUser,
+        first_name: firstName,
+        name: firstName,
+      };
+
+      setUser(updatedUser);
+      updateUserName(firstName);
+      setAuthenticated(true);
+      setShowNameCollection(false);
+      setPendingUser(null);
+
+      // Note: NavigationContainer will auto-navigate via key-based re-mount
+      // No manual navigation needed - state change triggers automatic navigation
+    } catch (error) {
+      logger.error('Error saving user name:', error);
+      Alert.alert('Error', 'Failed to save your name. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <SafeAreaView style={styles.container} testID="auth-screen">
+      {/* Name Collection Modal */}
+      <NameCollectionModal
+        visible={showNameCollection}
+        onSubmit={handleNameSubmit}
+      />
+
       <LinearGradient
         colors={[COLORS.primary, COLORS.secondary]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradientContainer}
       >
-        {/* Skip Button */}
+        {/* Test User Sign In Button - Top Left */}
+        <View style={styles.testUserContainer}>
+          <TouchableOpacity
+            onPress={handleTestUserSignIn}
+            testID="test-user-login-button"
+            style={styles.testUserButton}
+          >
+            <Text style={styles.testUserText}>Sign in as Ahmad</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Skip Button - Top Right */}
         <View style={styles.skipContainer}>
-          <TouchableOpacity onPress={handleGuestMode} testID="guest-login-button">
+          <TouchableOpacity
+            onPress={handleGuestMode}
+            testID="guest-login-button"
+            style={styles.skipButton}
+          >
             <Text style={styles.skipText}>Skip</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Main Content */}
-        <View style={styles.mainContent}>
-          {/* Logo and Taglines */}
-          <View style={styles.heroSection}>
-            <Text style={styles.logo}>🌿</Text>
-            <Text style={styles.appName}>LOTUS</Text>
-            <Text style={[styles.tagline, { opacity: showPhoneAuth ? 0.3 : 1 }]}>
-              Care for your plants.{'\n'}
-              Grow with nature.{'\n'}
-              Perfect for Cairo's climate.
-            </Text>
-          </View>
+        {/* Main Content with ScrollView */}
+        <KeyboardAvoidingView
+          style={styles.keyboardAvoidingView}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={0}
+        >
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Logo and Taglines */}
+            <View style={styles.heroSection}>
+              <Image
+                source={require('../../assets/lotus-logo-new.png')}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
+              <Text style={styles.appName}>LOTUS</Text>
+              <Text style={styles.tagline}>
+                {t('auth.tagline')}
+              </Text>
+            </View>
 
           {/* Auth Buttons */}
           <View style={styles.authButtons}>
-            {!showPhoneAuth ? (
-              <TouchableOpacity
-                style={styles.phoneButton}
-                onPress={() => setShowPhoneAuth(true)}
-                disabled={isLoading}
-              >
-                <Ionicons name="call" size={20} color={COLORS.primary} />
-                <Text style={styles.phoneButtonText}>Continue with Phone</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.phoneAuthContainer}>
-                {!isVerifyingOTP ? (
-                  <>
-                    <Text style={styles.phoneAuthTitle}>Enter your phone number</Text>
-                    <View style={styles.phoneInputContainer}>
-                      <Text style={styles.countryCode}>+20</Text>
-                      <TextInput
-                        style={styles.phoneInput}
-                        placeholder="1xxxxxxxxx"
-                        placeholderTextColor={COLORS.textSecondary}
-                        value={phoneNumber}
-                        onChangeText={setPhoneNumber}
-                        keyboardType="phone-pad"
-                        maxLength={10}
-                        autoFocus
-                      />
-                    </View>
-                    <View style={styles.phoneAuthButtons}>
-                      <TouchableOpacity
-                        style={styles.backButton}
-                        onPress={resetPhoneAuth}
-                        disabled={isLoading}
-                      >
-                        <Text style={styles.backButtonText}>Back</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.sendOTPButton}
-                        onPress={handlePhoneSignIn}
-                        disabled={isLoading || !phoneNumber.trim()}
-                      >
-                        {isLoading ? (
-                          <ActivityIndicator size="small" color={COLORS.white} />
-                        ) : (
-                          <Text style={styles.sendOTPButtonText}>Send Code</Text>
-                        )}
-                      </TouchableOpacity>
-                    </View>
-                  </>
-                ) : (
-                  <>
-                    <Text style={styles.phoneAuthTitle}>Enter verification code</Text>
-                    <Text style={styles.otpSubtitle}>Sent to +20{phoneNumber}</Text>
-                    <TextInput
-                      style={styles.otpInput}
-                      placeholder="123456"
-                      placeholderTextColor={COLORS.textSecondary}
-                      value={otpCode}
-                      onChangeText={setOtpCode}
-                      keyboardType="number-pad"
-                      maxLength={6}
-                      autoFocus
-                    />
-                    <View style={styles.phoneAuthButtons}>
-                      <TouchableOpacity
-                        style={styles.backButton}
-                        onPress={resetPhoneAuth}
-                        disabled={isLoading}
-                      >
-                        <Text style={styles.backButtonText}>Back</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.verifyButton}
-                        onPress={handleOTPVerification}
-                        disabled={isLoading || !otpCode.trim()}
-                      >
-                        {isLoading ? (
-                          <ActivityIndicator size="small" color={COLORS.white} />
-                        ) : (
-                          <Text style={styles.verifyButtonText}>Verify</Text>
-                        )}
-                      </TouchableOpacity>
-                    </View>
-                  </>
-                )}
-              </View>
-            )}
-
             <TouchableOpacity
               style={styles.googleButton}
               onPress={handleGoogleSignIn}
               disabled={isLoading}
             >
-              <Ionicons name="logo-google" size={20} color={COLORS.primary} />
-              <Text style={styles.googleButtonText}>Continue with Google</Text>
+              <Ionicons name="logo-google" size={24} color={COLORS.primary} />
+              <Text style={styles.googleButtonText}>{t('auth.continueWithGoogle')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.facebookButton}
+              onPress={handleFacebookSignIn}
+              disabled={isLoading}
+            >
+              <Ionicons name="logo-facebook" size={24} color={COLORS.primary} />
+              <Text style={styles.facebookButtonText}>{t('auth.continueWithFacebook')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -307,33 +452,31 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
               disabled={true}
             >
               <View style={styles.appleButtonContent}>
-                <Ionicons name="logo-apple" size={20} color={COLORS.primary} />
-                <Text style={styles.appleButtonText}>Continue with Apple</Text>
+                <Ionicons name="logo-apple" size={24} color={COLORS.primary} />
+                <Text style={styles.appleButtonText}>{t('auth.continueWithApple')}</Text>
                 <View style={styles.comingSoonContainer}>
-                  <Text style={styles.comingSoonText}>Coming Soon</Text>
+                  <Text style={styles.comingSoonText}>{t('auth.comingSoon')}</Text>
                 </View>
               </View>
             </TouchableOpacity>
           </View>
 
-          {/* Loading State */}
-          {isLoading && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={COLORS.white} />
-              <Text style={styles.loadingText}>Signing you in...</Text>
-            </View>
-          )}
+            {/* Loading State */}
+            {isLoading && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={COLORS.white} />
+                <Text style={styles.loadingText}>{t('auth.signingIn')}</Text>
+              </View>
+            )}
 
-          {/* Legal Text */}
-          <View style={styles.legalSection}>
-            <Text style={styles.legalText}>
-              By continuing you agree to our{' '}
-              <Text style={styles.legalLink}>Terms of Service</Text>.{'\n'}
-              Lotus services are subject to our{' '}
-              <Text style={styles.legalLink}>Privacy Policy</Text>.
-            </Text>
-          </View>
-        </View>
+            {/* Legal Text */}
+            <View style={styles.legalSection}>
+              <Text style={styles.legalText}>
+                {t('auth.termsAgreement')}
+              </Text>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </LinearGradient>
     </SafeAreaView>
   );
@@ -346,81 +489,144 @@ const styles = StyleSheet.create({
   gradientContainer: {
     flex: 1,
   },
-  skipContainer: {
+  testUserContainer: {
     position: 'absolute',
-    top: 60,
-    right: 24,
+    top: 50,
+    left: 24,
     zIndex: 1,
   },
-  skipText: {
-    fontSize: 16,
+  testUserButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: FIBONACCI.LG,
+    paddingVertical: FIBONACCI.SM,
+    borderRadius: FIBONACCI.LG,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  testUserText: {
+    fontSize: TYPOGRAPHY.BASE,
     color: COLORS.white,
     fontWeight: '500',
   },
-  mainContent: {
+  skipContainer: {
+    position: 'absolute',
+    top: 50,
+    right: 24,
+    zIndex: 1,
+  },
+  skipButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: FIBONACCI.LG,
+    paddingVertical: FIBONACCI.SM,
+    borderRadius: FIBONACCI.LG,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  skipText: {
+    fontSize: TYPOGRAPHY.BASE,
+    color: COLORS.white,
+    fontWeight: '500',
+  },
+  keyboardAvoidingView: {
     flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: SCREEN_WIDTH * 0.08,
-    justifyContent: 'space-between',
-    paddingTop: SCREEN_HEIGHT * 0.12,
-    paddingBottom: SCREEN_HEIGHT * 0.06,
+    paddingTop: SCREEN_HEIGHT * 0.08,
+    paddingBottom: SCREEN_HEIGHT * 0.03,
   },
   heroSection: {
     alignItems: 'center',
-    marginBottom: SCREEN_HEIGHT * 0.04,
+    marginBottom: SCREEN_HEIGHT * 0.005, // Minimal - children have golden ratio spacing
   },
   logo: {
     fontSize: SCREEN_HEIGHT * 0.1,
     marginBottom: SCREEN_HEIGHT * 0.02,
   },
+  logoImage: {
+    width: SCREEN_WIDTH * 0.70,
+    height: SCREEN_HEIGHT * 0.32,
+    marginBottom: SCREEN_HEIGHT * 0.008, // Golden ratio base unit
+    // Professional shadow for depth
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+  },
   appName: {
-    fontSize: SCREEN_HEIGHT * 0.06,
+    fontSize: SCREEN_HEIGHT * 0.05,
     fontWeight: '700',
     color: COLORS.white,
-    marginBottom: SCREEN_HEIGHT * 0.03,
-    letterSpacing: 2,
+    marginBottom: SCREEN_HEIGHT * 0.013, // Golden ratio: 0.008 * 1.618
+    letterSpacing: 5,
   },
   tagline: {
-    fontSize: SCREEN_HEIGHT * 0.022,
+    fontSize: SCREEN_HEIGHT * 0.02,
     color: COLORS.white,
     textAlign: 'center',
-    lineHeight: SCREEN_HEIGHT * 0.03,
+    lineHeight: SCREEN_HEIGHT * 0.026,
     fontWeight: '500',
     opacity: 0.95,
-    marginBottom: SCREEN_HEIGHT * 0.02,
+    marginBottom: SCREEN_HEIGHT * 0.021, // Golden ratio: 0.013 * 1.618
   },
   authButtons: {
-    marginTop: SCREEN_HEIGHT * 0.02,
+    marginTop: SCREEN_HEIGHT * 0.005, // Minimal since tagline has golden ratio spacing
+    marginBottom: SCREEN_HEIGHT * 0.01,
   },
   googleButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.white,
-    height: 56,
-    borderRadius: 28,
-    marginBottom: 16,
+    height: ELEMENT_SIZES.BUTTON_MD,
+    borderRadius: FIBONACCI.XL,
+    marginBottom: FIBONACCI.LG, // 21px - Fibonacci spacing to fit content on one page
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: FIBONACCI.SM,
+    elevation: 4,
   },
   googleButtonText: {
     color: COLORS.primary,
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.BASE,
     fontWeight: '600',
-    marginLeft: 12,
+    marginLeft: FIBONACCI.MD,
+  },
+  facebookButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.white,
+    height: ELEMENT_SIZES.BUTTON_MD,
+    borderRadius: FIBONACCI.XL,
+    marginBottom: FIBONACCI.LG, // 21px - Fibonacci spacing to fit content on one page
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: FIBONACCI.SM,
+    elevation: 4,
+  },
+  facebookButtonText: {
+    color: COLORS.primary,
+    fontSize: TYPOGRAPHY.BASE,
+    fontWeight: '600',
+    marginLeft: FIBONACCI.MD,
   },
   appleButton: {
     backgroundColor: COLORS.white,
-    height: 56,
-    borderRadius: 28,
-    marginBottom: 16,
+    height: ELEMENT_SIZES.BUTTON_MD,
+    borderRadius: FIBONACCI.XL,
+    marginBottom: FIBONACCI.LG, // 21px - Fibonacci spacing to fit content on one page
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: FIBONACCI.SM,
+    elevation: 4,
     position: 'relative',
   },
   appleButtonContent: {
@@ -432,156 +638,32 @@ const styles = StyleSheet.create({
   },
   appleButtonText: {
     color: COLORS.primary,
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.BASE,
     fontWeight: '600',
-    marginLeft: 12,
-  },
-  divider: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  dividerText: {
-    fontSize: 16,
-    color: COLORS.white,
-    fontWeight: '500',
-    opacity: 0.8,
-  },
-  phoneButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.white,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    gap: 8,
-  },
-  phoneButtonText: {
-    color: COLORS.primary,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  phoneAuthContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    padding: 24,
-    marginTop: 8,
-  },
-  phoneAuthTitle: {
-    color: COLORS.white,
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  phoneInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    marginBottom: 20,
-  },
-  countryCode: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.primary,
-    marginRight: 8,
-  },
-  phoneInput: {
-    flex: 1,
-    height: 50,
-    fontSize: 16,
-    color: COLORS.text,
-  },
-  otpInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 50,
-    fontSize: 18,
-    textAlign: 'center',
-    color: COLORS.text,
-    letterSpacing: 8,
-    marginBottom: 20,
-  },
-  otpSubtitle: {
-    color: COLORS.white,
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 20,
-    opacity: 0.8,
-  },
-  phoneAuthButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  backButton: {
-    flex: 1,
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    backgroundColor: 'transparent',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backButtonText: {
-    color: COLORS.white,
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  sendOTPButton: {
-    flex: 2,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: COLORS.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sendOTPButtonText: {
-    color: COLORS.primary,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  verifyButton: {
-    flex: 2,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: COLORS.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  verifyButtonText: {
-    color: COLORS.primary,
-    fontSize: 16,
-    fontWeight: '600',
+    marginLeft: FIBONACCI.MD,
   },
   loadingContainer: {
     alignItems: 'center',
-    marginVertical: 20,
+    marginVertical: FIBONACCI.LG,
   },
   loadingText: {
-    fontSize: 14,
+    fontSize: TYPOGRAPHY.SM,
     color: COLORS.white,
-    marginTop: 8,
+    marginTop: FIBONACCI.SM,
     opacity: 0.8,
   },
   legalSection: {
-    marginTop: SCREEN_HEIGHT * 0.04,
+    marginTop: 'auto',
+    paddingTop: SCREEN_HEIGHT * 0.015,
     paddingHorizontal: SCREEN_WIDTH * 0.04,
+    paddingBottom: FIBONACCI.MD,
   },
   legalText: {
-    fontSize: 13,
+    fontSize: TYPOGRAPHY.XXS,
     color: COLORS.white,
     textAlign: 'center',
-    lineHeight: 18,
-    opacity: 0.8,
+    lineHeight: TYPOGRAPHY.BASE,
+    opacity: 0.65,
   },
   legalLink: {
     fontWeight: '600',
@@ -589,17 +671,21 @@ const styles = StyleSheet.create({
   },
   comingSoonContainer: {
     position: 'absolute',
-    bottom: 6,
-    right: -1,
-    backgroundColor: '#F4D03F',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    transform: [{ rotate: '345deg' }],
+    top: -FIBONACCI.SM, // -8px - Anchored to Apple button top edge matching October 10th
+    right: FIBONACCI.SM, // 8px - Closer to right edge matching October 10th design
+    backgroundColor: '#2D5F3F', // Lotus Green - dark teal/green matching target design
+    paddingHorizontal: FIBONACCI.SM, // 8px - Compact padding
+    paddingVertical: FIBONACCI.XXS, // 3px - Minimal vertical padding
+    borderRadius: FIBONACCI.MD, // 13px - Pill-shaped badge
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: FIBONACCI.XXS }, // 3px - Subtle depth
+    shadowOpacity: 0.2,
+    shadowRadius: FIBONACCI.XS, // 5px - Soft shadow
+    elevation: 3,
   },
   comingSoonText: {
     fontSize: 8,
-    color: COLORS.secondary,
+    color: '#FFFFFF', // Pure white for maximum brightness matching October 10th
     fontWeight: '700',
   },
 });

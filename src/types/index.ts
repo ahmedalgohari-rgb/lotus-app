@@ -126,8 +126,127 @@ export interface WeatherData {
   };
 }
 
-// Smart care recommendations
-export interface CareRecommendation {
+// Enhanced Care Recommendation System (Phase 15.0)
+export interface PlacementScore {
+  score: 1 | 2 | 3 | 4 | 5;
+  scoreText: 'Very Challenging' | 'Challenging' | 'Good' | 'Very Good' | 'Excellent';
+  stars: string; // Visual representation like "★★★★★"
+}
+
+export interface CareWarning {
+  type: 'danger' | 'warning' | 'info';
+  message: string;
+  icon: string; // Emoji or icon name
+}
+
+// Static room modifiers (fallback when weather unavailable)
+export interface RoomModifier {
+  room: string;
+  acEffect?: boolean; // AC dries air
+  steamEffect?: boolean; // Bathroom steam
+  cookingHeat?: boolean; // Kitchen heat
+  humidityModifier: number; // ±% humidity change
+  evaporationRate: number; // ±% evaporation rate
+  note: string; // Human-readable explanation
+}
+
+// Static direction modifiers (fallback when weather unavailable)
+export interface DirectionModifier {
+  direction: 'north' | 'east' | 'south' | 'west';
+  season: string;
+  lightIntensity: 'Very Low' | 'Low' | 'Medium' | 'High' | 'Very High';
+  wateringAdjustment: number; // ±days to add/subtract
+  warning?: string; // Alert for challenging conditions
+  benefit?: string; // Positive note for good conditions
+}
+
+// Weather-aware room modifiers (scales with temperature)
+export interface WeatherAwareRoomModifier {
+  room: 'living_room' | 'bedroom' | 'kitchen' | 'bathroom' | 'balcony' | 'office';
+  getModifiers: (weather: WeatherData) => {
+    humidityModifier: number; // Dynamic ±% based on temperature
+    evaporationRate: number; // Dynamic ±% based on conditions
+    note: string; // Context-aware explanation
+  };
+}
+
+// Weather-aware direction modifiers (scales with conditions)
+export interface WeatherAwareDirectionModifier {
+  direction: 'north' | 'east' | 'south' | 'west';
+  season: 'winter' | 'spring' | 'summer' | 'autumn';
+  getModifiers: (weather: WeatherData) => {
+    lightIntensity: 'Very Low' | 'Low' | 'Medium' | 'High' | 'Very High';
+    wateringAdjustment: number; // Dynamic ±days based on temperature/humidity
+    warning?: string; // Condition-specific warnings
+    benefit?: string; // Condition-specific benefits
+  };
+}
+
+export interface WeatherContext {
+  temperature: number;
+  humidity: number;
+  condition: string;
+  lastUpdated: Date;
+  impact: string;
+}
+
+// Environmental context combining weather + room + direction
+export interface EnvironmentalContext {
+  weather: WeatherData;
+  room: {
+    type: 'living_room' | 'bedroom' | 'kitchen' | 'bathroom' | 'balcony' | 'office';
+    humidityModifier: number;
+    evaporationRate: number;
+    note: string;
+  };
+  direction: {
+    type: 'north' | 'east' | 'south' | 'west';
+    season: 'winter' | 'spring' | 'summer' | 'autumn';
+    lightIntensity: 'Very Low' | 'Low' | 'Medium' | 'High' | 'Very High';
+    wateringAdjustment: number;
+    note: string;
+  };
+}
+
+export interface EnhancedCareRecommendation {
+  score: PlacementScore;
+  plant: {
+    id: string;
+    name: string;
+    scientificName?: string;
+    baseWatering: string; // "10-14 days (100% dry)"
+    lightRequirement: string; // "Medium light"
+    lightTolerance: string[]; // ["low_light", "bright_indirect"]
+    humidityPreference: string; // "Low (15-25%)"
+  };
+  environment: {
+    room: string;
+    direction: string;
+    season: string;
+    roomFactor: string; // "AC dries air faster"
+    directionFactor: string; // "South window = intense afternoon sun"
+    weatherConditions?: string; // "38°C, 18% humidity" when weather available
+  };
+  adjusted: {
+    watering: string; // "Water every 7-9 days (AC + heat)"
+    wateringFrequency: string; // "Check every 5 days"
+    placement: string; // "Move 3 feet from south window"
+    humidity: string; // "Mist once per week (extreme heat)"
+    reasoning: string; // Explanation for adjustments
+  };
+  warnings: CareWarning[];
+  tips: string[];
+  reasoning: {
+    score: string; // Why this placement got this score
+    watering: string; // Why watering was adjusted
+    placement: string; // Why placement recommendation given
+  };
+  weatherContext?: WeatherContext;
+  environmentalContext?: EnvironmentalContext; // Full context when weather available
+}
+
+// Smart care recommendations (legacy - to be potentially replaced by EnhancedCareRecommendation)
+export interface SmartCareRecommendation {
   plantId: string;
   type: 'water' | 'fertilize' | 'prune' | 'repot';
   urgency: 'low' | 'medium' | 'high';
@@ -146,5 +265,5 @@ export interface AppState {
   language: 'en' | 'ar';
   isRTL: boolean;
   weather: WeatherData | null;
-  careRecommendations: CareRecommendation[];
+  careRecommendations: SmartCareRecommendation[];
 }

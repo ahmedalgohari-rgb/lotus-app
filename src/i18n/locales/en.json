@@ -18,24 +18,46 @@
   "navigation": {
     "home": "Home",
     "scan": "Scan",
-    "plants": "My Plants",
+    "plants": "My Garden",
     "profile": "Profile",
     "settings": "Settings"
   },
   "auth": {
     "title": "Welcome to Lotus",
-    "subtitle": "Your personal plant care companion for Cairo",
+    "subtitle": "Your personal plant care companion at home",
+    "tagline": "Care for your plants at home.\nGrow with expert guidance.",
     "signInWithGoogle": "Sign in with Google",
     "signInWithApple": "Sign in with Apple",
+    "signInWithFacebook": "Sign in with Facebook",
+    "continueWithPhone": "Continue with Phone",
+    "continueWithGoogle": "Continue with Google",
+    "continueWithApple": "Continue with Apple",
+    "continueWithFacebook": "Continue with Facebook",
     "continueAsGuest": "Continue as Guest",
     "signingIn": "Signing in...",
     "signInError": "Sign in failed. Please try again.",
     "guestMode": "Guest Mode",
-    "guestDescription": "Limited features available in guest mode"
+    "guestDescription": "Limited features available in guest mode",
+    "alreadyMember": "Already a member? Sign in",
+    "maybeLater": "Maybe later",
+    "comingSoon": "Coming Soon",
+    "termsAgreement": "By continuing you agree to our Terms of Service and Privacy Policy",
+    "createFreeAccount": "Create Free Account"
+  },
+  "nameCollection": {
+    "title": "What would you like us to call you?",
+    "subtitle": "This helps us personalize your experience",
+    "placeholder": "Your name",
+    "okButton": "OK",
+    "helperText": "3-10 letters only"
   },
   "home": {
-    "welcome": "Welcome back",
+    "welcomeFirst": "Welcome",
+    "welcomeBack": "Welcome back",
     "guestWelcome": "Welcome to Lotus",
+    "goodMorning": "Good Morning",
+    "goodAfternoon": "Good Afternoon",
+    "goodEvening": "Good Evening",
     "plantsNeedCare": "Plants needing care",
     "noPlantsTitle": "No plants yet",
     "noPlantsSubtitle": "Scan your first plant to get started!",
@@ -46,7 +68,19 @@
     "humidity": "Humidity",
     "rainfall": "Rainfall",
     "careBasics": "Plant Care Basics",
-    "quickActions": "Quick Actions"
+    "quickActions": "Quick Actions",
+    "loadingWeather": "Loading Cairo weather...",
+    "weatherError": "Unable to load weather data"
+  },
+  "addScan": {
+    "title": "Find Your Plant",
+    "subtitle": "You can add your plant to your garden with a common name search for free without any limits",
+    "searchPlaceholder": "Search plant...",
+    "or": "or",
+    "identify": "Identify",
+    "popularPlants": "Popular Plants",
+    "searchResults": "Search results",
+    "noResults": "No plants found for \"{{query}}\""
   },
   "scan": {
     "title": "Identify Your Plant",
@@ -66,19 +100,24 @@
     "instructions": {
       "centerPlant": "Center your plant in the frame",
       "gallery": "Gallery",
-      "tips": "Tips"
+      "tips": "Tips",
+      "showGuide": "Show Guide",
+      "hideGuide": "Hide Guide"
     },
     "permissions": {
       "requesting": "Camera access is needed to scan plants",
       "noAccess": "Camera access denied",
-      "grantButton": "Grant Permission"
+      "grantButton": "Grant Permission",
+      "settingsPrompt": "Please enable camera access in settings to identify plants"
     },
     "results": {
-      "title": "Plant Identified!"
+      "title": "Plant Identified"
     }
   },
   "plants": {
     "title": "My Plants",
+    "myGarden": "My Garden",
+    "addPlant": "Add Plant",
     "searchPlaceholder": "Search your plants...",
     "noPlantsTitle": "No plants yet",
     "noPlantsSubtitle": "Scan your first plant to start your collection",
@@ -91,21 +130,43 @@
     "daysAgo": "days ago",
     "filterAll": "All",
     "filterHealthy": "Healthy",
-    "filterNeedsAttention": "Needs Attention"
+    "filterNeedsAttention": "Needs Attention",
+    "signInRequired": "Please sign in to view your plants",
+    "empty": {
+      "title": "No plants yet",
+      "description": "Start by scanning your first plant with the camera",
+      "scanButton": "Scan Your First Plant"
+    },
+    "actions": {
+      "waterAll": "Water All",
+      "addNew": "Add New Plant"
+    }
   },
   "plantDetail": {
     "careHistory": "Care History",
     "nextWatering": "Next watering",
+    "nextWateringLabel": "Next watering:",
+    "lastWatered": "Last watered:",
     "lastCare": "Last care",
+    "never": "Never",
+    "notSet": "Not set",
     "plantInfo": "Plant Information",
+    "plantDetails": "Plant Details",
+    "quickActions": "Quick Actions",
+    "careSchedule": "Care Schedule",
     "location": "Location",
+    "window": "Window",
     "windowDirection": "Window Direction",
+    "added": "Added",
+    "addedOn": "Added on",
     "healthStatus": "Health Status",
     "careActions": "Care Actions",
     "water": "Water",
+    "feed": "Feed",
     "fertilize": "Fertilize",
     "prune": "Prune",
     "repot": "Repot",
+    "move": "Move",
     "addNote": "Add Note",
     "careNote": "Care note (optional)",
     "careRecorded": "Care recorded successfully",
@@ -115,6 +176,10 @@
     "plantAge": "Plant age",
     "careStreak": "Care streak",
     "careGuide": "Plant Care Guide",
+    "wateringCycle": "Watering cycle",
+    "now": "Now!",
+    "tomorrow": "Tomorrow",
+    "inXDays": "In {{days}} days",
     "careLabels": {
       "type": "Type:",
       "watering": "Watering:",
@@ -128,13 +193,16 @@
     "plantNickname": "Plant Nickname",
     "enterNickname": "Enter a nickname for your plant",
     "plantLocation": "Plant Location",
+    "whereWillPlantLive": "Where will your plant live?",
     "windowDirection": "Window Direction",
     "plantSpecies": "Plant Species",
     "searchSpecies": "Search plant species...",
     "customWateringSchedule": "Custom Watering Schedule",
     "everyDays": "Every {{days}} days",
-    "saveToCollection": "Save to my garden",
+    "saveToCollection": "Save to My Garden",
     "plantAdded": "Plant added to your garden!",
+    "plantAddedTitle": "Plant Added! 🌿",
+    "plantAddedMessage": "{{name}} has been added to your garden",
     "careTips": "Care Tips",
     "selectedDirection": "Selected:",
     "locations": {
@@ -152,17 +220,26 @@
     },
     "plantPhoto": "Plant Photo",
     "addPhoto": "Add Photo",
-    "changePhoto": "Change Photo"
+    "changePhoto": "Change Photo",
+    "locationRating": "Location Rating",
+    "calculatingScore": "Calculating placement score...",
+    "scores": {
+      "excellent": "Excellent",
+      "veryGood": "Very Good",
+      "good": "Good",
+      "challenging": "Challenging",
+      "veryChallenging": "Very Challenging"
+    }
   },
   "care": {
     "careTypes": {
       "water": "Watered",
       "fertilize": "Fertilized",
-      "prune": "Pruned", 
+      "prune": "Pruned",
       "repot": "Repotted"
     },
     "smartRecommendations": "Smart Recommendations",
-    "weatherBasedCare": "Based on Cairo weather",
+    "weatherBasedCare": "Based on local weather",
     "skipToday": "Skip today",
     "scheduleNext": "Schedule next care"
   },
@@ -203,7 +280,7 @@
     "helpSupport": "Help & Support",
     "helpSupportSubtitle": "Get help with plant care",
     "signOutConfirm": "Are you sure you want to sign out?",
-    "aboutMessage": "Lotus Plant Care App\\nVersion 2.0.0\\nMade for Egyptian plant lovers in Cairo 🌿🇪🇬"
+    "aboutMessage": "Lotus Plant Care App\\nVersion 2.0.0\\nMade with love for Egyptian plant lovers 🌿🇪🇬"
   },
   "errors": {
     "networkError": "Network error. Please check your connection.",
@@ -228,23 +305,50 @@
     "humidity": {
       "description": "Most houseplants prefer 40-60% humidity"
     },
-    "cairo": {
-      "seasonal": "Seasonal Cairo Tips",
-      "summer": "Cairo summer: Water more during hot months",
-      "winter": "Cairo winter: Reduce watering during cool months"
+    "seasonal": {
+      "title": "Seasonal Tips",
+      "summer": "Summer: Water more during hot months",
+      "winter": "Winter: Reduce watering during cool months"
     }
   },
-  "plants": {
-    "title": "My Plants",
-    "signInRequired": "Please sign in to view your plants",
-    "empty": {
-      "title": "No plants yet",
-      "description": "Start by scanning your first plant with the camera",
-      "scanButton": "Scan Your First Plant"
+  "edit": {
+    "title": "Edit Plant",
+    "nickname": "Plant Nickname",
+    "nicknamePlaceholder": "Give your plant a name",
+    "nicknameRequired": "Please enter a nickname for your plant",
+    "location": "Location (Room)",
+    "windowDirection": "Window Direction",
+    "plantType": "Plant Species",
+    "addPhoto": "Add Photo",
+    "changePhoto": "Change Photo",
+    "saveChanges": "Save Changes",
+    "saveSuccess": "Your plant has been updated successfully.",
+    "customizeTitle": "Edit Your Plant",
+    "saveError": "Failed to save changes. Please try again.",
+    "imagePickError": "Failed to select image"
+  },
+  "plantResult": {
+    "title": "Plant Identified!",
+    "plantStory": "Your Plant's Story",
+    "unlockPotential": "Unlock Your Plant's Full Potential",
+    "imageProcessingNote": "Image processing complete, but quality could be improved",
+    "signInPrompt": "Already a member? Sign in",
+    "maybeLater": "Maybe later",
+    "features": {
+      "saveToGarden": "Save to My Garden",
+      "smartWatering": "Smart Watering Tips",
+      "placementTips": "Placement Tips",
+      "careGuides": "Detailed Care Guides"
     },
-    "actions": {
-      "waterAll": "Water All",
-      "addNew": "Add New Plant"
+    "buttons": {
+      "saveAuth": "Add to My Plants",
+      "saveGuest": "Save My Plant",
+      "tryAnother": "Try Another"
     }
+  },
+  "account": {
+    "termsAndConditions": "Terms & Conditions",
+    "accountManagement": "Account Management",
+    "logout": "Logout"
   }
 }

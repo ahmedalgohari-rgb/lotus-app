@@ -1,5 +1,7 @@
 import { WeatherData } from '../types';
 import i18n from '../i18n';
+import { logger } from '../utils/logger';
+
 const CAIRO_COORDS = {
   lat: 30.0444,
   lon: 31.2357
@@ -40,13 +42,12 @@ export class WeatherService {
     try {
       // Check cache first
       if (this.isCacheValid()) {
-        console.log('Using cached weather data');
         return this.cachedWeather;
       }
 
       const apiKey = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY;
       if (!apiKey) {
-        console.warn('OpenWeather API key not configured');
+        logger.warn('OpenWeather API key not configured');
         return this.getMockWeatherData();
       }
 
@@ -62,15 +63,13 @@ export class WeatherService {
       return weatherData;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.warn('Weather API temporarily unavailable, using fallback data:', errorMessage);
-      
+      logger.warn('Weather API temporarily unavailable, using fallback data:', errorMessage);
+
       // Return cached data if available, otherwise mock data
       if (this.cachedWeather) {
-        console.log('Using stale cached weather data due to API error');
         return this.cachedWeather;
       }
-      
-      console.log('Using mock weather data as fallback');
+
       return this.getMockWeatherData();
     }
   }
@@ -96,8 +95,6 @@ export class WeatherService {
     
     for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
       try {
-        console.log(`Weather API attempt ${attempt}/${this.MAX_RETRIES}`);
-        
         // Create abort controller for timeout
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), this.REQUEST_TIMEOUT);
@@ -122,24 +119,19 @@ export class WeatherService {
         }
 
         const data: OpenWeatherResponse = await response.json();
-        console.log('Weather API call successful');
         return this.transformWeatherData(data);
         
       } catch (error: unknown) {
         lastError = error as Error;
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.log(`Weather API attempt ${attempt}/${this.MAX_RETRIES} failed:`, errorMessage);
-        
+
         // Don't retry on abort (timeout)
         if (error instanceof Error && error.name === 'AbortError') {
-          console.log('Weather API request timed out, switching to fallback data');
           break;
         }
-        
+
         // Wait before retry (exponential backoff)
         if (attempt < this.MAX_RETRIES) {
           const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // Max 5s delay
-          console.log(`Waiting ${delay}ms before retry...`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
@@ -296,7 +288,6 @@ export class WeatherService {
   static clearCache(): void {
     this.cachedWeather = null;
     this.lastFetch = null;
-    console.log('Weather cache cleared');
   }
 
   /**

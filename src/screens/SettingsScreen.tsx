@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useStore } from '../store';
 import { useRTL, rtlStyles } from '../utils/rtl';
+import { COLORS, FIBONACCI, TYPOGRAPHY, ELEMENT_SIZES } from '../constants';
 
 interface SettingsItemProps {
   icon: string;
@@ -245,44 +246,44 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: COLORS.background,
   },
   header: {
-    padding: 20,
-    paddingTop: 60,
-    backgroundColor: '#FFFFFF',
+    padding: FIBONACCI.LG, // 21px - Golden ratio padding
+    paddingTop: FIBONACCI.XXL + 5, // 60px - Top spacing
+    backgroundColor: COLORS.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    borderBottomColor: COLORS.border,
   },
   title: {
-    fontSize: 32,
+    fontSize: TYPOGRAPHY.XXL - 2, // 32px - Large heading
     fontWeight: 'bold',
-    color: '#2E7D32',
-    marginBottom: 8,
+    color: COLORS.primary,
+    marginBottom: FIBONACCI.SM, // 8px - Fibonacci spacing
   },
   userInfo: {
-    fontSize: 16,
-    color: '#8E8E93',
+    fontSize: TYPOGRAPHY.BASE, // 16px - Golden ratio typography
+    color: COLORS.textSecondary,
   },
   section: {
-    marginTop: 20,
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 8,
+    marginTop: FIBONACCI.LG, // 21px - Golden ratio spacing
+    backgroundColor: COLORS.white,
+    paddingVertical: FIBONACCI.SM, // 8px - Fibonacci padding
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.BASE, // 16px - Golden ratio typography
     fontWeight: '600',
-    color: '#8E8E93',
-    marginHorizontal: 20,
-    marginBottom: 8,
+    color: COLORS.textSecondary,
+    marginHorizontal: FIBONACCI.LG, // 21px - Golden ratio
+    marginBottom: FIBONACCI.SM, // 8px - Fibonacci spacing
     textTransform: 'uppercase',
   },
   settingsItem: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    backgroundColor: COLORS.white,
+    paddingHorizontal: FIBONACCI.LG, // 21px - Golden ratio padding
+    paddingVertical: FIBONACCI.MD, // 13px - Golden ratio padding
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E5EA',
+    borderBottomColor: COLORS.border,
   },
   settingsItemContent: {
     alignItems: 'center',
@@ -291,57 +292,57 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   settingsItemTitle: {
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.BASE, // 16px - Golden ratio typography
     fontWeight: '500',
-    color: '#000000',
-    marginBottom: 2,
+    color: COLORS.text,
+    marginBottom: FIBONACCI.XXS, // 3px - Fibonacci spacing
   },
   settingsItemSubtitle: {
-    fontSize: 14,
-    color: '#8E8E93',
+    fontSize: TYPOGRAPHY.SM, // 14px - Golden ratio typography
+    color: COLORS.textSecondary,
   },
   languageSelector: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: FIBONACCI.LG, // 21px - Golden ratio padding
+    paddingVertical: FIBONACCI.MD, // 13px - Golden ratio padding
   },
   languageOption: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginVertical: 4,
-    backgroundColor: '#F8F9FA',
+    paddingVertical: FIBONACCI.MD, // 13px - Golden ratio padding
+    paddingHorizontal: FIBONACCI.MD, // 13px - Golden ratio padding
+    borderRadius: ELEMENT_SIZES.RADIUS_MD, // 13px - Golden ratio rounding
+    marginVertical: FIBONACCI.XXS, // 3px - Fibonacci spacing
+    backgroundColor: COLORS.background,
   },
   selectedLanguage: {
     backgroundColor: '#E3F2FD',
     borderWidth: 1,
-    borderColor: '#4A90E2',
+    borderColor: COLORS.secondary,
   },
   languageContent: {
     alignItems: 'center',
   },
   languageFlag: {
-    fontSize: 24,
-    marginRight: 12,
+    fontSize: TYPOGRAPHY.XL, // 26px - Golden ratio
+    marginRight: FIBONACCI.MD, // 13px - Golden ratio
   },
   languageName: {
     flex: 1,
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.BASE, // 16px - Golden ratio typography
     fontWeight: '500',
-    color: '#000000',
+    color: COLORS.text,
   },
   selectedLanguageText: {
-    color: '#4A90E2',
+    color: COLORS.secondary,
     fontWeight: '600',
   },
   footer: {
-    padding: 20,
+    padding: FIBONACCI.LG, // 21px - Golden ratio padding
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: FIBONACCI.LG, // 21px - Golden ratio spacing
   },
   footerText: {
-    fontSize: 14,
-    color: '#8E8E93',
-    marginVertical: 2,
+    fontSize: TYPOGRAPHY.SM, // 14px - Golden ratio typography
+    color: COLORS.textSecondary,
+    marginVertical: FIBONACCI.XXS, // 3px - Fibonacci spacing
     textAlign: 'center',
   },
 });

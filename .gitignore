@@ -22,6 +22,7 @@ expo-env.d.ts
 .metro-health-check*
 
 # debug
+*.log
 npm-debug.*
 yarn-debug.*
 yarn-error.*
@@ -39,9 +40,15 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# Testing
+coverage/
+
 # generated native folders
 /ios
 /android
+
+# Test app
+test-app/
 
 # Build artifacts
 *.app

@@ -22,6 +22,7 @@ export interface PlantLightInfo {
 
 export interface PlantCareInfo {
   plant_info: string;
+  plant_info_arabic?: string;
   plant_type: 'tropical' | 'succulent' | 'flowering' | 'foliage' | 'herb' | 'fern';
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   watering: PlantWateringInfo;
@@ -255,64 +256,45 @@ class PlantDatabaseService {
   }
 
   /**
-   * Find best text match for a plant
+   * Find best text match for a plant with STRICT SUBSTRING MATCHING ONLY
+   * Searches: PRIMARY common name + ALL scientific names
+   * Ignores: Alternate common names, aliases, Arabic names
+   * Example: "pot" → Polka Dot Begonia ✅ (primary: "Polka Dot")
+   *          "sn" → Snake Plant ✅, Echeveria ❌ (ignores alternate "Mexican Snowball")
    */
   private findPlantTextMatch(plant: Plant, searchText: string): PlantMatch | null {
     const normalizedSearch = this.normalizeText(searchText);
-    
-    // Check scientific names (highest priority)
+
+    // Priority 1: Check PRIMARY common name only (first one, displayed on screen)
+    const primaryCommonName = plant.names.common[0];
+    const normalizedPrimaryName = this.normalizeText(primaryCommonName);
+
+    if (normalizedPrimaryName.includes(normalizedSearch)) {
+      const confidence = normalizedPrimaryName.startsWith(normalizedSearch) ? 100 : 90;
+      return {
+        plant,
+        confidence,
+        matchType: 'common',
+        matchedName: primaryCommonName
+      };
+    }
+
+    // Priority 2: Check ALL scientific names
     for (const sciName of plant.names.scientific) {
-      const confidence = this.calculateTextSimilarity(normalizedSearch, this.normalizeText(sciName));
-      if (confidence >= 60) {
+      const normalizedSciName = this.normalizeText(sciName);
+
+      if (normalizedSciName.includes(normalizedSearch)) {
+        const confidence = normalizedSciName.startsWith(normalizedSearch) ? 95 : 85;
         return {
           plant,
-          confidence: Math.min(95, confidence + 10), // Boost for scientific names
+          confidence,
           matchType: 'scientific',
           matchedName: sciName
         };
       }
     }
 
-    // Check common names
-    for (const commonName of plant.names.common) {
-      const confidence = this.calculateTextSimilarity(normalizedSearch, this.normalizeText(commonName));
-      if (confidence >= 70) {
-        return {
-          plant,
-          confidence,
-          matchType: 'common',
-          matchedName: commonName
-        };
-      }
-    }
-
-    // Check Arabic names
-    for (const arabicName of plant.names.arabic) {
-      if (normalizedSearch.includes(this.normalizeText(arabicName)) || 
-          this.normalizeText(arabicName).includes(normalizedSearch)) {
-        return {
-          plant,
-          confidence: 85,
-          matchType: 'arabic',
-          matchedName: arabicName
-        };
-      }
-    }
-
-    // Check aliases (most flexible)
-    for (const alias of plant.names.aliases) {
-      if (normalizedSearch.includes(this.normalizeText(alias)) || 
-          this.normalizeText(alias).includes(normalizedSearch)) {
-        return {
-          plant,
-          confidence: 75,
-          matchType: 'alias',
-          matchedName: alias
-        };
-      }
-    }
-
-    return null;
+    return null; // No match - ignores alternate common names, aliases, Arabic
   }
 
   /**
@@ -376,23 +358,19 @@ class PlantDatabaseService {
     watering_frequency: string;
     orientation: string;
     plant_type: string;
-    matchInfo?: PlantMatch 
+    matchInfo?: PlantMatch
   } {
-    console.log('🔍 Looking for care data:', { scientificName, commonName, family, language });
-    
     // Try to find exact plant match
     const searchResults = this.searchPlants({
       text: `${scientificName} ${commonName || ''}`.trim()
     });
-    
+
     if (searchResults.length > 0 && searchResults[0].confidence >= 60) {
       const bestMatch = searchResults[0];
-      console.log('✅ Found plant match:', bestMatch);
       return this.formatPlantCareResponse(bestMatch.plant, language, bestMatch);
     }
-    
+
     // Fallback to family-based care
-    console.log('🔄 Using family fallback for:', family);
     const familyInfo = this.getFamily(family || '');
     
     if (familyInfo) {

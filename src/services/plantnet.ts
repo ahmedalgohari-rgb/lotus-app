@@ -1,18 +1,20 @@
 import { IdentificationResult } from '../types';
 import { plantDatabaseService } from './plantDatabase';
 import { plantNetCache, createCachedApiCall } from '../utils/apiCache';
-import { 
-  enhanceImageForPlantIdentification, 
-  assessImageQualityForPlants, 
+import {
+  enhanceImageForPlantIdentification,
+  assessImageQualityForPlants,
   isImageSuitableForPlantIdentification,
-  ImageQualityMetrics 
+  ImageQualityMetrics
 } from '../utils/imageUtils';
 import { plantDetectionService } from '../utils/plantDetection';
+import { logger } from '../utils/logger';
 import * as FileSystem from 'expo-file-system';
 import CryptoJS from 'crypto-js';
 
 const PLANTNET_API_KEY = process.env.EXPO_PUBLIC_PLANTNET_API_KEY || '';
-const PLANTNET_API_URL = 'https://my-api.plantnet.org/v2/identify/weurope';
+// Changed from /weurope (Western Europe only) to /all (global plant database)
+const PLANTNET_API_URL = 'https://my-api.plantnet.org/v2/identify/all';
 
 export interface PlantNetResponse {
   results: Array<{
@@ -105,27 +107,32 @@ async function directPlantNetApiCall(
   organ: string,
   language: 'en' | 'ar'
 ): Promise<PlantNetResponse | null> {
-  console.log('🌐 Making fresh PlantNet API call...');
-  
   const formData = new FormData();
   formData.append('images', {
     uri: imageUri,
     type: 'image/jpeg',
     name: 'plant.jpg',
   } as any);
-  
+
   // Add organs parameter
   formData.append('organs', organ);
-  
+
+  // PHASE 3: Add 30-second timeout for slow networks
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+
   const response = await fetch(`${PLANTNET_API_URL}?api-key=${PLANTNET_API_KEY}&lang=${language}`, {
     method: 'POST',
     body: formData,
+    signal: controller.signal
   });
-  
+
+  clearTimeout(timeoutId);
+
   if (!response.ok) {
     throw new Error(`PlantNet API error: ${response.status} ${response.statusText}`);
   }
-  
+
   return await response.json();
 }
 
@@ -141,8 +148,6 @@ export const plantNetService = {
     improvements: string[];
   }> => {
     try {
-      console.log('🔍 Pre-capture validation starting...');
-      
       // Quick plant detection check
       const plantValidation = await plantDetectionService.detectPlantInRealTime(imageUri);
       
@@ -171,7 +176,7 @@ export const plantNetService = {
         improvements: qualityCheck.recommendedActions
       };
     } catch (error) {
-      console.error('❌ Pre-capture validation failed:', error);
+      logger.error('Pre-capture validation failed:', error);
       return {
         shouldCapture: false,
         confidence: 0,
@@ -185,30 +190,33 @@ export const plantNetService = {
    * Updated to use centralized PlantDatabaseService and smart caching
    */
   identifyPlant: async (
-    imageUri: string, 
+    imageUri: string,
     organ: string = 'leaf',
     language: 'en' | 'ar' = 'en'
   ): Promise<IdentificationResult | null> => {
     try {
-      console.log('🌿 Starting enhanced plant identification with quality validation...');
-      
       if (!PLANTNET_API_KEY) {
-        console.warn('PlantNet API key not configured, using enhanced mock data');
+        logger.warn('MOCK FALLBACK: PlantNet API key not configured');
         return plantNetService.mockIdentify(imageUri, language);
       }
 
       // Phase 1: Image Quality Assessment and Validation
-      console.log('📊 Assessing image quality for plant identification...');
       const qualityAssessment = await assessImageQualityForPlants(imageUri);
-      
+
+      // PHASE 3: Check Debug Mode
+      const DEBUG_MODE = process.env.EXPO_PUBLIC_DEBUG_PLANTNET === 'true';
+
       // Phase 2: Plant Detection Validation
-      console.log('🔍 Validating plant presence in image...');
       const plantValidation = await plantDetectionService.validateImageForPlantAPI(imageUri);
-      
-      if (!plantValidation.isValid) {
-        console.log('❌ Image validation failed:', plantValidation.issues);
-        console.log('💡 Recommendations:', plantValidation.recommendations);
-        
+
+      // PHASE 3: Debug Mode - Skip validation if enabled
+      if (DEBUG_MODE && !plantValidation.isValid) {
+        logger.warn('DEBUG MODE: Validation failed but bypassing - forcing API call anyway');
+      }
+
+      if (!DEBUG_MODE && !plantValidation.isValid) {
+        logger.warn('MOCK FALLBACK: Image validation failed');
+
         // Return early with validation feedback - don't waste API calls
         return {
           confidence: plantValidation.confidence * 100,
@@ -227,7 +235,6 @@ export const plantNetService = {
       }
 
       // Phase 3: Image Enhancement for Better Identification
-      console.log('🎨 Enhancing image for optimal plant identification...');
       const enhancedImageUri = await enhanceImageForPlantIdentification(imageUri, {
         autoEnhance: true,
         enhanceContrast: qualityAssessment.contrast < 0.6,
@@ -236,7 +243,6 @@ export const plantNetService = {
       });
 
       // Phase 4: Enhanced Plant Identification with Multiple Organ Types
-      console.log('🚀 Proceeding with enhanced PlantNet API identification...');
       const organs = [organ, 'leaf', 'flower', 'fruit'];
       let bestResult: IdentificationResult | null = null;
       let highestConfidence = 0;
@@ -248,6 +254,7 @@ export const plantNetService = {
         for (const currentOrgan of organs) {
           try {
             const result = await plantNetService.identifyWithOrgan(imageToProcess, currentOrgan, language);
+
             if (result && result.confidence > highestConfidence) {
               bestResult = result;
               highestConfidence = result.confidence;
@@ -257,17 +264,24 @@ export const plantNetService = {
                 bestResult.plant_info += ` ${language === 'ar' ? 'تم تحسين جودة الصورة لتحديد أفضل.' : 'Image quality optimized for better identification.'}`;
               }
             }
-            
+
             // If we get a high confidence result, no need to try other organs
             if (result && result.confidence > 80) {
-              console.log('✅ High confidence result achieved:', result.confidence);
               break;
             }
           } catch (error) {
-            console.warn(`Failed identification with ${currentOrgan}:`, error);
+            // PHASE 1: Diagnostic Logging - API Failure
+            logger.error('PlantNet API Failed:', {
+              organ: currentOrgan,
+              errorMessage: error.message,
+              errorType: error.name,
+              statusCode: error.status || 'unknown'
+            });
+
             // If API is blocked (IP restriction), use enhanced mock data immediately
             if (error.message.includes('access denied') || error.message.includes('403')) {
-              console.log('PlantNet API blocked by IP restrictions, using enhanced mock identification');
+              logger.warn('MOCK FALLBACK: PlantNet API blocked by IP restrictions (403 Forbidden)');
+              logger.warn('Fix: Add your IP to PlantNet API dashboard authorization list');
               return plantNetService.mockIdentify(imageUri, language);
             }
             continue;
@@ -282,7 +296,6 @@ export const plantNetService = {
 
       // Phase 5: Post-Processing and Recommendations
       if (bestResult && bestResult.confidence < 70) {
-        console.log('🔧 Adding Egyptian plant suggestions for low confidence result');
         bestResult.suggestions = plantNetService.getCommonEgyptianPlants(language);
         
         // Add plant color information if detected
@@ -294,13 +307,106 @@ export const plantNetService = {
         }
       }
 
-      const finalResult = bestResult || plantNetService.mockIdentify(imageUri, language);
-      console.log('🎯 Plant identification complete with quality validation');
-      return finalResult;
+      // Final Result
+      if (!bestResult) {
+        logger.warn('MOCK FALLBACK: No valid results from PlantNet API attempts');
+      }
+
+      return bestResult || plantNetService.mockIdentify(imageUri, language);
     } catch (error) {
-      console.error('PlantNet identification error:', error);
+      // PHASE 1: Diagnostic Logging - Unexpected Error
+      logger.error('MOCK FALLBACK: Unexpected error in plant identification:', {
+        errorMessage: error.message,
+        errorType: error.name,
+        errorStack: error.stack?.substring(0, 200)
+      });
       return plantNetService.mockIdentify(imageUri, language);
     }
+  },
+
+  /**
+   * PHASE 3: Test PlantNet API connectivity and authorization
+   * Returns detailed diagnostic info to debug API issues
+   */
+  testPlantNetAPI: async (): Promise<{
+    apiKeyConfigured: boolean;
+    networkReachable: boolean;
+    apiAuthorized: boolean;
+    ipAddress: string | null;
+    errorDetails: string | null;
+  }> => {
+    const result = {
+      apiKeyConfigured: !!PLANTNET_API_KEY,
+      networkReachable: false,
+      apiAuthorized: false,
+      ipAddress: null,
+      errorDetails: null
+    };
+
+    if (!PLANTNET_API_KEY) {
+      result.errorDetails = 'API key not configured in .env file';
+      logger.error('No API key found');
+      return result;
+    }
+
+    try {
+      // Test 1: Check network connectivity and get current IP
+      const ipResponse = await fetch('https://api.ipify.org?format=json', {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (ipResponse.ok) {
+        const ipData = await ipResponse.json();
+        result.ipAddress = ipData.ip;
+        result.networkReachable = true;
+      } else {
+        throw new Error('Network unreachable');
+      }
+
+      // Test 2: Test PlantNet API authorization
+
+      const testUrl = `${PLANTNET_API_URL}?api-key=${PLANTNET_API_KEY}`;
+
+      // Add timeout controller (30 seconds)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      const apiResponse = await fetch(testUrl, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (apiResponse.status === 403) {
+        result.errorDetails = `IP ${result.ipAddress} not authorized. Add this IP to your PlantNet API dashboard.`;
+        logger.error('403 Forbidden - IP not whitelisted');
+      } else if (apiResponse.status === 401) {
+        result.errorDetails = 'Invalid API key. Check your EXPO_PUBLIC_PLANTNET_API_KEY in .env';
+        logger.error('401 Unauthorized - Invalid API key');
+      } else if (apiResponse.status === 400) {
+        // 400 is expected for GET request - API expects POST with image
+        // This means API is reachable and authorized!
+        result.apiAuthorized = true;
+      } else if (apiResponse.ok) {
+        result.apiAuthorized = true;
+      } else {
+        result.errorDetails = `Unexpected status: ${apiResponse.status} ${apiResponse.statusText}`;
+        logger.error('Unexpected response:', apiResponse.status);
+      }
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        result.errorDetails = `Request timed out after 30 seconds. Possible causes:\n1. IP ${result.ipAddress} not whitelisted in PlantNet dashboard\n2. Network/firewall blocking my-api.plantnet.org\n3. PlantNet API is slow or down`;
+        logger.error('Request timeout - likely IP not whitelisted');
+      } else {
+        result.errorDetails = `Error: ${error.message}`;
+        logger.error('API test failed:', error);
+      }
+    }
+
+    return result;
   },
 
   /**
@@ -313,9 +419,9 @@ export const plantNetService = {
   ): Promise<IdentificationResult | null> => {
     // Use cached API call for better performance
     const data = await cachedPlantNetApiCall(imageUri, organ, language);
-    
+
     if (!data) {
-      console.warn('PlantNet API returned no data');
+      logger.warn('PlantNet API returned no data');
       return null;
     }
     

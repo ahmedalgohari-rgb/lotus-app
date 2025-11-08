@@ -1,4 +1,5 @@
 import React from 'react';
+import { logger } from './logger';
 
 /**
  * Performance monitoring utilities for tracking app performance
@@ -33,9 +34,8 @@ class PerformanceMonitor {
       startTime: performance.now(),
       metadata
     };
-    
+
     this.metrics.set(name, metric);
-    console.log(`⏱️ Started timing: ${name}`);
   }
 
   /**
@@ -44,15 +44,13 @@ class PerformanceMonitor {
   endTiming(name: string): number | null {
     const metric = this.metrics.get(name);
     if (!metric) {
-      console.warn(`⚠️ No timing found for: ${name}`);
+      logger.warn(`⚠️ No timing found for: ${name}`);
       return null;
     }
 
     metric.endTime = performance.now();
     metric.duration = metric.endTime - metric.startTime;
-    
-    console.log(`✅ Completed timing: ${name} - ${metric.duration.toFixed(2)}ms`);
-    
+
     return metric.duration;
   }
 
@@ -96,7 +94,6 @@ class PerformanceMonitor {
    */
   clearMetrics(): void {
     this.metrics.clear();
-    console.log('🧹 Cleared performance metrics');
   }
 
   /**
@@ -121,8 +118,6 @@ class PerformanceMonitor {
     if (this.memorySnapshots.length > this.maxSnapshots) {
       this.memorySnapshots = this.memorySnapshots.slice(-this.maxSnapshots);
     }
-
-    console.log('📊 Memory snapshot taken:', snapshot);
   }
 
   /**
@@ -192,30 +187,15 @@ class PerformanceMonitor {
   }
 
   /**
-   * Log performance summary
+   * Generate performance summary (removed console logging)
    */
-  logSummary(): void {
-    const report = this.generateReport();
-    
-    console.group('📊 Performance Summary');
-    console.log('Total metrics:', report.totalMetrics);
-    console.log('Memory trend:', report.memoryTrend);
-    
-    console.group('⏱️ Average Durations');
-    Object.entries(report.averages).forEach(([name, avg]) => {
-      console.log(`${name}: ${avg.toFixed(2)}ms`);
-    });
-    console.groupEnd();
-    
-    if (report.slowest.length > 0) {
-      console.group('🐌 Slowest Operations');
-      report.slowest.slice(0, 5).forEach(metric => {
-        console.log(`${metric.name}: ${metric.duration!.toFixed(2)}ms`);
-      });
-      console.groupEnd();
-    }
-    
-    console.groupEnd();
+  getSummary(): {
+    totalMetrics: number;
+    memoryTrend: string;
+    averages: Record<string, number>;
+    slowest: PerformanceMetric[];
+  } {
+    return this.generateReport();
   }
 }
 

@@ -2,14 +2,32 @@
   "plants": [
     {
       "id": "snake_plant",
+      "image_url": "https://kaynuna.co/cdn/shop/files/53499DEC-E916-43A5-8E9A-BCF6B52254AE.jpg",
       "names": {
-        "scientific": ["Dracaena trifasciata", "Sansevieria trifasciata"],
-        "common": ["Snake Plant", "Mother-in-law's Tongue", "Viper's Bowstring Hemp"],
-        "arabic": ["نبات الثعبان", "سيف سيدنا يوسف", "لسان الحماة"],
-        "aliases": ["snake", "sansevieria", "dracaena trifasciata", "mother in law"]
+        "scientific": [
+          "Dracaena trifasciata",
+          "Sansevieria trifasciata"
+        ],
+        "common": [
+          "Snake Plant",
+          "Mother-in-law's Tongue",
+          "Viper's Bowstring Hemp"
+        ],
+        "arabic": [
+          "نبات الثعبان",
+          "سيف سيدنا يوسف",
+          "لسان الحماة"
+        ],
+        "aliases": [
+          "snake",
+          "sansevieria",
+          "dracaena trifasciata",
+          "mother in law"
+        ]
       },
       "care": {
         "plant_info": "Snake Plant (Dracaena trifasciata) - extremely low-maintenance succulent. Tolerates neglect and low light. Great air purifier.",
+        "plant_info_arabic": "نبات الثعبان (Dracaena trifasciata) - نبات عصاري سهل العناية جداً. يتحمل الإهمال والإضاءة الضعيفة. ممتاز لتنقية الهواء.",
         "plant_type": "succulent",
         "difficulty": "beginner",
         "watering": {
@@ -20,19 +38,29 @@
         },
         "light": {
           "requirement": "bright_indirect",
-          "tolerance": ["low_light", "direct_partial"],
+          "tolerance": [
+            "low_light",
+            "direct_partial"
+          ],
           "description": "Tolerates low light but prefers bright indirect light",
           "arabic_description": "يتحمل الضوء المنخفض لكنه يفضل الضوء الساطع غير المباشر"
         },
         "humidity": "low",
-        "temperature": { "min": 15, "max": 35, "optimal": 22 },
+        "temperature": {
+          "min": 15,
+          "max": 35,
+          "optimal": 22
+        },
         "soil": "well_draining",
         "fertilizer": "monthly_growing_season"
       },
       "characteristics": {
         "family": "Asparagaceae",
         "origin": "West Africa",
-        "mature_size": { "height": "60-120cm", "spread": "30-60cm" },
+        "mature_size": {
+          "height": "60-120cm",
+          "spread": "30-60cm"
+        },
         "growth_rate": "slow",
         "air_purifying": true,
         "pet_safe": false,
@@ -53,10 +81,24 @@
     {
       "id": "golden_pothos",
       "names": {
-        "scientific": ["Epipremnum aureum"],
-        "common": ["Golden Pothos", "Devil's Ivy", "Money Plant"],
-        "arabic": ["بوتوس ذهبي", "لبلاب الشيطان", "نبات المال"],
-        "aliases": ["pothos", "devil ivy", "epipremnum"]
+        "scientific": [
+          "Epipremnum aureum"
+        ],
+        "common": [
+          "Golden Pothos",
+          "Devil's Ivy",
+          "Money Plant"
+        ],
+        "arabic": [
+          "بوتوس ذهبي",
+          "لبلاب الشيطان",
+          "نبات المال"
+        ],
+        "aliases": [
+          "pothos",
+          "devil ivy",
+          "epipremnum"
+        ]
       },
       "care": {
         "plant_info": "Easy-care trailing vine, perfect for beginners. Thrives in various light conditions and purifies air.",
@@ -70,19 +112,29 @@
         },
         "light": {
           "requirement": "bright_indirect",
-          "tolerance": ["low_light", "medium_light"],
+          "tolerance": [
+            "low_light",
+            "medium_light"
+          ],
           "description": "Adapts to various light conditions, golden variegation best in brighter light",
           "arabic_description": "يتكيف مع ظروف إضاءة مختلفة، اللون الذهبي أجمل في ضوء أسطع"
         },
         "humidity": "medium",
-        "temperature": { "min": 16, "max": 30, "optimal": 24 },
+        "temperature": {
+          "min": 16,
+          "max": 30,
+          "optimal": 24
+        },
         "soil": "well_draining",
         "fertilizer": "monthly_growing_season"
       },
       "characteristics": {
         "family": "Araceae",
         "origin": "Solomon Islands",
-        "mature_size": { "height": "200cm trailing", "spread": "60-90cm" },
+        "mature_size": {
+          "height": "200cm trailing",
+          "spread": "60-90cm"
+        },
         "growth_rate": "fast",
         "air_purifying": true,
         "pet_safe": false,
@@ -98,15 +150,29 @@
           "summer_arabic": "زد عدد مرات الري، ارش بالماء لزيادة الرطوبة",
           "winter_arabic": "قلل الري، تجنب التيارات الباردة"
         }
-      }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/Golden_Pothos.jpg"
     },
     {
       "id": "monstera_deliciosa",
       "names": {
-        "scientific": ["Monstera deliciosa"],
-        "common": ["Monstera", "Swiss Cheese Plant", "Split-leaf Philodendron"],
-        "arabic": ["مونستيرا", "نبات الجبن السويسري", "فيلودندرون مشقوق الأوراق"],
-        "aliases": ["monstera", "swiss cheese"]
+        "scientific": [
+          "Monstera deliciosa"
+        ],
+        "common": [
+          "Monstera",
+          "Swiss Cheese Plant",
+          "Split-leaf Philodendron"
+        ],
+        "arabic": [
+          "مونستيرا",
+          "نبات الجبن السويسري",
+          "فيلودندرون مشقوق الأوراق"
+        ],
+        "aliases": [
+          "monstera",
+          "swiss cheese"
+        ]
       },
       "care": {
         "plant_info": "Stunning tropical plant with split leaves. Loves humidity and bright indirect light.",
@@ -120,19 +186,28 @@
         },
         "light": {
           "requirement": "bright_indirect",
-          "tolerance": ["east_morning_sun"],
+          "tolerance": [
+            "east_morning_sun"
+          ],
           "description": "Bright indirect light essential for fenestration (holes). Morning sun OK.",
           "arabic_description": "ضوء ساطع غير مباشر ضروري لتكوين الثقوب. شمس الصباح مقبولة."
         },
         "humidity": "high",
-        "temperature": { "min": 18, "max": 30, "optimal": 25 },
+        "temperature": {
+          "min": 18,
+          "max": 30,
+          "optimal": 25
+        },
         "soil": "aroid_mix",
         "fertilizer": "bi_weekly_growing_season"
       },
       "characteristics": {
         "family": "Araceae",
         "origin": "Central America",
-        "mature_size": { "height": "300cm+", "spread": "120-200cm" },
+        "mature_size": {
+          "height": "300cm+",
+          "spread": "120-200cm"
+        },
         "growth_rate": "medium",
         "air_purifying": true,
         "pet_safe": false,
@@ -148,15 +223,30 @@
           "summer_arabic": "زد الرطوبة بأطباق الحصى، ارش بانتظام، احمي من تيارات التكييف",
           "winter_arabic": "قلل الري، ارفع الرطوبة، حافظ على حرارة فوق 18 درجة"
         }
-      }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/IMG_5369.jpg"
     },
     {
       "id": "zz_plant",
       "names": {
-        "scientific": ["Zamioculcas zamiifolia"],
-        "common": ["ZZ Plant", "Zanzibar Gem", "Zuzu Plant"],
-        "arabic": ["نبات زي زي", "جوهرة زنجبار", "زاميوكولكاس"],
-        "aliases": ["zz", "zamioculcas", "zanzibar"]
+        "scientific": [
+          "Zamioculcas zamiifolia"
+        ],
+        "common": [
+          "ZZ Plant",
+          "Zanzibar Gem",
+          "Zuzu Plant"
+        ],
+        "arabic": [
+          "نبات زي زي",
+          "جوهرة زنجبار",
+          "زاميوكولكاس"
+        ],
+        "aliases": [
+          "zz",
+          "zamioculcas",
+          "zanzibar"
+        ]
       },
       "care": {
         "plant_info": "ZZ Plant - drought-tolerant with glossy leaves. Perfect for low-light areas.",
@@ -170,19 +260,29 @@
         },
         "light": {
           "requirement": "low_light",
-          "tolerance": ["bright_indirect", "fluorescent"],
+          "tolerance": [
+            "bright_indirect",
+            "fluorescent"
+          ],
           "description": "Thrives in low light, perfect for offices and windowless rooms",
           "arabic_description": "يزدهر في الضوء المنخفض، مثالي للمكاتب والغرف بدون نوافذ"
         },
         "humidity": "low",
-        "temperature": { "min": 15, "max": 32, "optimal": 24 },
+        "temperature": {
+          "min": 15,
+          "max": 32,
+          "optimal": 24
+        },
         "soil": "well_draining",
         "fertilizer": "quarterly"
       },
       "characteristics": {
         "family": "Araceae",
         "origin": "Eastern Africa",
-        "mature_size": { "height": "60-90cm", "spread": "60-75cm" },
+        "mature_size": {
+          "height": "60-90cm",
+          "spread": "60-75cm"
+        },
         "growth_rate": "very_slow",
         "air_purifying": true,
         "pet_safe": false,
@@ -198,15 +298,29 @@
           "summer_arabic": "يتحمل حر القاهرة جيداً، يحتاج رعاية قليلة",
           "winter_arabic": "مثالي للأماكن الدافئة، قلل الري أكتر"
         }
-      }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/ZZ_Plants_16cm_30cm.jpg"
     },
     {
       "id": "rubber_plant",
       "names": {
-        "scientific": ["Ficus elastica"],
-        "common": ["Rubber Plant", "Rubber Tree", "Indian Rubber Bush"],
-        "arabic": ["نبات المطاط", "شجرة المطاط", "فيكس"],
-        "aliases": ["ficus", "rubber"]
+        "scientific": [
+          "Ficus elastica"
+        ],
+        "common": [
+          "Rubber Plant",
+          "Rubber Tree",
+          "Indian Rubber Bush"
+        ],
+        "arabic": [
+          "نبات المطاط",
+          "شجرة المطاط",
+          "فيكس"
+        ],
+        "aliases": [
+          "ficus",
+          "rubber"
+        ]
       },
       "care": {
         "plant_info": "Rubber plant with thick, glossy leaves. Loves bright light and consistent care.",
@@ -220,19 +334,28 @@
         },
         "light": {
           "requirement": "bright_indirect",
-          "tolerance": ["east_morning_sun"],
+          "tolerance": [
+            "east_morning_sun"
+          ],
           "description": "Bright indirect light essential for healthy growth",
           "arabic_description": "ضوء ساطع غير مباشر ضروري لنمو صحي"
         },
         "humidity": "medium",
-        "temperature": { "min": 16, "max": 30, "optimal": 24 },
+        "temperature": {
+          "min": 16,
+          "max": 30,
+          "optimal": 24
+        },
         "soil": "well_draining",
         "fertilizer": "monthly_growing_season"
       },
       "characteristics": {
         "family": "Moraceae",
         "origin": "India",
-        "mature_size": { "height": "200-300cm", "spread": "90-120cm" },
+        "mature_size": {
+          "height": "200-300cm",
+          "spread": "90-120cm"
+        },
         "growth_rate": "medium",
         "air_purifying": true,
         "pet_safe": false,
@@ -248,15 +371,30 @@
           "summer_arabic": "امسح الأوراق أسبوعياً لإزالة الغبار، زد الري",
           "winter_arabic": "قلل الري، احمي من التيارات الباردة"
         }
-      }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/IMG_5994.jpg"
     },
     {
       "id": "peace_lily",
       "names": {
-        "scientific": ["Spathiphyllum wallisii", "Spathiphyllum"],
-        "common": ["Peace Lily", "White Sails", "Spathe Flower"],
-        "arabic": ["زنبق السلام", "الزهرة البيضاء", "سباثيفيلوم"],
-        "aliases": ["spathiphyllum", "peace lily"]
+        "scientific": [
+          "Spathiphyllum wallisii",
+          "Spathiphyllum"
+        ],
+        "common": [
+          "Peace Lily",
+          "White Sails",
+          "Spathe Flower"
+        ],
+        "arabic": [
+          "زنبق السلام",
+          "الزهرة البيضاء",
+          "سباثيفيلوم"
+        ],
+        "aliases": [
+          "spathiphyllum",
+          "peace lily"
+        ]
       },
       "care": {
         "plant_info": "Peace Lily - elegant white flowers. Prefers moist soil and medium light.",
@@ -270,19 +408,28 @@
         },
         "light": {
           "requirement": "medium_indirect",
-          "tolerance": ["low_light"],
+          "tolerance": [
+            "low_light"
+          ],
           "description": "Medium to low light, blooms more in brighter conditions",
           "arabic_description": "ضوء متوسط إلى منخفض، يزهر أكتر في ضوء أقوى"
         },
         "humidity": "high",
-        "temperature": { "min": 18, "max": 30, "optimal": 24 },
+        "temperature": {
+          "min": 18,
+          "max": 30,
+          "optimal": 24
+        },
         "soil": "moisture_retaining",
         "fertilizer": "monthly_growing_season"
       },
       "characteristics": {
         "family": "Araceae",
         "origin": "Tropical Americas",
-        "mature_size": { "height": "60-90cm", "spread": "60-75cm" },
+        "mature_size": {
+          "height": "60-90cm",
+          "spread": "60-75cm"
+        },
         "growth_rate": "medium",
         "air_purifying": true,
         "pet_safe": false,
@@ -298,15 +445,30 @@
           "summer_arabic": "زد الرطوبة، احمي من التكييف، قد يحتاج ري يومي",
           "winter_arabic": "قلل الري قليلاً، حافظ على الرطوبة بمرطب الهواء"
         }
-      }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/Peace_Lilly_Plant.jpg"
     },
     {
       "id": "spider_plant",
       "names": {
-        "scientific": ["Chlorophytum comosum"],
-        "common": ["Spider Plant", "Airplane Plant", "Spider Ivy"],
-        "arabic": ["نبات العنكبوت", "نبات الطائرة", "كلوروفيتم"],
-        "aliases": ["chlorophytum", "spider", "airplane"]
+        "scientific": [
+          "Chlorophytum comosum"
+        ],
+        "common": [
+          "Spider Plant",
+          "Airplane Plant",
+          "Spider Ivy"
+        ],
+        "arabic": [
+          "نبات العنكبوت",
+          "نبات الطائرة",
+          "كلوروفيتم"
+        ],
+        "aliases": [
+          "chlorophytum",
+          "spider",
+          "airplane"
+        ]
       },
       "care": {
         "plant_info": "Spider Plant - produces baby plants. Very resilient and easy to care for.",
@@ -320,19 +482,28 @@
         },
         "light": {
           "requirement": "bright_indirect",
-          "tolerance": ["medium_light"],
+          "tolerance": [
+            "medium_light"
+          ],
           "description": "Adaptable to various light conditions, variegation best in bright light",
           "arabic_description": "يتكيف مع ظروف إضاءة مختلفة، التلون أجمل في ضوء ساطع"
         },
         "humidity": "medium",
-        "temperature": { "min": 15, "max": 30, "optimal": 22 },
+        "temperature": {
+          "min": 15,
+          "max": 30,
+          "optimal": 22
+        },
         "soil": "well_draining",
         "fertilizer": "monthly_growing_season"
       },
       "characteristics": {
         "family": "Asparagaceae",
         "origin": "South Africa",
-        "mature_size": { "height": "30-40cm", "spread": "45-60cm" },
+        "mature_size": {
+          "height": "30-40cm",
+          "spread": "45-60cm"
+        },
         "growth_rate": "fast",
         "air_purifying": true,
         "pet_safe": true,
@@ -348,65 +519,30 @@
           "summer_arabic": "مثالي لصيف القاهرة، قد ينتج نباتات صغيرة أكتر",
           "winter_arabic": "ضعه في أماكن مضيئة، قلل التسميد"
         }
-      }
-    },
-    {
-      "id": "aloe_vera",
-      "names": {
-        "scientific": ["Aloe vera", "Aloe barbadensis"],
-        "common": ["Aloe Vera", "True Aloe", "Medicinal Aloe"],
-        "arabic": ["صبار الألوة", "الصبار الطبي", "ألوة فيرا"],
-        "aliases": ["aloe", "vera"]
       },
-      "care": {
-        "plant_info": "Medicinal succulent with healing gel. Prefers dry conditions and bright light.",
-        "plant_type": "succulent",
-        "difficulty": "beginner",
-        "watering": {
-          "frequency": "every_3_weeks",
-          "schedule": "100_dry",
-          "description": "Deep watering when completely dry. Less is more.",
-          "arabic_description": "ري عميق عند الجفاف الكامل. الأقل أفضل."
-        },
-        "light": {
-          "requirement": "bright_direct",
-          "tolerance": ["bright_indirect"],
-          "description": "Loves bright light, can handle some direct sun",
-          "arabic_description": "يحب الضوء الساطع، يتحمل بعض أشعة الشمس المباشرة"
-        },
-        "humidity": "low",
-        "temperature": { "min": 10, "max": 40, "optimal": 24 },
-        "soil": "cactus_succulent",
-        "fertilizer": "rarely"
-      },
-      "characteristics": {
-        "family": "Asphodelaceae",
-        "origin": "Arabian Peninsula",
-        "mature_size": { "height": "60-90cm", "spread": "60cm" },
-        "growth_rate": "slow",
-        "air_purifying": true,
-        "pet_safe": false,
-        "flowering": true,
-        "propagation": "offsets"
-      },
-      "egyptian_specific": {
-        "cairo_suitability": "excellent",
-        "indoor_outdoor": "both",
-        "seasonal_care": {
-          "summer": "Perfect for Cairo heat, can go outside in partial shade",
-          "winter": "Bring indoors, water very rarely",
-          "summer_arabic": "مثالي لحر القاهرة، يمكن وضعه في ظل جزئي بالخارج",
-          "winter_arabic": "أدخله للداخل، ري نادر جداً"
-        }
-      }
+      "image_url": "https://kaynuna.co/cdn/shop/files/Indoor_Spider_Plant.jpg"
     },
     {
       "id": "philodendron",
       "names": {
-        "scientific": ["Philodendron hederaceum", "Philodendron scandens"],
-        "common": ["Heart-leaf Philodendron", "Sweetheart Plant", "Philodendron"],
-        "arabic": ["فيلودندرون", "نبات القلب", "فيلو الحبيب"],
-        "aliases": ["philodendron", "heart leaf"]
+        "scientific": [
+          "Philodendron hederaceum",
+          "Philodendron scandens"
+        ],
+        "common": [
+          "Heart-leaf Philodendron",
+          "Sweetheart Plant",
+          "Philodendron"
+        ],
+        "arabic": [
+          "فيلودندرون",
+          "نبات القلب",
+          "فيلو الحبيب"
+        ],
+        "aliases": [
+          "philodendron",
+          "heart leaf"
+        ]
       },
       "care": {
         "plant_info": "Heart-shaped leaves, fast-growing vine. Very adaptable and easy to propagate.",
@@ -420,19 +556,29 @@
         },
         "light": {
           "requirement": "bright_indirect",
-          "tolerance": ["low_light", "medium_light"],
+          "tolerance": [
+            "low_light",
+            "medium_light"
+          ],
           "description": "Adapts to various light conditions, grows faster in brighter light",
           "arabic_description": "يتكيف مع ظروف إضاءة مختلفة، ينمو أسرع في ضوء أقوى"
         },
         "humidity": "medium",
-        "temperature": { "min": 16, "max": 32, "optimal": 24 },
+        "temperature": {
+          "min": 16,
+          "max": 32,
+          "optimal": 24
+        },
         "soil": "well_draining",
         "fertilizer": "monthly_growing_season"
       },
       "characteristics": {
         "family": "Araceae",
         "origin": "Central America",
-        "mature_size": { "height": "300cm trailing", "spread": "90cm" },
+        "mature_size": {
+          "height": "300cm trailing",
+          "spread": "90cm"
+        },
         "growth_rate": "fast",
         "air_purifying": true,
         "pet_safe": false,
@@ -448,7 +594,3254 @@
           "summer_arabic": "موسم نمو سريع، قد يحتاج ري أسبوعي وتسميد شهري",
           "winter_arabic": "نمو أبطأ، قلل الري وأوقف التسميد"
         }
-      }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/63A68211-4144-4D45-A499-AD6FC5457F58.jpg"
+    },
+    {
+      "id": "jade_plant",
+      "names": {
+        "scientific": [
+          "Crassula ovata"
+        ],
+        "common": [
+          "Jade Plant",
+          "Money Plant",
+          "Lucky Plant"
+        ],
+        "arabic": [
+          "نبات اليشم",
+          "شجرة المال",
+          "نبات الحظ"
+        ],
+        "aliases": [
+          "jade",
+          "crassula",
+          "money tree"
+        ]
+      },
+      "care": {
+        "plant_info": "Succulent with thick, glossy leaves. Loves lots of light and minimal water.",
+        "plant_info_arabic": "نبات عصاري بأوراق سميكة لامعة. يحب الضوء القوي والري القليل.",
+        "plant_type": "succulent",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "every_2_weeks",
+          "schedule": "100_dry",
+          "description": "Water sparingly. Let soil dry completely between waterings.",
+          "arabic_description": "اسقي بحذر. دع التربة تجف تماماً بين الريات."
+        },
+        "light": {
+          "requirement": "bright_direct",
+          "tolerance": [
+            "bright_indirect"
+          ],
+          "description": "Needs lots of light to thrive, can handle some direct sun",
+          "arabic_description": "يحتاج ضوء قوي لينمو، يتحمل بعض الشمس المباشرة"
+        },
+        "humidity": "low",
+        "temperature": {
+          "min": 10,
+          "max": 35,
+          "optimal": 22
+        },
+        "soil": "cactus_succulent",
+        "fertilizer": "rarely"
+      },
+      "characteristics": {
+        "family": "Crassulaceae",
+        "origin": "South Africa",
+        "mature_size": {
+          "height": "30-90cm",
+          "spread": "30-60cm"
+        },
+        "growth_rate": "slow",
+        "air_purifying": false,
+        "pet_safe": false,
+        "flowering": true,
+        "propagation": "leaf_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "both",
+        "seasonal_care": {
+          "summer": "Perfect for hot, sunny windows. Water when completely dry.",
+          "winter": "Reduce watering to once a month. Keep in brightest spot.",
+          "summer_arabic": "مثالي للنوافذ المشمسة الحارة. اسقي عند الجفاف الكامل.",
+          "winter_arabic": "قلل الري لمرة شهرياً. ضعه في أكثر مكان مضيء."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/Gollum_Succulent.jpg"
+    },
+    {
+      "id": "arrowhead_vine",
+      "names": {
+        "scientific": [
+          "Syngonium podophyllum"
+        ],
+        "common": [
+          "Arrowhead Vine",
+          "Arrowhead Plant",
+          "Goosefoot Plant"
+        ],
+        "arabic": [
+          "نبات رأس السهم",
+          "سينغونيوم",
+          "نبات قدم الأوز"
+        ],
+        "aliases": [
+          "syngonium",
+          "arrowhead",
+          "goosefoot"
+        ]
+      },
+      "care": {
+        "plant_info": "Versatile climber with arrow-shaped leaves. Easy care and fast growing.",
+        "plant_info_arabic": "متسلق متعدد الاستخدامات بأوراق على شكل سهم. سهل العناية وسريع النمو.",
+        "plant_type": "tropical",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "60_dry",
+          "description": "Keep evenly moist. Water when top 2-3cm is dry.",
+          "arabic_description": "حافظ على رطوبة متساوية. اسقي عندما تجف أعلى 2-3 سم."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "medium_light"
+          ],
+          "description": "Bright indirect light. Lower light causes leggy growth.",
+          "arabic_description": "ضوء ساطع غير مباشر. الضوء المنخفض يسبب نمو ضعيف."
+        },
+        "humidity": "medium",
+        "temperature": {
+          "min": 16,
+          "max": 30,
+          "optimal": 23
+        },
+        "soil": "well_draining",
+        "fertilizer": "monthly_growing_season"
+      },
+      "characteristics": {
+        "family": "Araceae",
+        "origin": "Central and South America",
+        "mature_size": {
+          "height": "90-180cm trailing",
+          "spread": "60cm"
+        },
+        "growth_rate": "fast",
+        "air_purifying": true,
+        "pet_safe": false,
+        "flowering": false,
+        "propagation": "stem_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "good",
+        "indoor_outdoor": "indoor_only",
+        "seasonal_care": {
+          "summer": "Increase watering and humidity. Mist regularly.",
+          "winter": "Reduce watering. Keep away from cold windows.",
+          "summer_arabic": "زد الري والرطوبة. ارش بانتظام.",
+          "winter_arabic": "قلل الري. ابعده عن النوافذ الباردة."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/Arrowhead_in_brown_plastic_pot.jpg"
+    },
+    {
+      "id": "croton",
+      "names": {
+        "scientific": [
+          "Codiaeum variegatum"
+        ],
+        "common": [
+          "Croton",
+          "Garden Croton",
+          "Joseph's Coat"
+        ],
+        "arabic": [
+          "كروتون",
+          "معطف يوسف",
+          "نبات الألوان"
+        ],
+        "aliases": [
+          "croton",
+          "codiaeum",
+          "joseph coat"
+        ]
+      },
+      "care": {
+        "plant_info": "Colorful foliage plant. Needs bright light to maintain vibrant colors.",
+        "plant_info_arabic": "نبات أوراق ملونة. يحتاج ضوء ساطع للحفاظ على الألوان الزاهية.",
+        "plant_type": "foliage",
+        "difficulty": "intermediate",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "60_dry",
+          "description": "Moderate watering. Keep soil consistently moist but not waterlogged.",
+          "arabic_description": "ري معتدل. حافظ على رطوبة التربة دون غمر."
+        },
+        "light": {
+          "requirement": "bright_direct",
+          "tolerance": [
+            "bright_indirect"
+          ],
+          "description": "Needs bright light for vibrant colors. Can handle some direct sun.",
+          "arabic_description": "يحتاج ضوء ساطع للألوان الزاهية. يتحمل بعض الشمس المباشرة."
+        },
+        "humidity": "high",
+        "temperature": {
+          "min": 18,
+          "max": 32,
+          "optimal": 25
+        },
+        "soil": "well_draining",
+        "fertilizer": "monthly_growing_season"
+      },
+      "characteristics": {
+        "family": "Euphorbiaceae",
+        "origin": "Southeast Asia",
+        "mature_size": {
+          "height": "90-180cm",
+          "spread": "60-90cm"
+        },
+        "growth_rate": "medium",
+        "air_purifying": false,
+        "pet_safe": false,
+        "flowering": false,
+        "propagation": "stem_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "moderate",
+        "indoor_outdoor": "both",
+        "seasonal_care": {
+          "summer": "Perfect for bright sunny spots. Increase humidity with misting.",
+          "winter": "Protect from cold. May lose some color in lower light.",
+          "summer_arabic": "مثالي للأماكن المشمسة. زد الرطوبة بالرش.",
+          "winter_arabic": "احمه من البرد. قد يفقد بعض اللون في ضوء أقل."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/IMG_57542.jpg"
+    },
+    {
+      "id": "peperomia",
+      "names": {
+        "scientific": [
+          "Peperomia obtusifolia",
+          "Peperomia caperata"
+        ],
+        "common": [
+          "Peperomia",
+          "Baby Rubber Plant",
+          "Radiator Plant"
+        ],
+        "arabic": [
+          "بيبيروميا",
+          "نبات المطاط الصغير",
+          "نبات المشعاع"
+        ],
+        "aliases": [
+          "peperomia",
+          "baby rubber"
+        ]
+      },
+      "care": {
+        "plant_info": "Compact plant with thick, waxy leaves. Perfect for small pots and desks.",
+        "plant_info_arabic": "نبات مدمج بأوراق سميكة شمعية. مثالي للأصص الصغيرة والمكاتب.",
+        "plant_type": "foliage",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "60_dry",
+          "description": "Water moderately. Sensitive to overwatering.",
+          "arabic_description": "اسقي باعتدال. حساس للإفراط في الري."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "medium_light"
+          ],
+          "description": "Bright indirect light. Leaves burn in direct sun.",
+          "arabic_description": "ضوء ساطع غير مباشر. الأوراق تحترق في الشمس المباشرة."
+        },
+        "humidity": "medium",
+        "temperature": {
+          "min": 16,
+          "max": 28,
+          "optimal": 22
+        },
+        "soil": "well_draining",
+        "fertilizer": "monthly_growing_season"
+      },
+      "characteristics": {
+        "family": "Piperaceae",
+        "origin": "Central and South America",
+        "mature_size": {
+          "height": "15-30cm",
+          "spread": "20-30cm"
+        },
+        "growth_rate": "slow",
+        "air_purifying": true,
+        "pet_safe": true,
+        "flowering": true,
+        "propagation": "leaf_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "indoor_only",
+        "seasonal_care": {
+          "summer": "Perfect for AC rooms. Avoid overwatering in heat.",
+          "winter": "Reduce watering significantly. Keep in warm spots.",
+          "summer_arabic": "مثالي للغرف المكيفة. تجنب الإفراط في الري في الحر.",
+          "winter_arabic": "قلل الري بشكل كبير. ضعه في أماكن دافئة."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/IMG_0689.jpg"
+    },
+    {
+      "id": "kalanchoe",
+      "names": {
+        "scientific": [
+          "Kalanchoe blossfeldiana"
+        ],
+        "common": [
+          "Kalanchoe",
+          "Flaming Katy",
+          "Christmas Kalanchoe"
+        ],
+        "arabic": [
+          "كالانشو",
+          "كاتي اللهب",
+          "كالانشو عيد الميلاد"
+        ],
+        "aliases": [
+          "kalanchoe",
+          "flaming katy"
+        ]
+      },
+      "care": {
+        "plant_info": "Flowering succulent with colorful blooms. Easy care and long-lasting flowers.",
+        "plant_info_arabic": "نبات عصاري مزهر بأزهار ملونة. سهل العناية وأزهار طويلة الأمد.",
+        "plant_type": "succulent",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "every_2_weeks",
+          "schedule": "100_dry",
+          "description": "Minimal water. Let soil dry completely between waterings.",
+          "arabic_description": "ري قليل. دع التربة تجف تماماً بين الريات."
+        },
+        "light": {
+          "requirement": "bright_direct",
+          "tolerance": [
+            "bright_indirect"
+          ],
+          "description": "Bright light essential for flowering. Can handle direct sun.",
+          "arabic_description": "ضوء ساطع ضروري للإزهار. يتحمل الشمس المباشرة."
+        },
+        "humidity": "low",
+        "temperature": {
+          "min": 15,
+          "max": 35,
+          "optimal": 24
+        },
+        "soil": "cactus_succulent",
+        "fertilizer": "occasionally"
+      },
+      "characteristics": {
+        "family": "Crassulaceae",
+        "origin": "Madagascar",
+        "mature_size": {
+          "height": "20-40cm",
+          "spread": "20-30cm"
+        },
+        "growth_rate": "medium",
+        "air_purifying": false,
+        "pet_safe": false,
+        "flowering": true,
+        "propagation": "leaf_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "both",
+        "seasonal_care": {
+          "summer": "Perfect for hot, sunny balconies. Water sparingly.",
+          "winter": "Main flowering season. Provide bright light and occasional fertilizer.",
+          "summer_arabic": "مثالي للبلكونات المشمسة الحارة. اسقي بحذر.",
+          "winter_arabic": "موسم الإزهار الرئيسي. وفر ضوء ساطع وسماد أحياناً."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/Florist_Kalanchoe.jpg"
+    },
+    {
+      "id": "aglaonema",
+      "names": {
+        "scientific": [
+          "Aglaonema commutatum"
+        ],
+        "common": [
+          "Chinese Evergreen",
+          "Aglaonema",
+          "Silver Queen"
+        ],
+        "arabic": [
+          "الخضرة الصينية",
+          "أجلاونيما",
+          "الملكة الفضية"
+        ],
+        "aliases": [
+          "aglaonema",
+          "chinese evergreen",
+          "silver queen"
+        ]
+      },
+      "care": {
+        "plant_info": "Beautiful patterned foliage. Extremely tolerant of low light and neglect.",
+        "plant_info_arabic": "أوراق جميلة منقوشة. متسامح جداً مع الضوء المنخفض والإهمال.",
+        "plant_type": "foliage",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "60_dry",
+          "description": "Water moderately. Avoid direct sun which burns leaves.",
+          "arabic_description": "اسقي باعتدال. تجنب الشمس المباشرة التي تحرق الأوراق."
+        },
+        "light": {
+          "requirement": "low_light",
+          "tolerance": [
+            "medium_light"
+          ],
+          "description": "Low light tolerant. Perfect for offices and dark corners.",
+          "arabic_description": "متحمل للضوء المنخفض. مثالي للمكاتب والزوايا المظلمة."
+        },
+        "humidity": "medium",
+        "temperature": {
+          "min": 16,
+          "max": 30,
+          "optimal": 23
+        },
+        "soil": "well_draining",
+        "fertilizer": "monthly_growing_season"
+      },
+      "characteristics": {
+        "family": "Araceae",
+        "origin": "Southeast Asia",
+        "mature_size": {
+          "height": "30-60cm",
+          "spread": "30-45cm"
+        },
+        "growth_rate": "slow",
+        "air_purifying": true,
+        "pet_safe": false,
+        "flowering": false,
+        "propagation": "division"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "indoor_only",
+        "seasonal_care": {
+          "summer": "Keep in shaded areas. AC rooms are perfect.",
+          "winter": "Reduce watering. Keep in warm rooms away from drafts.",
+          "summer_arabic": "ضعه في أماكن مظللة. الغرف المكيفة مثالية.",
+          "winter_arabic": "قلل الري. ضعه في غرف دافئة بعيداً عن التيارات."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/Aglaonema_Pink_Valentine.jpg"
+    },
+    {
+      "id": "calathea",
+      "names": {
+        "scientific": [
+          "Calathea ornata",
+          "Calathea makoyana"
+        ],
+        "common": [
+          "Calathea",
+          "Prayer Plant",
+          "Peacock Plant"
+        ],
+        "arabic": [
+          "كالاتيا",
+          "نبات الصلاة",
+          "نبات الطاووس"
+        ],
+        "aliases": [
+          "calathea",
+          "prayer plant",
+          "peacock"
+        ]
+      },
+      "care": {
+        "plant_info": "Stunning patterned leaves that fold up at night. Prefers high humidity.",
+        "plant_info_arabic": "أوراق منقوشة مذهلة تنطوي ليلاً. يفضل رطوبة عالية.",
+        "plant_type": "tropical",
+        "difficulty": "advanced",
+        "watering": {
+          "frequency": "twice_weekly",
+          "schedule": "30_dry",
+          "description": "Keep soil moist but not soggy. Use filtered or distilled water.",
+          "arabic_description": "حافظ على رطوبة التربة دون غمر. استخدم ماء مصفى أو مقطر."
+        },
+        "light": {
+          "requirement": "medium_indirect",
+          "tolerance": [
+            "low_light"
+          ],
+          "description": "Indirect light only. Direct sun burns delicate leaves.",
+          "arabic_description": "ضوء غير مباشر فقط. الشمس المباشرة تحرق الأوراق الرقيقة."
+        },
+        "humidity": "high",
+        "temperature": {
+          "min": 18,
+          "max": 28,
+          "optimal": 23
+        },
+        "soil": "moisture_retaining",
+        "fertilizer": "bi_weekly_growing_season"
+      },
+      "characteristics": {
+        "family": "Marantaceae",
+        "origin": "South America",
+        "mature_size": {
+          "height": "30-60cm",
+          "spread": "30-50cm"
+        },
+        "growth_rate": "medium",
+        "air_purifying": true,
+        "pet_safe": true,
+        "flowering": false,
+        "propagation": "division"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "poor",
+        "indoor_outdoor": "indoor_only",
+        "seasonal_care": {
+          "summer": "Challenging in dry heat. Needs humidifier and frequent misting.",
+          "winter": "Easier in winter humidity. Keep warm and away from heaters.",
+          "summer_arabic": "صعب في الحر الجاف. يحتاج مرطب ورش متكرر.",
+          "winter_arabic": "أسهل في رطوبة الشتاء. اب قه دافئاً بعيداً عن المدفأة."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/Velvet_Plant.jpg"
+    },
+    {
+      "id": "maranta",
+      "names": {
+        "scientific": [
+          "Maranta leuconeura"
+        ],
+        "common": [
+          "Prayer Plant",
+          "Maranta",
+          "Herringbone Plant"
+        ],
+        "arabic": [
+          "نبات الصلاة",
+          "مارانتا",
+          "نبات عظم السمك"
+        ],
+        "aliases": [
+          "maranta",
+          "prayer plant",
+          "herringbone"
+        ]
+      },
+      "care": {
+        "plant_info": "Beautiful prayer plant with patterned leaves. Folds leaves at night like praying hands.",
+        "plant_info_arabic": "نبات صلاة جميل بأوراق منقوشة. ينطوي الأوراق ليلاً كأيدي مصلية.",
+        "plant_type": "tropical",
+        "difficulty": "intermediate",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "30_dry",
+          "description": "Keep evenly moist. Loves humidity and regular watering.",
+          "arabic_description": "حافظ على رطوبة متساوية. يحب الرطوبة والري المنتظم."
+        },
+        "light": {
+          "requirement": "medium_indirect",
+          "tolerance": [
+            "low_light"
+          ],
+          "description": "Bright indirect light. Burns in direct sun.",
+          "arabic_description": "ضوء ساطع غير مباشر. يحترق في الشمس المباشرة."
+        },
+        "humidity": "high",
+        "temperature": {
+          "min": 18,
+          "max": 28,
+          "optimal": 23
+        },
+        "soil": "moisture_retaining",
+        "fertilizer": "monthly_growing_season"
+      },
+      "characteristics": {
+        "family": "Marantaceae",
+        "origin": "Brazil",
+        "mature_size": {
+          "height": "20-30cm",
+          "spread": "30-40cm"
+        },
+        "growth_rate": "medium",
+        "air_purifying": true,
+        "pet_safe": true,
+        "flowering": false,
+        "propagation": "division"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "moderate",
+        "indoor_outdoor": "indoor_only",
+        "seasonal_care": {
+          "summer": "Needs high humidity. Use pebble trays and mist daily.",
+          "winter": "Keep warm. Easier to maintain humidity in winter.",
+          "summer_arabic": "يحتاج رطوبة عالية. استخدم أطباق الحصى وارش يومياً.",
+          "winter_arabic": "حافظ على الدفء. أسهل للحفاظ على الرطوبة في الشتاء."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/IMG_37272.jpg"
+    },
+    {
+      "id": "dieffenbachia",
+      "names": {
+        "scientific": [
+          "Dieffenbachia seguine",
+          "Dieffenbachia amoena"
+        ],
+        "common": [
+          "Dumb Cane",
+          "Dieffenbachia",
+          "Leopard Lily"
+        ],
+        "arabic": [
+          "ديفنباخيا",
+          "القصب الأخرس",
+          "زنبق النمر"
+        ],
+        "aliases": [
+          "dieffenbachia",
+          "dumb cane",
+          "leopard lily"
+        ]
+      },
+      "care": {
+        "plant_info": "Large tropical plant with patterned leaves. Toxic if ingested - keep away from pets and children.",
+        "plant_info_arabic": "نبات استوائي كبير بأوراق منقوشة. سام عند البلع - أبعده عن الحيوانات والأطفال.",
+        "plant_type": "tropical",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "60_dry",
+          "description": "Water moderately. Keep soil consistently moist.",
+          "arabic_description": "اسقي باعتدال. حافظ على رطوبة التربة باستمرار."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "medium_light"
+          ],
+          "description": "Bright indirect light. Tolerates medium light but grows slower.",
+          "arabic_description": "ضوء ساطع غير مباشر. يتحمل ضوء متوسط لكن ينمو أبطأ."
+        },
+        "humidity": "medium",
+        "temperature": {
+          "min": 16,
+          "max": 30,
+          "optimal": 24
+        },
+        "soil": "well_draining",
+        "fertilizer": "monthly_growing_season"
+      },
+      "characteristics": {
+        "family": "Araceae",
+        "origin": "Central and South America",
+        "mature_size": {
+          "height": "90-180cm",
+          "spread": "60-90cm"
+        },
+        "growth_rate": "fast",
+        "air_purifying": true,
+        "pet_safe": false,
+        "flowering": false,
+        "propagation": "stem_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "good",
+        "indoor_outdoor": "indoor_only",
+        "seasonal_care": {
+          "summer": "Fast growth season. Water regularly and fertilize monthly.",
+          "winter": "Reduce watering. Protect from cold drafts.",
+          "summer_arabic": "موسم نمو سريع. اسقي بانتظام وسمد شهرياً.",
+          "winter_arabic": "قلل الري. احمه من التيارات الباردة."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/Dieffenbachia.jpg"
+    },
+    {
+      "id": "schefflera",
+      "names": {
+        "scientific": [
+          "Schefflera actinophylla",
+          "Schefflera arboricola"
+        ],
+        "common": [
+          "Umbrella Tree",
+          "Schefflera",
+          "Octopus Tree"
+        ],
+        "arabic": [
+          "شجرة المظلة",
+          "شيفليرا",
+          "شجرة الأخطبوط"
+        ],
+        "aliases": [
+          "schefflera",
+          "umbrella tree",
+          "umbrella plant"
+        ]
+      },
+      "care": {
+        "plant_info": "Easy-care tree with umbrella-like leaf clusters. Great for corners and large spaces.",
+        "plant_info_arabic": "شجرة سهلة العناية بعناقيد أوراق تشبه المظلة. رائعة للزوايا والمساحات الكبيرة.",
+        "plant_type": "tropical",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "60_dry",
+          "description": "Water when topsoil dries. Avoid overwatering.",
+          "arabic_description": "اسقي عندما تجف التربة العلوية. تجنب الإفراط في الري."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "medium_light"
+          ],
+          "description": "Bright indirect light best. Tolerates medium light.",
+          "arabic_description": "ضوء ساطع غير مباشر الأفضل. يتحمل ضوء متوسط."
+        },
+        "humidity": "medium",
+        "temperature": {
+          "min": 15,
+          "max": 30,
+          "optimal": 22
+        },
+        "soil": "well_draining",
+        "fertilizer": "monthly_growing_season"
+      },
+      "characteristics": {
+        "family": "Araliaceae",
+        "origin": "Australia and New Guinea",
+        "mature_size": {
+          "height": "180-300cm",
+          "spread": "90-120cm"
+        },
+        "growth_rate": "fast",
+        "air_purifying": true,
+        "pet_safe": false,
+        "flowering": false,
+        "propagation": "stem_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "both",
+        "seasonal_care": {
+          "summer": "Can go outdoors in shade. Water regularly.",
+          "winter": "Keep indoors. Prune for shape if needed.",
+          "summer_arabic": "يمكن وضعه بالخارج في الظل. اسقي بانتظام.",
+          "winter_arabic": "ضعه بالداخل. قلمه للشكل إذا لزم الأمر."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/schefflera_variegated_20cm_25cm.jpg"
+    },
+    {
+      "id": "anthurium",
+      "names": {
+        "scientific": [
+          "Anthurium andraeanum"
+        ],
+        "common": [
+          "Anthurium",
+          "Flamingo Flower",
+          "Laceleaf"
+        ],
+        "arabic": [
+          "أنثوريوم",
+          "زهرة الفلامنغو",
+          "ورقة الدانتيل"
+        ],
+        "aliases": [
+          "anthurium",
+          "flamingo flower",
+          "tailflower"
+        ]
+      },
+      "care": {
+        "plant_info": "Glossy flowers that last for months. Loves high humidity and bright indirect light.",
+        "plant_info_arabic": "زهور لامعة تدوم لأشهر. يحب الرطوبة العالية والضوء الساطع غير المباشر.",
+        "plant_type": "flowering",
+        "difficulty": "intermediate",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "30_dry",
+          "description": "Keep soil moist. Loves humidity and regular watering.",
+          "arabic_description": "حافظ على رطوبة التربة. يحب الرطوبة والري المنتظم."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "east_morning_sun"
+          ],
+          "description": "Bright indirect light for flowering. Morning sun OK.",
+          "arabic_description": "ضوء ساطع غير مباشر للإزهار. شمس الصباح مقبولة."
+        },
+        "humidity": "high",
+        "temperature": {
+          "min": 18,
+          "max": 30,
+          "optimal": 24
+        },
+        "soil": "aroid_mix",
+        "fertilizer": "bi_weekly_growing_season"
+      },
+      "characteristics": {
+        "family": "Araceae",
+        "origin": "Colombia and Ecuador",
+        "mature_size": {
+          "height": "30-60cm",
+          "spread": "30-45cm"
+        },
+        "growth_rate": "medium",
+        "air_purifying": true,
+        "pet_safe": false,
+        "flowering": true,
+        "propagation": "division"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "moderate",
+        "indoor_outdoor": "indoor_only",
+        "seasonal_care": {
+          "summer": "Needs humidifier in dry summer heat. Mist daily.",
+          "winter": "Flowering season. Keep warm and provide bright light.",
+          "summer_arabic": "يحتاج مرطب في حر الصيف الجاف. ارش يومياً.",
+          "winter_arabic": "موسم الإزهار. حافظ على الدفء ووفر ضوء ساطع."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/Flamingo_flower_Red-Closeup.jpg"
+    },
+    {
+      "id": "begonia_rex",
+      "names": {
+        "scientific": [
+          "Begonia rex-cultorum"
+        ],
+        "common": [
+          "Rex Begonia",
+          "Painted-leaf Begonia",
+          "Fancy-leaf Begonia"
+        ],
+        "arabic": [
+          "بيغونيا ريكس",
+          "بيغونيا الأوراق المرسومة",
+          "بيغونيا الأوراق الفاخرة"
+        ],
+        "aliases": [
+          "rex begonia",
+          "painted leaf",
+          "fancy leaf"
+        ]
+      },
+      "care": {
+        "plant_info": "Stunning foliage with metallic colors. Needs humid environment and indirect light.",
+        "plant_info_arabic": "أوراق مذهلة بألوان معدنية. يحتاج بيئة رطبة وضوء غير مباشر.",
+        "plant_type": "foliage",
+        "difficulty": "intermediate",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "30_dry",
+          "description": "Keep soil moist but well-draining. Avoid wetting leaves.",
+          "arabic_description": "حافظ على رطوبة التربة مع تصريف جيد. تجنب تبليل الأوراق."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "medium_light"
+          ],
+          "description": "Bright indirect light. Direct sun fades colors.",
+          "arabic_description": "ضوء ساطع غير مباشر. الشمس المباشرة تبهت الألوان."
+        },
+        "humidity": "high",
+        "temperature": {
+          "min": 16,
+          "max": 28,
+          "optimal": 22
+        },
+        "soil": "moisture_retaining",
+        "fertilizer": "bi_weekly_growing_season"
+      },
+      "characteristics": {
+        "family": "Begoniaceae",
+        "origin": "India",
+        "mature_size": {
+          "height": "20-40cm",
+          "spread": "30-45cm"
+        },
+        "growth_rate": "medium",
+        "air_purifying": false,
+        "pet_safe": false,
+        "flowering": true,
+        "propagation": "leaf_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "moderate",
+        "indoor_outdoor": "indoor_only",
+        "seasonal_care": {
+          "summer": "Challenging in dry heat. Needs pebble trays and frequent misting.",
+          "winter": "Easier in winter. Keep warm and maintain humidity.",
+          "summer_arabic": "صعب في الحر الجاف. يحتاج أطباق حصى ورش متكرر.",
+          "winter_arabic": "أسهل في الشتاء. حافظ على الدفء والرطوبة."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/D631BDDD-2F2C-445C-B34A-ABE6745C3F5C.jpg"
+    },
+    {
+      "id": "alocasia",
+      "names": {
+        "scientific": [
+          "Alocasia amazonica"
+        ],
+        "common": [
+          "Alocasia",
+          "Elephant Ear",
+          "African Mask Plant"
+        ],
+        "arabic": [
+          "ألوكاسيا",
+          "أذن الفيل",
+          "نبات القناع الأفريقي"
+        ],
+        "aliases": [
+          "elephant ear",
+          "african mask",
+          "alocasia"
+        ]
+      },
+      "care": {
+        "plant_info": "Dramatic tropical plant with bold arrow-shaped leaves and striking patterns. Needs humid environment.",
+        "plant_info_arabic": "نبات استوائي مذهل بأوراق سهمية جريئة ونقوش لافتة. يحتاج بيئة رطبة.",
+        "plant_type": "tropical",
+        "difficulty": "intermediate",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "30_dry",
+          "description": "Keep soil evenly moist but not waterlogged. Sensitive to both over and under-watering.",
+          "arabic_description": "حافظ على رطوبة التربة بشكل متساوي لكن ليس مغمورة. حساس للري الزائد والقليل."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "medium_light"
+          ],
+          "description": "Bright indirect light maintains leaf patterns. Avoid direct sun.",
+          "arabic_description": "ضوء ساطع غير مباشر يحافظ على نقوش الأوراق. تجنب الشمس المباشرة."
+        },
+        "humidity": "high",
+        "temperature": {
+          "min": 18,
+          "max": 30,
+          "optimal": 24
+        },
+        "soil": "well_draining",
+        "fertilizer": "bi_weekly_growing_season"
+      },
+      "characteristics": {
+        "family": "Araceae",
+        "origin": "Southeast Asia",
+        "mature_size": {
+          "height": "30-60cm",
+          "spread": "30-50cm"
+        },
+        "growth_rate": "medium",
+        "air_purifying": true,
+        "pet_safe": false,
+        "flowering": false,
+        "propagation": "division"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "moderate",
+        "indoor_outdoor": "indoor_only",
+        "seasonal_care": {
+          "summer": "Needs high humidity. Mist daily or use humidifier. Shield from hot afternoon sun.",
+          "winter": "Reduce watering slightly. Keep away from cold drafts and heating vents.",
+          "summer_arabic": "يحتاج رطوبة عالية. رش يومياً أو استخدم جهاز ترطيب. احمه من شمس الظهيرة الحارة.",
+          "winter_arabic": "قلل الري قليلاً. ابعده عن التيارات الباردة وفتحات التدفئة."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/IMG_3349.jpg"
+    },
+    {
+      "id": "string_of_pearls",
+      "names": {
+        "scientific": [
+          "Senecio rowleyanus"
+        ],
+        "common": [
+          "String of Pearls",
+          "Bead Plant",
+          "String of Beads"
+        ],
+        "arabic": [
+          "سلسلة اللؤلؤ",
+          "نبات الخرز",
+          "حبات اللؤلؤ"
+        ],
+        "aliases": [
+          "string of pearls",
+          "pearl necklace",
+          "senecio"
+        ]
+      },
+      "care": {
+        "plant_info": "Unique succulent with pearl-like leaves cascading on thin stems. Excellent hanging plant.",
+        "plant_info_arabic": "عصاري فريد بأوراق تشبه اللؤلؤ متدلية على سيقان رفيعة. ممتاز كنبات معلق.",
+        "plant_type": "succulent",
+        "difficulty": "intermediate",
+        "watering": {
+          "frequency": "bi_weekly",
+          "schedule": "100_dry",
+          "description": "Water deeply when pearls wrinkle slightly. Sensitive to overwatering.",
+          "arabic_description": "اسقي بعمق عندما تتجعد اللؤلؤات قليلاً. حساس للري الزائد."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "direct_partial"
+          ],
+          "description": "Bright indirect light with some direct sun for compact growth.",
+          "arabic_description": "ضوء ساطع غير مباشر مع بعض الشمس المباشرة للنمو المتراص."
+        },
+        "humidity": "low",
+        "temperature": {
+          "min": 10,
+          "max": 32,
+          "optimal": 21
+        },
+        "soil": "cactus_mix",
+        "fertilizer": "monthly_diluted"
+      },
+      "characteristics": {
+        "family": "Asteraceae",
+        "origin": "South Africa",
+        "mature_size": {
+          "height": "trailing 60cm+",
+          "spread": "30cm"
+        },
+        "growth_rate": "medium",
+        "air_purifying": false,
+        "pet_safe": false,
+        "flowering": true,
+        "propagation": "stem_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "good",
+        "indoor_outdoor": "both",
+        "seasonal_care": {
+          "summer": "Protect from intense afternoon sun. Water sparingly even in heat.",
+          "winter": "Minimal watering. Can tolerate cooler temperatures but protect from frost.",
+          "summer_arabic": "احمه من شمس الظهيرة الشديدة. اسقي بشكل ضئيل حتى في الحر.",
+          "winter_arabic": "ري قليل جداً. يتحمل درجات حرارة أبرد لكن احمه من الصقيع."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/String_of_Pearls_Cairo_Egypt.jpg"
+    },
+    {
+      "id": "string_of_hearts",
+      "names": {
+        "scientific": [
+          "Ceropegia woodii"
+        ],
+        "common": [
+          "String of Hearts",
+          "Chain of Hearts",
+          "Rosary Vine"
+        ],
+        "arabic": [
+          "سلسلة القلوب",
+          "سلسلة الورد",
+          "كرمة السبحة"
+        ],
+        "aliases": [
+          "string of hearts",
+          "chain of hearts",
+          "ceropegia"
+        ]
+      },
+      "care": {
+        "plant_info": "Delicate trailing succulent with heart-shaped variegated leaves. Low-maintenance and charming.",
+        "plant_info_arabic": "عصاري متدلي رقيق بأوراق على شكل قلب متنوعة. قليل الصيانة وساحر.",
+        "plant_type": "succulent",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "bi_weekly",
+          "schedule": "60_dry",
+          "description": "Water when soil is mostly dry. Stores water in tuberous roots.",
+          "arabic_description": "اسقي عندما تجف التربة غالباً. يخزن الماء في جذور درنية."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "direct_partial"
+          ],
+          "description": "Bright light enhances variegation. Can handle some direct morning sun.",
+          "arabic_description": "ضوء ساطع يعزز التنوع. يتحمل بعض شمس الصباح المباشرة."
+        },
+        "humidity": "low",
+        "temperature": {
+          "min": 15,
+          "max": 30,
+          "optimal": 22
+        },
+        "soil": "well_draining",
+        "fertilizer": "monthly_growing_season"
+      },
+      "characteristics": {
+        "family": "Apocynaceae",
+        "origin": "South Africa",
+        "mature_size": {
+          "height": "trailing 90cm+",
+          "spread": "30cm"
+        },
+        "growth_rate": "fast",
+        "air_purifying": false,
+        "pet_safe": true,
+        "flowering": true,
+        "propagation": "stem_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "both",
+        "seasonal_care": {
+          "summer": "Growth period. Regular watering and bright indirect light.",
+          "winter": "Slow growth. Reduce watering frequency significantly.",
+          "summer_arabic": "فترة نمو. ري منتظم وضوء ساطع غير مباشر.",
+          "winter_arabic": "نمو بطيء. قلل تواتر الري بشكل كبير."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/String_of_Hearts.jpg"
+    },
+    {
+      "id": "echeveria",
+      "names": {
+        "scientific": [
+          "Echeveria spp."
+        ],
+        "common": [
+          "Echeveria",
+          "Hens and Chicks",
+          "Mexican Snowball"
+        ],
+        "arabic": [
+          "إيكيفيريا",
+          "الدجاجة والكتاكيت",
+          "كرة الثلج المكسيكية"
+        ],
+        "aliases": [
+          "echeveria",
+          "hens and chicks",
+          "succulent rosette"
+        ]
+      },
+      "care": {
+        "plant_info": "Beautiful rosette-forming succulent with fleshy leaves. Perfect for bright windowsills.",
+        "plant_info_arabic": "عصاري جميل يشكل وردة بأوراق لحمية. مثالي لنوافذ مشمسة.",
+        "plant_type": "succulent",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "bi_weekly",
+          "schedule": "100_dry",
+          "description": "Soak and dry method. Water deeply then let soil dry completely.",
+          "arabic_description": "طريقة النقع والجفاف. اسقي بعمق ثم اترك التربة تجف تماماً."
+        },
+        "light": {
+          "requirement": "bright_direct",
+          "tolerance": [
+            "bright_indirect"
+          ],
+          "description": "Needs bright light, prefers several hours of direct sun for compact growth.",
+          "arabic_description": "يحتاج ضوء ساطع، يفضل عدة ساعات من الشمس المباشرة للنمو المتراص."
+        },
+        "humidity": "low",
+        "temperature": {
+          "min": 10,
+          "max": 35,
+          "optimal": 21
+        },
+        "soil": "cactus_mix",
+        "fertilizer": "monthly_diluted"
+      },
+      "characteristics": {
+        "family": "Crassulaceae",
+        "origin": "Mexico",
+        "mature_size": {
+          "height": "10-30cm",
+          "spread": "15-30cm"
+        },
+        "growth_rate": "slow",
+        "air_purifying": false,
+        "pet_safe": true,
+        "flowering": true,
+        "propagation": "leaf_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "both",
+        "seasonal_care": {
+          "summer": "Can handle heat well. Ensure good airflow. Water sparingly.",
+          "winter": "Active growth period. Provide maximum light. Minimal watering.",
+          "summer_arabic": "يتحمل الحر بشكل جيد. تأكد من تدفق هواء جيد. اسقي بشكل ضئيل.",
+          "winter_arabic": "فترة نمو نشطة. وفر أقصى ضوء. ري قليل جداً."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/Mexicaan_Rose_Succulent.jpg"
+    },
+    {
+      "id": "haworthia",
+      "names": {
+        "scientific": [
+          "Haworthia fasciata",
+          "Haworthia attenuata"
+        ],
+        "common": [
+          "Haworthia",
+          "Zebra Cactus",
+          "Zebra Plant"
+        ],
+        "arabic": [
+          "هاورثيا",
+          "صبار الحمار الوحشي",
+          "نبات الحمار الوحشي"
+        ],
+        "aliases": [
+          "haworthia",
+          "zebra succulent",
+          "zebra haworthia"
+        ]
+      },
+      "care": {
+        "plant_info": "Small succulent with distinctive white stripes. Extremely low-maintenance and beginner-friendly.",
+        "plant_info_arabic": "عصاري صغير بخطوط بيضاء مميزة. قليل الصيانة جداً ومناسب للمبتدئين.",
+        "plant_type": "succulent",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "bi_weekly",
+          "schedule": "100_dry",
+          "description": "Water when soil is completely dry. Very drought tolerant.",
+          "arabic_description": "اسقي عندما تجف التربة تماماً. متحمل للجفاف جداً."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "low_light",
+            "direct_partial"
+          ],
+          "description": "Prefers bright indirect light. Can tolerate lower light unlike most succulents.",
+          "arabic_description": "يفضل ضوء ساطع غير مباشر. يتحمل ضوء أقل بخلاف معظم العصاريات."
+        },
+        "humidity": "low",
+        "temperature": {
+          "min": 10,
+          "max": 35,
+          "optimal": 21
+        },
+        "soil": "cactus_mix",
+        "fertilizer": "monthly_diluted"
+      },
+      "characteristics": {
+        "family": "Asphodelaceae",
+        "origin": "South Africa",
+        "mature_size": {
+          "height": "10-15cm",
+          "spread": "10-15cm"
+        },
+        "growth_rate": "slow",
+        "air_purifying": false,
+        "pet_safe": true,
+        "flowering": true,
+        "propagation": "offsets"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "both",
+        "seasonal_care": {
+          "summer": "Can handle heat. Protect from intense afternoon sun which can burn leaves.",
+          "winter": "Minimal watering. Can tolerate cooler indoor temperatures.",
+          "summer_arabic": "يتحمل الحر. احمه من شمس الظهيرة الشديدة التي قد تحرق الأوراق.",
+          "winter_arabic": "ري قليل جداً. يتحمل درجات حرارة داخلية أبرد."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/Cathedral_Window_Haworthia.jpg"
+    },
+    {
+      "id": "pilea",
+      "names": {
+        "scientific": [
+          "Pilea peperomioides"
+        ],
+        "common": [
+          "Pilea",
+          "Chinese Money Plant",
+          "Pancake Plant"
+        ],
+        "arabic": [
+          "بيليا",
+          "نبات المال الصيني",
+          "نبات الفطيرة"
+        ],
+        "aliases": [
+          "pilea",
+          "chinese money plant",
+          "pancake plant",
+          "ufo plant"
+        ]
+      },
+      "care": {
+        "plant_info": "Trendy plant with round coin-shaped leaves on delicate stems. Easy care and produces many offsets.",
+        "plant_info_arabic": "نبات عصري بأوراق مستديرة على شكل عملة على سيقان رقيقة. سهل العناية وينتج فروع كثيرة.",
+        "plant_type": "foliage",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "60_dry",
+          "description": "Water when top soil is dry. Leaves droop when thirsty.",
+          "arabic_description": "اسقي عندما تجف التربة العلوية. تتدلى الأوراق عندما تكون عطشى."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "medium_light"
+          ],
+          "description": "Bright indirect light. Rotate regularly for even growth.",
+          "arabic_description": "ضوء ساطع غير مباشر. أدر بانتظام للنمو المتساوي."
+        },
+        "humidity": "medium",
+        "temperature": {
+          "min": 16,
+          "max": 30,
+          "optimal": 22
+        },
+        "soil": "well_draining",
+        "fertilizer": "monthly_growing_season"
+      },
+      "characteristics": {
+        "family": "Urticaceae",
+        "origin": "China",
+        "mature_size": {
+          "height": "30cm",
+          "spread": "30cm"
+        },
+        "growth_rate": "medium",
+        "air_purifying": false,
+        "pet_safe": true,
+        "flowering": false,
+        "propagation": "offsets"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "good",
+        "indoor_outdoor": "indoor_only",
+        "seasonal_care": {
+          "summer": "Regular watering. Protect from hot afternoon sun.",
+          "winter": "Reduce watering slightly. Keep away from cold drafts.",
+          "summer_arabic": "ري منتظم. احمه من شمس الظهيرة الحارة.",
+          "winter_arabic": "قلل الري قليلاً. ابعده عن التيارات الباردة."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/Silver_Dollar_Succulent_Pot_Size_14cm.jpg"
+    },
+    {
+      "id": "fittonia",
+      "names": {
+        "scientific": [
+          "Fittonia albivenis"
+        ],
+        "common": [
+          "Fittonia",
+          "Nerve Plant",
+          "Mosaic Plant"
+        ],
+        "arabic": [
+          "فيتونيا",
+          "نبات الأعصاب",
+          "نبات الفسيفساء"
+        ],
+        "aliases": [
+          "fittonia",
+          "nerve plant",
+          "mosaic plant"
+        ]
+      },
+      "care": {
+        "plant_info": "Compact plant with intricately veined leaves in pink, white, or red. Loves humidity.",
+        "plant_info_arabic": "نبات مدمج بأوراق معرقة بشكل معقد باللون الوردي أو الأبيض أو الأحمر. يحب الرطوبة.",
+        "plant_type": "foliage",
+        "difficulty": "intermediate",
+        "watering": {
+          "frequency": "twice_weekly",
+          "schedule": "30_dry",
+          "description": "Keep soil consistently moist. Dramatic when thirsty - revives quickly with water.",
+          "arabic_description": "حافظ على رطوبة التربة باستمرار. درامي عند العطش - يتعافى بسرعة بالماء."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "low_light",
+            "medium_light"
+          ],
+          "description": "Low to medium indirect light. Direct sun fades leaf patterns.",
+          "arabic_description": "ضوء غير مباشر منخفض إلى متوسط. الشمس المباشرة تبهت نقوش الأوراق."
+        },
+        "humidity": "high",
+        "temperature": {
+          "min": 16,
+          "max": 27,
+          "optimal": 21
+        },
+        "soil": "moisture_retaining",
+        "fertilizer": "monthly_diluted"
+      },
+      "characteristics": {
+        "family": "Acanthaceae",
+        "origin": "South America",
+        "mature_size": {
+          "height": "10-15cm",
+          "spread": "15-30cm"
+        },
+        "growth_rate": "medium",
+        "air_purifying": false,
+        "pet_safe": true,
+        "flowering": false,
+        "propagation": "stem_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "moderate",
+        "indoor_outdoor": "indoor_only",
+        "seasonal_care": {
+          "summer": "Challenging in dry heat. Needs frequent misting or pebble tray. Avoid direct sun.",
+          "winter": "Easier in cooler months. Maintain humidity and warmth.",
+          "summer_arabic": "صعب في الحر الجاف. يحتاج رش متكرر أو طبق حصى. تجنب الشمس المباشرة.",
+          "winter_arabic": "أسهل في الأشهر الباردة. حافظ على الرطوبة والدفء."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/IMG_5938.jpg"
+    },
+    {
+      "id": "moth_orchid",
+      "names": {
+        "scientific": [
+          "Phalaenopsis spp."
+        ],
+        "common": [
+          "Moth Orchid",
+          "Phalaenopsis",
+          "Moon Orchid"
+        ],
+        "arabic": [
+          "أوركيد العثة",
+          "فالاينوبسيس",
+          "أوركيد القمر"
+        ],
+        "aliases": [
+          "moth orchid",
+          "phalaenopsis",
+          "orchid"
+        ]
+      },
+      "care": {
+        "plant_info": "Elegant orchid with long-lasting flowers. Easier than most orchids, great for beginners.",
+        "plant_info_arabic": "أوركيد أنيق بأزهار تدوم طويلاً. أسهل من معظم الأوركيد، رائع للمبتدئين.",
+        "plant_type": "orchid",
+        "difficulty": "intermediate",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "60_dry",
+          "description": "Water when roots turn silvery. Soak pot in water for 15 minutes then drain thoroughly.",
+          "arabic_description": "اسقي عندما تتحول الجذور إلى فضي. انقع الأصيص في الماء لمدة 15 دقيقة ثم صفي جيداً."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "medium_light"
+          ],
+          "description": "Bright indirect light, no direct sun. East or west window ideal.",
+          "arabic_description": "ضوء ساطع غير مباشر، بدون شمس مباشرة. نافذة شرقية أو غربية مثالية."
+        },
+        "humidity": "medium",
+        "temperature": {
+          "min": 18,
+          "max": 30,
+          "optimal": 24
+        },
+        "soil": "orchid_bark",
+        "fertilizer": "weekly_diluted_orchid"
+      },
+      "characteristics": {
+        "family": "Orchidaceae",
+        "origin": "Southeast Asia",
+        "mature_size": {
+          "height": "30-60cm with flower spike",
+          "spread": "30cm"
+        },
+        "growth_rate": "slow",
+        "air_purifying": false,
+        "pet_safe": true,
+        "flowering": true,
+        "propagation": "keikis"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "good",
+        "indoor_outdoor": "indoor_only",
+        "seasonal_care": {
+          "summer": "May need slight temperature drop at night for reblooming. Maintain humidity.",
+          "winter": "Cooler nights can trigger flowering. Continue weekly watering routine.",
+          "summer_arabic": "قد يحتاج انخفاض طفيف في درجة الحرارة ليلاً لإعادة الإزهار. حافظ على الرطوبة.",
+          "winter_arabic": "الليالي الباردة يمكن أن تحفز الإزهار. استمر في روتين الري الأسبوعي."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/Phalaenopsis_orchids_pink_and_yellow.jpg"
+    },
+    {
+      "id": "ctenanthe",
+      "names": {
+        "scientific": [
+          "Ctenanthe setosa",
+          "Ctenanthe burle-marxii"
+        ],
+        "common": [
+          "Ctenanthe",
+          "Never Never Plant",
+          "Fishbone Prayer Plant"
+        ],
+        "arabic": [
+          "كتينانث",
+          "نبات أبداً أبداً",
+          "نبات صلاة عظم السمك"
+        ],
+        "aliases": [
+          "ctenanthe",
+          "never never plant",
+          "fishbone"
+        ]
+      },
+      "care": {
+        "plant_info": "Striking tropical plant with patterned leaves that fold at night. Related to Calathea.",
+        "plant_info_arabic": "نبات استوائي مذهل بأوراق منقوشة تنطوي ليلاً. مرتبط بالكالاثيا.",
+        "plant_type": "tropical",
+        "difficulty": "intermediate",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "30_dry",
+          "description": "Keep soil evenly moist but not soggy. Use filtered or distilled water.",
+          "arabic_description": "حافظ على رطوبة التربة بشكل متساوي لكن ليس مغمورة. استخدم ماء مفلتر أو مقطر."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "medium_light"
+          ],
+          "description": "Medium to bright indirect light. Direct sun damages leaves.",
+          "arabic_description": "ضوء غير مباشر متوسط إلى ساطع. الشمس المباشرة تضر الأوراق."
+        },
+        "humidity": "high",
+        "temperature": {
+          "min": 18,
+          "max": 29,
+          "optimal": 24
+        },
+        "soil": "moisture_retaining",
+        "fertilizer": "monthly_diluted"
+      },
+      "characteristics": {
+        "family": "Marantaceae",
+        "origin": "Brazil",
+        "mature_size": {
+          "height": "30-90cm",
+          "spread": "30-60cm"
+        },
+        "growth_rate": "medium",
+        "air_purifying": true,
+        "pet_safe": true,
+        "flowering": false,
+        "propagation": "division"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "moderate",
+        "indoor_outdoor": "indoor_only",
+        "seasonal_care": {
+          "summer": "Challenging in dry heat. Needs humidifier or frequent misting. Shield from hot sun.",
+          "winter": "Easier with lower temperatures. Maintain humidity and warmth.",
+          "summer_arabic": "صعب في الحر الجاف. يحتاج جهاز ترطيب أو رش متكرر. احمه من الشمس الحارة.",
+          "winter_arabic": "أسهل مع درجات حرارة أقل. حافظ على الرطوبة والدفء."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/Fishbone_in_Ceramic.jpg"
+    },
+    {
+      "id": "satin_pothos",
+      "names": {
+        "scientific": [
+          "Scindapsus pictus"
+        ],
+        "common": [
+          "Satin Pothos",
+          "Silver Philodendron",
+          "Silver Vine"
+        ],
+        "arabic": [
+          "بوتوس ساتان",
+          "فيلودندرون فضي",
+          "كرمة فضية"
+        ],
+        "aliases": [
+          "satin pothos",
+          "scindapsus",
+          "silver pothos"
+        ]
+      },
+      "care": {
+        "plant_info": "Velvety leaves with silver variegation. Similar care to Pothos but slower growing.",
+        "plant_info_arabic": "أوراق مخملية بتنوع فضي. عناية مشابهة للبوتوس لكن نمو أبطأ.",
+        "plant_type": "tropical",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "60_dry",
+          "description": "Water when top soil is dry. Tolerates occasional neglect.",
+          "arabic_description": "اسقي عندما تجف التربة العلوية. يتحمل الإهمال العرضي."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "low_light",
+            "medium_light"
+          ],
+          "description": "Bright indirect light for best variegation. Tolerates lower light.",
+          "arabic_description": "ضوء ساطع غير مباشر لأفضل تنوع. يتحمل ضوء أقل."
+        },
+        "humidity": "medium",
+        "temperature": {
+          "min": 16,
+          "max": 30,
+          "optimal": 22
+        },
+        "soil": "well_draining",
+        "fertilizer": "monthly_growing_season"
+      },
+      "characteristics": {
+        "family": "Araceae",
+        "origin": "Southeast Asia",
+        "mature_size": {
+          "height": "90cm trailing",
+          "spread": "60cm"
+        },
+        "growth_rate": "medium",
+        "air_purifying": true,
+        "pet_safe": false,
+        "flowering": false,
+        "propagation": "stem_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "indoor_preferred",
+        "seasonal_care": {
+          "summer": "Regular watering. Mist occasionally for humidity.",
+          "winter": "Reduce watering. Protect from cold drafts.",
+          "summer_arabic": "ري منتظم. رش أحياناً للرطوبة.",
+          "winter_arabic": "قلل الري. احمه من التيارات الباردة."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/BFA2E95C-9021-4ADF-A1DD-0290B008F80A.jpg"
+    },
+    {
+      "id": "birds_nest_fern",
+      "names": {
+        "scientific": [
+          "Asplenium nidus"
+        ],
+        "common": [
+          "Bird's Nest Fern",
+          "Nest Fern"
+        ],
+        "arabic": [
+          "سرخس عش الطائر",
+          "سرخس العش"
+        ],
+        "aliases": [
+          "birds nest fern",
+          "nest fern",
+          "asplenium"
+        ]
+      },
+      "care": {
+        "plant_info": "Tropical fern with glossy rippled fronds forming a nest shape. Loves humidity.",
+        "plant_info_arabic": "سرخس استوائي بأوراق لامعة متموجة تشكل شكل عش. يحب الرطوبة.",
+        "plant_type": "fern",
+        "difficulty": "intermediate",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "30_dry",
+          "description": "Keep soil consistently moist but not waterlogged. Water around edges, not center.",
+          "arabic_description": "حافظ على رطوبة التربة باستمرار لكن ليس مغمورة. اسقي حول الحواف، ليس المركز."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "low_light",
+            "medium_light"
+          ],
+          "description": "Low to medium indirect light. Direct sun burns fronds.",
+          "arabic_description": "ضوء غير مباشر منخفض إلى متوسط. الشمس المباشرة تحرق الأوراق."
+        },
+        "humidity": "high",
+        "temperature": {
+          "min": 16,
+          "max": 27,
+          "optimal": 21
+        },
+        "soil": "moisture_retaining",
+        "fertilizer": "monthly_diluted"
+      },
+      "characteristics": {
+        "family": "Aspleniaceae",
+        "origin": "Tropical regions worldwide",
+        "mature_size": {
+          "height": "40-60cm",
+          "spread": "40-60cm"
+        },
+        "growth_rate": "slow",
+        "air_purifying": true,
+        "pet_safe": true,
+        "flowering": false,
+        "propagation": "spores"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "moderate",
+        "indoor_outdoor": "indoor_only",
+        "seasonal_care": {
+          "summer": "Challenging in dry heat. Needs high humidity from humidifier or frequent misting.",
+          "winter": "Easier in cooler months. Maintain warmth and humidity.",
+          "summer_arabic": "صعب في الحر الجاف. يحتاج رطوبة عالية من جهاز ترطيب أو رش متكرر.",
+          "winter_arabic": "أسهل في الأشهر الباردة. حافظ على الدفء والرطوبة."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/IMG_5838.jpg"
+    },
+    {
+      "id": "bamboo_palm",
+      "names": {
+        "scientific": [
+          "Chamaedorea seifrizii"
+        ],
+        "common": [
+          "Bamboo Palm",
+          "Reed Palm",
+          "Clustered Parlor Palm"
+        ],
+        "arabic": [
+          "نخلة الخيزران",
+          "نخلة القصب",
+          "نخلة الصالون"
+        ],
+        "aliases": [
+          "bamboo palm",
+          "reed palm",
+          "chamaedorea"
+        ]
+      },
+      "care": {
+        "plant_info": "Graceful clustering palm with bamboo-like stems. Excellent air purifier and low-light tolerant.",
+        "plant_info_arabic": "نخلة أنيقة ذات سيقان تشبه الخيزران. منقي هواء ممتاز ومتحملة للضوء المنخفض.",
+        "plant_type": "palm",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "60_dry",
+          "description": "Keep soil evenly moist during growing season. Reduce in winter.",
+          "arabic_description": "حافظ على رطوبة التربة بشكل متساوي خلال موسم النمو. قلل في الشتاء."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "low_light",
+            "medium_light"
+          ],
+          "description": "Thrives in medium to bright indirect light. Tolerates low light better than most palms.",
+          "arabic_description": "تزدهر في ضوء غير مباشر متوسط إلى ساطع. تتحمل ضوء منخفض أفضل من معظم النخيل."
+        },
+        "humidity": "medium",
+        "temperature": {
+          "min": 16,
+          "max": 30,
+          "optimal": 24
+        },
+        "soil": "well_draining",
+        "fertilizer": "monthly_growing_season"
+      },
+      "characteristics": {
+        "family": "Arecaceae",
+        "origin": "Mexico, Central America",
+        "mature_size": {
+          "height": "90-180cm indoors",
+          "spread": "60-90cm"
+        },
+        "growth_rate": "slow",
+        "air_purifying": true,
+        "pet_safe": true,
+        "flowering": false,
+        "propagation": "division"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "good",
+        "indoor_outdoor": "indoor_preferred",
+        "seasonal_care": {
+          "summer": "Regular watering. Mist occasionally for humidity. Protect from direct sun.",
+          "winter": "Reduce watering. Maintain warmth above 16°C.",
+          "summer_arabic": "ري منتظم. رش أحياناً للرطوبة. احمها من الشمس المباشرة.",
+          "winter_arabic": "قلل الري. حافظ على دفء فوق 16 درجة مئوية."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/Bamboo_Palm.jpg"
+    },
+    {
+      "id": "madagascar_dragon_tree",
+      "names": {
+        "scientific": [
+          "Dracaena marginata"
+        ],
+        "common": [
+          "Madagascar Dragon Tree",
+          "Red-edged Dracaena",
+          "Dragon Tree"
+        ],
+        "arabic": [
+          "شجرة التنين",
+          "دراسينا مدغشقر",
+          "شجرة التنين الحمراء"
+        ],
+        "aliases": [
+          "dragon tree",
+          "dracaena marginata",
+          "red edge dracaena"
+        ]
+      },
+      "care": {
+        "plant_info": "Striking architectural plant with thin red-edged leaves. Very low-maintenance and drought tolerant.",
+        "plant_info_arabic": "نبات معماري مذهل بأوراق رفيعة ذات حواف حمراء. قليل الصيانة جداً ومتحمل للجفاف.",
+        "plant_type": "tropical",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "bi_weekly",
+          "schedule": "60_dry",
+          "description": "Allow soil to dry between waterings. Very drought tolerant.",
+          "arabic_description": "اترك التربة تجف بين الري. متحمل للجفاف جداً."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "low_light",
+            "medium_light"
+          ],
+          "description": "Prefers bright indirect light but adapts to lower light. Red edges fade in low light.",
+          "arabic_description": "يفضل ضوء ساطع غير مباشر لكن يتكيف مع ضوء أقل. الحواف الحمراء تبهت في ضوء منخفض."
+        },
+        "humidity": "low",
+        "temperature": {
+          "min": 16,
+          "max": 32,
+          "optimal": 24
+        },
+        "soil": "well_draining",
+        "fertilizer": "monthly_growing_season"
+      },
+      "characteristics": {
+        "family": "Asparagaceae",
+        "origin": "Madagascar",
+        "mature_size": {
+          "height": "120-180cm indoors",
+          "spread": "60cm"
+        },
+        "growth_rate": "slow",
+        "air_purifying": true,
+        "pet_safe": false,
+        "flowering": false,
+        "propagation": "stem_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "both",
+        "seasonal_care": {
+          "summer": "Can handle heat well. Water moderately. Tolerates dry air.",
+          "winter": "Minimal watering. Protects from cold drafts below 16°C.",
+          "summer_arabic": "يتحمل الحر بشكل جيد. اسقي باعتدال. يتحمل الهواء الجاف.",
+          "winter_arabic": "ري قليل جداً. احمه من التيارات الباردة تحت 16 درجة."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/IMG_2254.jpg"
+    },
+    {
+      "id": "english_ivy",
+      "names": {
+        "scientific": [
+          "Hedera helix"
+        ],
+        "common": [
+          "English Ivy",
+          "Common Ivy",
+          "European Ivy"
+        ],
+        "arabic": [
+          "لبلاب إنجليزي",
+          "لبلاب شائع",
+          "لبلاب أوروبي"
+        ],
+        "aliases": [
+          "english ivy",
+          "ivy",
+          "hedera"
+        ]
+      },
+      "care": {
+        "plant_info": "Classic trailing vine with lobed leaves. Excellent for hanging baskets and topiary. Air purifying.",
+        "plant_info_arabic": "كرمة متدلية كلاسيكية بأوراق مفصصة. ممتاز للسلال المعلقة والتشكيل. منقي للهواء.",
+        "plant_type": "vine",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "30_dry",
+          "description": "Keep soil slightly moist. Avoid waterlogging.",
+          "arabic_description": "حافظ على رطوبة التربة قليلاً. تجنب الغمر بالماء."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "low_light",
+            "medium_light"
+          ],
+          "description": "Prefers bright indirect light. Tolerates shade but grows slower.",
+          "arabic_description": "يفضل ضوء ساطع غير مباشر. يتحمل الظل لكن ينمو أبطأ."
+        },
+        "humidity": "medium",
+        "temperature": {
+          "min": 10,
+          "max": 27,
+          "optimal": 18
+        },
+        "soil": "well_draining",
+        "fertilizer": "monthly_growing_season"
+      },
+      "characteristics": {
+        "family": "Araliaceae",
+        "origin": "Europe, Western Asia",
+        "mature_size": {
+          "height": "trailing 180cm+",
+          "spread": "90cm"
+        },
+        "growth_rate": "fast",
+        "air_purifying": true,
+        "pet_safe": false,
+        "flowering": false,
+        "propagation": "stem_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "good",
+        "indoor_outdoor": "both",
+        "seasonal_care": {
+          "summer": "Regular watering. Protect from hot afternoon sun. Mist for humidity.",
+          "winter": "Reduce watering. Prefers cooler temperatures. Can tolerate down to 10°C.",
+          "summer_arabic": "ري منتظم. احمه من شمس الظهيرة الحارة. رش للرطوبة.",
+          "winter_arabic": "قلل الري. يفضل درجات حرارة أبرد. يتحمل حتى 10 درجات."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/IMG_1370.jpg"
+    },
+    {
+      "id": "lucky_bamboo",
+      "names": {
+        "scientific": [
+          "Dracaena sanderiana"
+        ],
+        "common": [
+          "Lucky Bamboo",
+          "Ribbon Plant",
+          "Chinese Water Bamboo"
+        ],
+        "arabic": [
+          "خيزران الحظ",
+          "نبات الشريط",
+          "خيزران الماء الصيني"
+        ],
+        "aliases": [
+          "lucky bamboo",
+          "ribbon dracaena",
+          "bamboo"
+        ]
+      },
+      "care": {
+        "plant_info": "Not true bamboo but a Dracaena. Can grow in water or soil. Symbol of good fortune in Feng Shui.",
+        "plant_info_arabic": "ليس خيزران حقيقي بل دراسينا. ينمو في الماء أو التربة. رمز للحظ السعيد في فينج شوي.",
+        "plant_type": "tropical",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "water_culture",
+          "schedule": "maintain_level",
+          "description": "Grows in water (change weekly) or moist soil. Use filtered/distilled water.",
+          "arabic_description": "ينمو في الماء (غير أسبوعياً) أو تربة رطبة. استخدم ماء مفلتر أو مقطر."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "low_light",
+            "medium_light"
+          ],
+          "description": "Bright indirect light. Direct sun burns leaves.",
+          "arabic_description": "ضوء ساطع غير مباشر. الشمس المباشرة تحرق الأوراق."
+        },
+        "humidity": "medium",
+        "temperature": {
+          "min": 16,
+          "max": 32,
+          "optimal": 22
+        },
+        "soil": "water_or_well_draining",
+        "fertilizer": "monthly_diluted_liquid"
+      },
+      "characteristics": {
+        "family": "Asparagaceae",
+        "origin": "Central Africa",
+        "mature_size": {
+          "height": "60-150cm",
+          "spread": "30cm"
+        },
+        "growth_rate": "medium",
+        "air_purifying": false,
+        "pet_safe": false,
+        "flowering": false,
+        "propagation": "stem_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "indoor_only",
+        "seasonal_care": {
+          "summer": "Change water more frequently in heat. Keep out of direct sun.",
+          "winter": "Less frequent water changes. Maintain warmth.",
+          "summer_arabic": "غير الماء بشكل أكثر تواتراً في الحر. ابعده عن الشمس المباشرة.",
+          "winter_arabic": "غير الماء بشكل أقل تواتراً. حافظ على الدفء."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/D4C1DB4A-5AE7-4B3D-92E1-184EEFC1F41F.jpg"
+    },
+    {
+      "id": "areca_palm",
+      "names": {
+        "scientific": [
+          "Dypsis lutescens",
+          "Chrysalidocarpus lutescens"
+        ],
+        "common": [
+          "Areca Palm",
+          "Golden Cane Palm",
+          "Butterfly Palm",
+          "Yellow Palm"
+        ],
+        "arabic": [
+          "نخلة أريكا",
+          "نخلة القصب الذهبي",
+          "نخلة الفراشة",
+          "نخلة صفراء"
+        ],
+        "aliases": [
+          "areca palm",
+          "golden cane",
+          "butterfly palm",
+          "yellow palm"
+        ]
+      },
+      "care": {
+        "plant_info": "Popular feathery palm with golden-yellow stems. Excellent air purifier and humidifier.",
+        "plant_info_arabic": "نخلة ريشية شائعة بسيقان صفراء ذهبية. منقي هواء ومرطب ممتاز.",
+        "plant_type": "palm",
+        "difficulty": "intermediate",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "30_dry",
+          "description": "Keep soil evenly moist but not waterlogged. Sensitive to both over and under-watering.",
+          "arabic_description": "حافظ على رطوبة التربة بشكل متساوي لكن ليس مغمورة. حساس للري الزائد والقليل."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "medium_light"
+          ],
+          "description": "Bright indirect light essential. Direct sun scorches leaves.",
+          "arabic_description": "ضوء ساطع غير مباشر ضروري. الشمس المباشرة تحرق الأوراق."
+        },
+        "humidity": "high",
+        "temperature": {
+          "min": 18,
+          "max": 30,
+          "optimal": 24
+        },
+        "soil": "well_draining",
+        "fertilizer": "monthly_growing_season"
+      },
+      "characteristics": {
+        "family": "Arecaceae",
+        "origin": "Madagascar",
+        "mature_size": {
+          "height": "150-200cm indoors",
+          "spread": "90-120cm"
+        },
+        "growth_rate": "medium",
+        "air_purifying": true,
+        "pet_safe": true,
+        "flowering": false,
+        "propagation": "division"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "moderate",
+        "indoor_outdoor": "indoor_preferred",
+        "seasonal_care": {
+          "summer": "Needs regular misting for humidity. Protect from hot dry air. Water frequently.",
+          "winter": "Reduce watering slightly. Maintain warmth and humidity.",
+          "summer_arabic": "يحتاج رش منتظم للرطوبة. احمه من الهواء الحار الجاف. اسقي بشكل متكرر.",
+          "winter_arabic": "قلل الري قليلاً. حافظ على الدفء والرطوبة."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/Areca_Palm.jpg"
+    },
+    {
+      "id": "philodendron_xanadu",
+      "names": {
+        "scientific": [
+          "Philodendron xanadu",
+          "Thaumatophyllum xanadu"
+        ],
+        "common": [
+          "Philodendron Xanadu",
+          "Xanadu",
+          "Winterbourn"
+        ],
+        "arabic": [
+          "فيلودندرون زانادو",
+          "زانادو",
+          "وينتربورن"
+        ],
+        "aliases": [
+          "xanadu",
+          "philodendron xanadu",
+          "winterbourn"
+        ]
+      },
+      "care": {
+        "plant_info": "Compact self-heading philodendron with deeply lobed leaves. Perfect for medium-sized spaces.",
+        "plant_info_arabic": "فيلودندرون مدمج ذاتي التوجيه بأوراق مفصصة بعمق. مثالي للمساحات المتوسطة.",
+        "plant_type": "tropical",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "60_dry",
+          "description": "Water when top 2-3cm of soil is dry. Forgiving with occasional neglect.",
+          "arabic_description": "اسقي عندما تجف أعلى 2-3 سم من التربة. متسامح مع الإهمال العرضي."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "low_light",
+            "medium_light"
+          ],
+          "description": "Adapts to various light levels. Prefers bright indirect light for best growth.",
+          "arabic_description": "يتكيف مع مستويات إضاءة مختلفة. يفضل ضوء ساطع غير مباشر لأفضل نمو."
+        },
+        "humidity": "medium",
+        "temperature": {
+          "min": 16,
+          "max": 30,
+          "optimal": 24
+        },
+        "soil": "well_draining",
+        "fertilizer": "monthly_growing_season"
+      },
+      "characteristics": {
+        "family": "Araceae",
+        "origin": "Brazil",
+        "mature_size": {
+          "height": "60-90cm",
+          "spread": "90-120cm"
+        },
+        "growth_rate": "medium",
+        "air_purifying": true,
+        "pet_safe": false,
+        "flowering": false,
+        "propagation": "division"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "indoor_preferred",
+        "seasonal_care": {
+          "summer": "Regular watering. Benefits from occasional misting.",
+          "winter": "Reduce watering. Protect from cold drafts.",
+          "summer_arabic": "ري منتظم. يستفيد من الرش العرضي.",
+          "winter_arabic": "قلل الري. احمه من التيارات الباردة."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/xanadu.jpg"
+    },
+    {
+      "id": "christmas_cactus",
+      "names": {
+        "scientific": [
+          "Schlumbergera truncata",
+          "Schlumbergera x buckleyi"
+        ],
+        "common": [
+          "Christmas Cactus",
+          "Thanksgiving Cactus",
+          "Holiday Cactus"
+        ],
+        "arabic": [
+          "صبار الكريسماس",
+          "صبار عيد الشكر",
+          "صبار العطلات"
+        ],
+        "aliases": [
+          "christmas cactus",
+          "holiday cactus",
+          "schlumbergera"
+        ]
+      },
+      "care": {
+        "plant_info": "Popular blooming succulent with segmented leaves. Flowers in winter with proper care.",
+        "plant_info_arabic": "عصاري مزهر شائع بأوراق مجزأة. يزهر في الشتاء مع العناية المناسبة.",
+        "plant_type": "succulent",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "30_dry",
+          "description": "Keep evenly moist when blooming. Reduce after flowering.",
+          "arabic_description": "حافظ على رطوبة متساوية عند الإزهار. قلل بعد الإزهار."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "medium_light"
+          ],
+          "description": "Bright indirect light. Needs long dark nights (12-14 hours) to trigger blooming.",
+          "arabic_description": "ضوء ساطع غير مباشر. يحتاج ليالي مظلمة طويلة (12-14 ساعة) لتحفيز الإزهار."
+        },
+        "humidity": "medium",
+        "temperature": {
+          "min": 13,
+          "max": 24,
+          "optimal": 18
+        },
+        "soil": "cactus_mix",
+        "fertilizer": "monthly_growing_season"
+      },
+      "characteristics": {
+        "family": "Cactaceae",
+        "origin": "Brazil",
+        "mature_size": {
+          "height": "30cm",
+          "spread": "60cm trailing"
+        },
+        "growth_rate": "medium",
+        "air_purifying": false,
+        "pet_safe": true,
+        "flowering": true,
+        "propagation": "stem_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "good",
+        "indoor_outdoor": "indoor_only",
+        "seasonal_care": {
+          "summer": "Rest period. Reduce watering and fertilizer. Keep in shade.",
+          "winter": "Flowering period. Regular watering and bright indirect light.",
+          "summer_arabic": "فترة راحة. قلل الري والتسميد. احفظه في الظل.",
+          "winter_arabic": "فترة إزهار. ري منتظم وضوء ساطع غير مباشر."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/Christmas_Cactus_in_shay_Clay_Pot.jpg"
+    },
+    {
+      "id": "polka_dot_begonia",
+      "names": {
+        "scientific": [
+          "Begonia maculata"
+        ],
+        "common": [
+          "Polka Dot Begonia",
+          "Spotted Begonia",
+          "Clown Begonia"
+        ],
+        "arabic": [
+          "بيغونيا البولكا دوت",
+          "بيغونيا منقطة",
+          "بيغونيا المهرج"
+        ],
+        "aliases": [
+          "polka dot begonia",
+          "spotted begonia",
+          "begonia maculata"
+        ]
+      },
+      "care": {
+        "plant_info": "Stunning plant with silver-spotted leaves and red undersides. Produces white or pink flowers.",
+        "plant_info_arabic": "نبات مذهل بأوراق منقطة بالفضي وجوانب سفلية حمراء. ينتج أزهار بيضاء أو وردية.",
+        "plant_type": "tropical",
+        "difficulty": "intermediate",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "30_dry",
+          "description": "Keep soil moist but not soggy. Water when top inch is dry.",
+          "arabic_description": "حافظ على رطوبة التربة لكن ليس مغمورة. اسقي عندما تجف البوصة العلوية."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "medium_light"
+          ],
+          "description": "Bright indirect light essential. Direct sun burns leaves.",
+          "arabic_description": "ضوء ساطع غير مباشر ضروري. الشمس المباشرة تحرق الأوراق."
+        },
+        "humidity": "high",
+        "temperature": {
+          "min": 18,
+          "max": 27,
+          "optimal": 22
+        },
+        "soil": "well_draining",
+        "fertilizer": "bi_weekly_growing_season"
+      },
+      "characteristics": {
+        "family": "Begoniaceae",
+        "origin": "Brazil",
+        "mature_size": {
+          "height": "60-90cm",
+          "spread": "40-60cm"
+        },
+        "growth_rate": "fast",
+        "air_purifying": false,
+        "pet_safe": false,
+        "flowering": true,
+        "propagation": "stem_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "moderate",
+        "indoor_outdoor": "indoor_only",
+        "seasonal_care": {
+          "summer": "Challenging in dry heat. Needs high humidity from humidifier or frequent misting.",
+          "winter": "Easier in cooler months. Maintain warmth and humidity.",
+          "summer_arabic": "صعب في الحر الجاف. يحتاج رطوبة عالية من جهاز ترطيب أو رش متكرر.",
+          "winter_arabic": "أسهل في الأشهر الباردة. حافظ على الدفء والرطوبة."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/D631BDDD-2F2C-445C-B34A-ABE6745C3F5C.jpg"
+    },
+    {
+      "id": "birds_of_paradise",
+      "names": {
+        "scientific": [
+          "Strelitzia reginae"
+        ],
+        "common": [
+          "Bird of Paradise",
+          "Crane Flower",
+          "Strelitzia"
+        ],
+        "arabic": [
+          "طائر الجنة",
+          "زهرة الكركند",
+          "ستريليتزيا"
+        ],
+        "aliases": [
+          "bird of paradise",
+          "crane flower",
+          "strelitzia"
+        ]
+      },
+      "care": {
+        "plant_info": "Dramatic tropical plant with large banana-like leaves. Produces spectacular orange and blue flowers.",
+        "plant_info_arabic": "نبات استوائي درامي بأوراق كبيرة تشبه الموز. ينتج أزهار برتقالية وزرقاء مذهلة.",
+        "plant_type": "tropical",
+        "difficulty": "intermediate",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "30_dry",
+          "description": "Regular watering during growing season. Allow slight drying between waterings.",
+          "arabic_description": "ري منتظم خلال موسم النمو. اسمح بجفاف طفيف بين الري."
+        },
+        "light": {
+          "requirement": "bright_direct",
+          "tolerance": [
+            "bright_indirect"
+          ],
+          "description": "Needs very bright light, including some direct sun, for blooming.",
+          "arabic_description": "يحتاج ضوء ساطع جداً، بما في ذلك بعض الشمس المباشرة، للإزهار."
+        },
+        "humidity": "medium",
+        "temperature": {
+          "min": 10,
+          "max": 32,
+          "optimal": 24
+        },
+        "soil": "well_draining",
+        "fertilizer": "bi_weekly_growing_season"
+      },
+      "characteristics": {
+        "family": "Strelitziaceae",
+        "origin": "South Africa",
+        "mature_size": {
+          "height": "120-180cm indoors",
+          "spread": "90-120cm"
+        },
+        "growth_rate": "slow",
+        "air_purifying": false,
+        "pet_safe": false,
+        "flowering": true,
+        "propagation": "division"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "good",
+        "indoor_outdoor": "both",
+        "seasonal_care": {
+          "summer": "Thrives in heat. Regular watering and full sun exposure. May flower with maturity.",
+          "winter": "Reduce watering. Can tolerate cooler temperatures down to 10°C.",
+          "summer_arabic": "يزدهر في الحر. ري منتظم وتعرض كامل للشمس. قد يزهر مع النضج.",
+          "winter_arabic": "قلل الري. يتحمل درجات حرارة أبرد حتى 10 درجات."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/Birds_of_paradise_3_sticks.jpg"
+    },
+    {
+      "id": "grape_ivy",
+      "names": {
+        "scientific": [
+          "Cissus rhombifolia"
+        ],
+        "common": [
+          "Grape Ivy",
+          "Venezuelan Treebine",
+          "Oak Leaf Ivy"
+        ],
+        "arabic": [
+          "لبلاب العنب",
+          "كرمة فنزويلا",
+          "لبلاب ورق البلوط"
+        ],
+        "aliases": [
+          "grape ivy",
+          "cissus",
+          "treebine"
+        ]
+      },
+      "care": {
+        "plant_info": "Easy-care trailing vine with glossy compound leaves. Excellent for hanging baskets.",
+        "plant_info_arabic": "كرمة متدلية سهلة العناية بأوراق مركبة لامعة. ممتاز للسلال المعلقة.",
+        "plant_type": "vine",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "60_dry",
+          "description": "Water when top soil is dry. Tolerates occasional neglect.",
+          "arabic_description": "اسقي عندما تجف التربة العلوية. يتحمل الإهمال العرضي."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "low_light",
+            "medium_light"
+          ],
+          "description": "Adapts to various light conditions. Grows faster in brighter light.",
+          "arabic_description": "يتكيف مع ظروف إضاءة مختلفة. ينمو أسرع في ضوء أسطع."
+        },
+        "humidity": "medium",
+        "temperature": {
+          "min": 16,
+          "max": 27,
+          "optimal": 21
+        },
+        "soil": "well_draining",
+        "fertilizer": "monthly_growing_season"
+      },
+      "characteristics": {
+        "family": "Vitaceae",
+        "origin": "South America",
+        "mature_size": {
+          "height": "trailing 180cm+",
+          "spread": "90cm"
+        },
+        "growth_rate": "fast",
+        "air_purifying": true,
+        "pet_safe": true,
+        "flowering": false,
+        "propagation": "stem_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "indoor_preferred",
+        "seasonal_care": {
+          "summer": "Regular watering. Occasional misting appreciated.",
+          "winter": "Reduce watering. Protect from cold drafts.",
+          "summer_arabic": "ري منتظم. رش عرضي مقدر.",
+          "winter_arabic": "قلل الري. احمه من التيارات الباردة."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/image_41f3de13-824e-4c11-aadb-b7fa58b187e6.jpg"
+    },
+    {
+      "id": "song_of_india",
+      "names": {
+        "scientific": [
+          "Dracaena reflexa"
+        ],
+        "common": [
+          "Song of India",
+          "Pleomele",
+          "Malaysian Dracaena"
+        ],
+        "arabic": [
+          "أغنية الهند",
+          "دراسينا ماليزي",
+          "بليوميل"
+        ],
+        "aliases": [
+          "song of india",
+          "pleomele",
+          "dracaena reflexa"
+        ]
+      },
+      "care": {
+        "plant_info": "Attractive shrub with yellow-edged green leaves arranged in spiral rosettes. Slow-growing architectural plant.",
+        "plant_info_arabic": "شجيرة جذابة بأوراق خضراء ذات حواف صفراء مرتبة في وردات حلزونية. نبات معماري بطيء النمو.",
+        "plant_type": "tropical",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "60_dry",
+          "description": "Allow top half of soil to dry between waterings. Sensitive to fluoride in tap water.",
+          "arabic_description": "اترك النصف العلوي من التربة يجف بين الري. حساس للفلوريد في ماء الصنبور."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "medium_light"
+          ],
+          "description": "Bright indirect light maintains variegation. Lower light causes leggy growth.",
+          "arabic_description": "ضوء ساطع غير مباشر يحافظ على التنوع. ضوء أقل يسبب نمو طويل ورفيع."
+        },
+        "humidity": "medium",
+        "temperature": {
+          "min": 16,
+          "max": 27,
+          "optimal": 22
+        },
+        "soil": "well_draining",
+        "fertilizer": "monthly_growing_season"
+      },
+      "characteristics": {
+        "family": "Asparagaceae",
+        "origin": "Madagascar, Mauritius",
+        "mature_size": {
+          "height": "90-150cm indoors",
+          "spread": "60-90cm"
+        },
+        "growth_rate": "slow",
+        "air_purifying": true,
+        "pet_safe": false,
+        "flowering": false,
+        "propagation": "stem_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "both",
+        "seasonal_care": {
+          "summer": "Regular watering. Can tolerate some outdoor shade. Use filtered water.",
+          "winter": "Reduce watering. Maintain indoor warmth above 16°C.",
+          "summer_arabic": "ري منتظم. يتحمل بعض الظل الخارجي. استخدم ماء مفلتر.",
+          "winter_arabic": "قلل الري. حافظ على دفء داخلي فوق 16 درجة."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/63D4895E-C6FD-42B9-914B-CADE6762BE57.jpg"
+    },
+    {
+      "id": "string_of_bananas",
+      "names": {
+        "scientific": [
+          "Senecio radicans",
+          "Curio radicans"
+        ],
+        "common": [
+          "String of Bananas",
+          "Banana Vine",
+          "Fishhooks Senecio"
+        ],
+        "arabic": [
+          "سلسلة الموز",
+          "كرمة الموز",
+          "سينيسيو الصنارة"
+        ],
+        "aliases": [
+          "string of bananas",
+          "banana vine",
+          "fishhooks"
+        ]
+      },
+      "care": {
+        "plant_info": "Trailing succulent with banana-shaped leaves. Similar care to String of Pearls but faster growing.",
+        "plant_info_arabic": "عصاري متدلي بأوراق على شكل موز. عناية مشابهة لسلسلة اللؤلؤ لكن أسرع نمواً.",
+        "plant_type": "succulent",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "bi_weekly",
+          "schedule": "100_dry",
+          "description": "Water deeply when soil is completely dry. Less sensitive than String of Pearls.",
+          "arabic_description": "اسقي بعمق عندما تجف التربة تماماً. أقل حساسية من سلسلة اللؤلؤ."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "direct_partial"
+          ],
+          "description": "Bright light with some morning sun. More shade-tolerant than String of Pearls.",
+          "arabic_description": "ضوء ساطع مع بعض شمس الصباح. أكثر تحملاً للظل من سلسلة اللؤلؤ."
+        },
+        "humidity": "low",
+        "temperature": {
+          "min": 10,
+          "max": 30,
+          "optimal": 21
+        },
+        "soil": "cactus_mix",
+        "fertilizer": "monthly_diluted"
+      },
+      "characteristics": {
+        "family": "Asteraceae",
+        "origin": "South Africa",
+        "mature_size": {
+          "height": "trailing 90cm+",
+          "spread": "30cm"
+        },
+        "growth_rate": "fast",
+        "air_purifying": false,
+        "pet_safe": false,
+        "flowering": true,
+        "propagation": "stem_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "both",
+        "seasonal_care": {
+          "summer": "Can handle heat well. Water sparingly. Protect from intense afternoon sun.",
+          "winter": "Minimal watering. Can tolerate cooler temperatures.",
+          "summer_arabic": "يتحمل الحر بشكل جيد. اسقي بشكل ضئيل. احمه من شمس الظهيرة الشديدة.",
+          "winter_arabic": "ري قليل جداً. يتحمل درجات حرارة أبرد."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/String_of_Bananas_succulent.jpg"
+    },
+    {
+      "id": "guzmania",
+      "names": {
+        "scientific": [
+          "Guzmania lingulata"
+        ],
+        "common": [
+          "Scarlet Star",
+          "Guzmania",
+          "Orange Star"
+        ],
+        "arabic": [
+          "نجمة قرمزية",
+          "غوزمانيا",
+          "نجمة برتقالية"
+        ],
+        "aliases": [
+          "scarlet star",
+          "guzmania",
+          "bromeliad"
+        ]
+      },
+      "care": {
+        "plant_info": "Stunning bromeliad with long-lasting colorful flower bracts. Central cup holds water.",
+        "plant_info_arabic": "بروميلياد مذهل بقنابات زهرية ملونة تدوم طويلاً. الكوب المركزي يحمل الماء.",
+        "plant_type": "bromeliad",
+        "difficulty": "intermediate",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "cup_watering",
+          "description": "Fill central cup with water. Change water weekly. Keep soil barely moist.",
+          "arabic_description": "املأ الكوب المركزي بالماء. غير الماء أسبوعياً. حافظ على التربة رطبة قليلاً."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "medium_light"
+          ],
+          "description": "Bright indirect light. Direct sun fades flower color.",
+          "arabic_description": "ضوء ساطع غير مباشر. الشمس المباشرة تبهت لون الزهرة."
+        },
+        "humidity": "high",
+        "temperature": {
+          "min": 18,
+          "max": 27,
+          "optimal": 22
+        },
+        "soil": "orchid_bark_mix",
+        "fertilizer": "monthly_diluted_spray"
+      },
+      "characteristics": {
+        "family": "Bromeliaceae",
+        "origin": "Central/South America",
+        "mature_size": {
+          "height": "30-45cm",
+          "spread": "30-40cm"
+        },
+        "growth_rate": "slow",
+        "air_purifying": false,
+        "pet_safe": true,
+        "flowering": true,
+        "propagation": "pups_offsets"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "moderate",
+        "indoor_outdoor": "indoor_only",
+        "seasonal_care": {
+          "summer": "Challenging in dry heat. Needs high humidity. Mist frequently and keep cup filled.",
+          "winter": "Easier in cooler months. Maintain warmth and humidity.",
+          "summer_arabic": "صعب في الحر الجاف. يحتاج رطوبة عالية. رش بشكل متكرر واحفظ الكوب ممتلئاً.",
+          "winter_arabic": "أسهل في الأشهر الباردة. حافظ على الدفء والرطوبة."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/IMG_6383.jpg"
+    },
+    {
+      "id": "lithops",
+      "names": {
+        "scientific": [
+          "Lithops spp."
+        ],
+        "common": [
+          "Living Stones",
+          "Pebble Plants",
+          "Mimicry Plants"
+        ],
+        "arabic": [
+          "حجارة حية",
+          "نباتات الحصى",
+          "نباتات التقليد"
+        ],
+        "aliases": [
+          "living stones",
+          "lithops",
+          "pebble plants",
+          "stone plants"
+        ]
+      },
+      "care": {
+        "plant_info": "Fascinating succulent that mimics stones. Requires very little water and excellent drainage.",
+        "plant_info_arabic": "عصاري مذهل يحاكي الحجارة. يحتاج ماء قليل جداً وتصريف ممتاز.",
+        "plant_type": "succulent",
+        "difficulty": "intermediate",
+        "watering": {
+          "frequency": "monthly",
+          "schedule": "100_dry_plus",
+          "description": "Water only when wrinkled, typically 3-4 times per year. No water during dormancy.",
+          "arabic_description": "اسقي فقط عند التجعد، عادة 3-4 مرات سنوياً. بدون ماء خلال السبات."
+        },
+        "light": {
+          "requirement": "bright_direct",
+          "tolerance": [
+            "bright_indirect"
+          ],
+          "description": "Needs very bright light with several hours of direct sun.",
+          "arabic_description": "يحتاج ضوء ساطع جداً مع عدة ساعات من الشمس المباشرة."
+        },
+        "humidity": "low",
+        "temperature": {
+          "min": 10,
+          "max": 35,
+          "optimal": 24
+        },
+        "soil": "very_well_draining_mineral",
+        "fertilizer": "rarely"
+      },
+      "characteristics": {
+        "family": "Aizoaceae",
+        "origin": "South Africa",
+        "mature_size": {
+          "height": "2-5cm",
+          "spread": "3-5cm"
+        },
+        "growth_rate": "very_slow",
+        "air_purifying": false,
+        "pet_safe": true,
+        "flowering": true,
+        "propagation": "seeds_division"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "both",
+        "seasonal_care": {
+          "summer": "Thrives in heat and sun. Almost no water needed. Perfect for hot climate.",
+          "winter": "Dormancy period. No watering. Provide maximum light.",
+          "summer_arabic": "يزدهر في الحر والشمس. لا يحتاج ماء تقريباً. مثالي للمناخ الحار.",
+          "winter_arabic": "فترة سبات. بدون ري. وفر أقصى ضوء."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/Livingstone_8cm.jpg"
+    },
+    {
+      "id": "venus_flytrap",
+      "names": {
+        "scientific": [
+          "Dionaea muscipula"
+        ],
+        "common": [
+          "Venus Flytrap",
+          "Venus's Flytrap",
+          "Dionaea"
+        ],
+        "arabic": [
+          "مصيدة ذبابة الزهرة",
+          "ديونيا",
+          "نبات آكل الحشرات"
+        ],
+        "aliases": [
+          "venus flytrap",
+          "flytrap",
+          "dionaea"
+        ]
+      },
+      "care": {
+        "plant_info": "Famous carnivorous plant that catches insects. Requires special care - distilled water only, no fertilizer.",
+        "plant_info_arabic": "نبات آكل لحوم شهير يصطاد الحشرات. يحتاج عناية خاصة - ماء مقطر فقط، بدون تسميد.",
+        "plant_type": "carnivorous",
+        "difficulty": "advanced",
+        "watering": {
+          "frequency": "twice_weekly",
+          "schedule": "stay_moist",
+          "description": "Keep soil constantly moist with DISTILLED or RAINWATER only. Never tap water.",
+          "arabic_description": "حافظ على رطوبة التربة باستمرار بماء مقطر أو ماء مطر فقط. أبداً ماء صنبور."
+        },
+        "light": {
+          "requirement": "bright_direct",
+          "tolerance": [],
+          "description": "Needs 4+ hours of direct sun daily for healthy traps.",
+          "arabic_description": "يحتاج 4+ ساعات من الشمس المباشرة يومياً لفخاخ صحية."
+        },
+        "humidity": "high",
+        "temperature": {
+          "min": 5,
+          "max": 35,
+          "optimal": 21
+        },
+        "soil": "sphagnum_peat_mix",
+        "fertilizer": "never"
+      },
+      "characteristics": {
+        "family": "Droseraceae",
+        "origin": "North Carolina, USA",
+        "mature_size": {
+          "height": "10-15cm",
+          "spread": "15cm"
+        },
+        "growth_rate": "slow",
+        "air_purifying": false,
+        "pet_safe": true,
+        "flowering": true,
+        "propagation": "division_seeds"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "challenging",
+        "indoor_outdoor": "outdoor_preferred",
+        "seasonal_care": {
+          "summer": "Very challenging in Cairo's dry heat and hard water. Needs pure water source and high humidity.",
+          "winter": "Requires cool dormancy period (0-10°C) for 3-4 months. Very difficult in warm climate.",
+          "summer_arabic": "صعب جداً في حر القاهرة الجاف والماء العسر. يحتاج مصدر ماء نقي ورطوبة عالية.",
+          "winter_arabic": "يحتاج فترة سبات باردة (0-10 درجة) لمدة 3-4 أشهر. صعب جداً في مناخ دافئ."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/A97ED20E-20E8-47E1-894B-409758B6A4DE.jpg"
+    },
+    {
+      "id": "ghost_plant",
+      "names": {
+        "scientific": [
+          "Graptopetalum paraguayense"
+        ],
+        "common": [
+          "Ghost Plant",
+          "Mother of Pearl Plant",
+          "Sedum weinbergii"
+        ],
+        "arabic": [
+          "نبات الشبح",
+          "نبات أم اللؤلؤ",
+          "سيدوم وينبرجي"
+        ],
+        "aliases": [
+          "ghost plant",
+          "mother of pearl",
+          "graptopetalum"
+        ]
+      },
+      "care": {
+        "plant_info": "Silvery-gray rosette succulent with pearlescent leaves. Very easy care and propagates readily.",
+        "plant_info_arabic": "عصاري وردي فضي رمادي بأوراق لؤلؤية. سهل العناية جداً ويتكاثر بسهولة.",
+        "plant_type": "succulent",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "bi_weekly",
+          "schedule": "100_dry",
+          "description": "Water thoroughly when soil is completely dry. Very drought tolerant.",
+          "arabic_description": "اسقي بعمق عندما تجف التربة تماماً. متحمل للجفاف جداً."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "direct_partial"
+          ],
+          "description": "Bright light with some direct sun for best color. Can handle partial shade.",
+          "arabic_description": "ضوء ساطع مع بعض الشمس المباشرة لأفضل لون. يتحمل ظل جزئي."
+        },
+        "humidity": "low",
+        "temperature": {
+          "min": 10,
+          "max": 35,
+          "optimal": 21
+        },
+        "soil": "cactus_mix",
+        "fertilizer": "monthly_diluted"
+      },
+      "characteristics": {
+        "family": "Crassulaceae",
+        "origin": "Mexico",
+        "mature_size": {
+          "height": "10-15cm",
+          "spread": "30cm spreading"
+        },
+        "growth_rate": "fast",
+        "air_purifying": false,
+        "pet_safe": true,
+        "flowering": true,
+        "propagation": "leaf_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "both",
+        "seasonal_care": {
+          "summer": "Thrives in heat. Water sparingly. Can handle full outdoor sun with acclimation.",
+          "winter": "Very minimal watering. Can tolerate cool temperatures.",
+          "summer_arabic": "يزدهر في الحر. اسقي بشكل ضئيل. يتحمل الشمس الخارجية الكاملة مع التأقلم.",
+          "winter_arabic": "ري قليل جداً جداً. يتحمل درجات حرارة باردة."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/0DD51804-768A-4CB8-B3A0-6672309D6DE8.jpg"
+    },
+    {
+      "id": "tigers_jaw",
+      "names": {
+        "scientific": [
+          "Faucaria tigrina"
+        ],
+        "common": [
+          "Tiger's Jaw",
+          "Tiger Jaws",
+          "Shark Jaws"
+        ],
+        "arabic": [
+          "فك النمر",
+          "فكوك النمر",
+          "فكوك القرش"
+        ],
+        "aliases": [
+          "tiger jaw",
+          "tiger jaws",
+          "faucaria"
+        ]
+      },
+      "care": {
+        "plant_info": "Unique succulent with fleshy leaves lined with soft teeth. Yellow daisy-like flowers.",
+        "plant_info_arabic": "عصاري فريد بأوراق لحمية مبطنة بأسنان ناعمة. أزهار صفراء تشبه الأقحوان.",
+        "plant_type": "succulent",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "bi_weekly",
+          "schedule": "100_dry",
+          "description": "Water when completely dry. Reduce significantly in winter dormancy.",
+          "arabic_description": "اسقي عندما تجف تماماً. قلل بشكل كبير في سبات الشتاء."
+        },
+        "light": {
+          "requirement": "bright_direct",
+          "tolerance": [
+            "bright_indirect"
+          ],
+          "description": "Needs bright light with several hours of direct sun for flowering.",
+          "arabic_description": "يحتاج ضوء ساطع مع عدة ساعات من الشمس المباشرة للإزهار."
+        },
+        "humidity": "low",
+        "temperature": {
+          "min": 10,
+          "max": 32,
+          "optimal": 24
+        },
+        "soil": "cactus_mix",
+        "fertilizer": "monthly_diluted"
+      },
+      "characteristics": {
+        "family": "Aizoaceae",
+        "origin": "South Africa",
+        "mature_size": {
+          "height": "10-15cm",
+          "spread": "15-20cm"
+        },
+        "growth_rate": "slow",
+        "air_purifying": false,
+        "pet_safe": true,
+        "flowering": true,
+        "propagation": "seeds_offsets"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "both",
+        "seasonal_care": {
+          "summer": "Active growth. Regular watering and full sun. May flower in late summer.",
+          "winter": "Dormancy period. Minimal watering. Keep dry and cool.",
+          "summer_arabic": "نمو نشط. ري منتظم وشمس كاملة. قد يزهر في أواخر الصيف.",
+          "winter_arabic": "فترة سبات. ري قليل جداً. احفظه جافاً وبارداً."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/IMG_0271.jpg"
+    },
+    {
+      "id": "corsican_stonecrop",
+      "names": {
+        "scientific": [
+          "Sedum dasyphyllum"
+        ],
+        "common": [
+          "Corsican Stonecrop",
+          "Blue Tears Sedum",
+          "Thick-leaved Stonecrop"
+        ],
+        "arabic": [
+          "سيدوم كورسيكي",
+          "دموع زرقاء",
+          "سيدوم الأوراق السميكة"
+        ],
+        "aliases": [
+          "corsican stonecrop",
+          "blue tears",
+          "sedum dasyphyllum"
+        ]
+      },
+      "care": {
+        "plant_info": "Tiny blue-green succulent with pearl-like leaves. Forms dense mats, perfect for miniature gardens.",
+        "plant_info_arabic": "عصاري صغير أزرق-أخضر بأوراق تشبه اللؤلؤ. يشكل سجاد كثيف، مثالي للحدائق المصغرة.",
+        "plant_type": "succulent",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "bi_weekly",
+          "schedule": "100_dry",
+          "description": "Water when completely dry. Very drought tolerant once established.",
+          "arabic_description": "اسقي عندما تجف تماماً. متحمل للجفاف جداً بعد الاستقرار."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "direct_partial",
+            "medium_light"
+          ],
+          "description": "Bright light with some morning sun. Can tolerate partial shade.",
+          "arabic_description": "ضوء ساطع مع بعض شمس الصباح. يتحمل ظل جزئي."
+        },
+        "humidity": "low",
+        "temperature": {
+          "min": 5,
+          "max": 30,
+          "optimal": 21
+        },
+        "soil": "cactus_mix",
+        "fertilizer": "monthly_diluted"
+      },
+      "characteristics": {
+        "family": "Crassulaceae",
+        "origin": "Mediterranean",
+        "mature_size": {
+          "height": "3-8cm",
+          "spread": "spreading groundcover"
+        },
+        "growth_rate": "medium",
+        "air_purifying": false,
+        "pet_safe": true,
+        "flowering": true,
+        "propagation": "stem_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "both",
+        "seasonal_care": {
+          "summer": "Can handle heat. Water sparingly. Morning sun with afternoon shade ideal.",
+          "winter": "Very cold hardy. Minimal watering. Can tolerate temperatures near freezing.",
+          "summer_arabic": "يتحمل الحر. اسقي بشكل ضئيل. شمس الصباح مع ظل الظهيرة مثالي.",
+          "winter_arabic": "متحمل للبرد جداً. ري قليل جداً. يتحمل درجات حرارة قريبة من التجمد."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/Corsican_Stonecrop_Succulent-8cm.jpg"
+    },
+    {
+      "id": "dracaena_compacta",
+      "names": {
+        "scientific": [
+          "Dracaena deremensis 'Compacta'"
+        ],
+        "common": [
+          "Dracaena Compacta",
+          "Compact Dragon Tree",
+          "Janet Craig Compacta"
+        ],
+        "arabic": [
+          "دراسينا مدمجة",
+          "شجرة التنين المدمجة",
+          "جانيت كريج مدمجة"
+        ],
+        "aliases": [
+          "dracaena compacta",
+          "compact dracaena",
+          "janet craig"
+        ]
+      },
+      "care": {
+        "plant_info": "Compact slow-growing dracaena with dark green glossy leaves. Perfect for small spaces.",
+        "plant_info_arabic": "دراسينا مدمجة بطيئة النمو بأوراق خضراء داكنة لامعة. مثالية للمساحات الصغيرة.",
+        "plant_type": "tropical",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "bi_weekly",
+          "schedule": "60_dry",
+          "description": "Allow soil to dry partially between waterings. Sensitive to fluoride.",
+          "arabic_description": "اترك التربة تجف جزئياً بين الري. حساس للفلوريد."
+        },
+        "light": {
+          "requirement": "low_light",
+          "tolerance": [
+            "medium_light",
+            "bright_indirect"
+          ],
+          "description": "Excellent low-light plant. Adapts to various light conditions.",
+          "arabic_description": "نبات ممتاز للضوء المنخفض. يتكيف مع ظروف إضاءة مختلفة."
+        },
+        "humidity": "low",
+        "temperature": {
+          "min": 16,
+          "max": 27,
+          "optimal": 22
+        },
+        "soil": "well_draining",
+        "fertilizer": "monthly_growing_season"
+      },
+      "characteristics": {
+        "family": "Asparagaceae",
+        "origin": "Tropical Africa",
+        "mature_size": {
+          "height": "60-90cm indoors",
+          "spread": "40-60cm"
+        },
+        "growth_rate": "very_slow",
+        "air_purifying": true,
+        "pet_safe": false,
+        "flowering": false,
+        "propagation": "stem_cuttings"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "indoor_only",
+        "seasonal_care": {
+          "summer": "Moderate watering. Can handle indoor heat well. Use filtered water.",
+          "winter": "Reduce watering. Very tolerant of indoor conditions.",
+          "summer_arabic": "ري معتدل. يتحمل الحر الداخلي بشكل جيد. استخدم ماء مفلتر.",
+          "winter_arabic": "قلل الري. متحمل جداً للظروف الداخلية."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/IMG_3419.jpg"
+    },
+    {
+      "id": "imperial_red_philodendron",
+      "names": {
+        "scientific": [
+          "Philodendron 'Imperial Red'"
+        ],
+        "common": [
+          "Imperial Red Philodendron",
+          "Red Philodendron",
+          "Philodendron Imperial Red"
+        ],
+        "arabic": [
+          "فيلودندرون إمبريال أحمر",
+          "فيلودندرون أحمر",
+          "إمبريال ريد"
+        ],
+        "aliases": [
+          "imperial red",
+          "red philodendron",
+          "philodendron imperial"
+        ]
+      },
+      "care": {
+        "plant_info": "Stunning self-heading philodendron with glossy red-burgundy new leaves that mature to dark green.",
+        "plant_info_arabic": "فيلودندرون ذاتي التوجيه مذهل بأوراق جديدة حمراء-بورجوندي لامعة تنضج إلى أخضر داكن.",
+        "plant_type": "tropical",
+        "difficulty": "beginner",
+        "watering": {
+          "frequency": "weekly",
+          "schedule": "60_dry",
+          "description": "Water when top 2-3cm of soil is dry. Tolerant of occasional missed watering.",
+          "arabic_description": "اسقي عندما تجف أعلى 2-3 سم من التربة. متسامح مع الري المنسي أحياناً."
+        },
+        "light": {
+          "requirement": "bright_indirect",
+          "tolerance": [
+            "medium_light"
+          ],
+          "description": "Bright indirect light maintains red color in new growth. Tolerates lower light.",
+          "arabic_description": "ضوء ساطع غير مباشر يحافظ على اللون الأحمر في النمو الجديد. يتحمل ضوء أقل."
+        },
+        "humidity": "medium",
+        "temperature": {
+          "min": 16,
+          "max": 30,
+          "optimal": 24
+        },
+        "soil": "well_draining",
+        "fertilizer": "monthly_growing_season"
+      },
+      "characteristics": {
+        "family": "Araceae",
+        "origin": "Hybrid cultivar",
+        "mature_size": {
+          "height": "60-90cm",
+          "spread": "60-90cm"
+        },
+        "growth_rate": "medium",
+        "air_purifying": true,
+        "pet_safe": false,
+        "flowering": false,
+        "propagation": "division"
+      },
+      "egyptian_specific": {
+        "cairo_suitability": "excellent",
+        "indoor_outdoor": "indoor_preferred",
+        "seasonal_care": {
+          "summer": "Regular watering. Benefits from occasional misting. Most vibrant color in warmer months.",
+          "winter": "Reduce watering. Protect from cold drafts. Red color less intense.",
+          "summer_arabic": "ري منتظم. يستفيد من الرش العرضي. لون أكثر حيوية في الأشهر الدافئة.",
+          "winter_arabic": "قلل الري. احمه من التيارات الباردة. لون أحمر أقل كثافة."
+        }
+      },
+      "image_url": "https://kaynuna.co/cdn/shop/files/philodendron_imperial_red.jpg"
     }
   ],
   "categories": {
@@ -457,49 +3850,87 @@
       "arabic_name": "نباتات للمبتدئين",
       "description": "Easy-care plants perfect for beginners",
       "arabic_description": "نباتات سهلة الرعاية مثالية للمبتدئين",
-      "plants": ["snake_plant", "golden_pothos", "zz_plant", "spider_plant", "aloe_vera", "philodendron"]
+      "plants": [
+        "snake_plant",
+        "golden_pothos",
+        "zz_plant",
+        "spider_plant",
+        "aloe_vera",
+        "philodendron"
+      ]
     },
     "air_purifying": {
       "name": "Air Purifiers",
       "arabic_name": "منقيات الهواء",
       "description": "Plants that improve indoor air quality",
       "arabic_description": "نباتات تحسن جودة الهواء الداخلي",
-      "plants": ["snake_plant", "golden_pothos", "monstera_deliciosa", "zz_plant", "rubber_plant", "peace_lily", "spider_plant", "aloe_vera", "philodendron"]
+      "plants": [
+        "snake_plant",
+        "golden_pothos",
+        "monstera_deliciosa",
+        "zz_plant",
+        "rubber_plant",
+        "peace_lily",
+        "spider_plant",
+        "aloe_vera",
+        "philodendron"
+      ]
     },
     "low_light": {
       "name": "Low Light Tolerant",
       "arabic_name": "متحملة للضوء المنخفض",
       "description": "Plants that thrive in low light conditions",
       "arabic_description": "نباتات تزدهر في ظروف الضوء المنخفض",
-      "plants": ["snake_plant", "zz_plant", "peace_lily", "philodendron"]
+      "plants": [
+        "snake_plant",
+        "zz_plant",
+        "peace_lily",
+        "philodendron"
+      ]
     },
     "pet_safe": {
       "name": "Pet Safe",
       "arabic_name": "آمنة للحيوانات",
       "description": "Non-toxic plants safe for pets",
       "arabic_description": "نباتات غير سامة آمنة للحيوانات",
-      "plants": ["spider_plant"]
+      "plants": [
+        "spider_plant"
+      ]
     },
     "succulents": {
       "name": "Succulents",
       "arabic_name": "عصاريات",
       "description": "Water-storing plants perfect for dry conditions",
       "arabic_description": "نباتات تخزن الماء مثالية للظروف الجافة",
-      "plants": ["snake_plant", "aloe_vera"]
+      "plants": [
+        "snake_plant",
+        "aloe_vera"
+      ]
     },
     "fast_growing": {
       "name": "Fast Growing",
       "arabic_name": "سريعة النمو",
       "description": "Plants that grow quickly and fill space",
       "arabic_description": "نباتات تنمو بسرعة وتملأ المساحة",
-      "plants": ["golden_pothos", "spider_plant", "philodendron"]
+      "plants": [
+        "golden_pothos",
+        "spider_plant",
+        "philodendron"
+      ]
     },
     "cairo_excellent": {
       "name": "Perfect for Cairo",
       "arabic_name": "مثالية للقاهرة",
       "description": "Plants that thrive in Cairo's climate",
       "arabic_description": "نباتات تزدهر في مناخ القاهرة",
-      "plants": ["snake_plant", "golden_pothos", "zz_plant", "spider_plant", "aloe_vera", "philodendron"]
+      "plants": [
+        "snake_plant",
+        "golden_pothos",
+        "zz_plant",
+        "spider_plant",
+        "aloe_vera",
+        "philodendron"
+      ]
     }
   },
   "families": {
@@ -521,7 +3952,11 @@
           "description": "Bright indirect light preferred"
         },
         "humidity": "medium",
-        "temperature": { "min": 16, "max": 30, "optimal": 24 }
+        "temperature": {
+          "min": 16,
+          "max": 30,
+          "optimal": 24
+        }
       }
     },
     "Asparagaceae": {
@@ -542,7 +3977,11 @@
           "description": "Adaptable to various light conditions"
         },
         "humidity": "low",
-        "temperature": { "min": 15, "max": 32, "optimal": 22 }
+        "temperature": {
+          "min": 15,
+          "max": 32,
+          "optimal": 22
+        }
       }
     },
     "Moraceae": {
@@ -563,7 +4002,11 @@
           "description": "Bright indirect light essential"
         },
         "humidity": "medium",
-        "temperature": { "min": 16, "max": 30, "optimal": 24 }
+        "temperature": {
+          "min": 16,
+          "max": 30,
+          "optimal": 24
+        }
       }
     },
     "Asphodelaceae": {
@@ -584,7 +4027,11 @@
           "description": "Bright light, can handle direct sun"
         },
         "humidity": "low",
-        "temperature": { "min": 10, "max": 40, "optimal": 24 }
+        "temperature": {
+          "min": 10,
+          "max": 40,
+          "optimal": 24
+        }
       }
     },
     "default": {
@@ -605,7 +4052,11 @@
           "description": "Bright indirect light generally preferred"
         },
         "humidity": "medium",
-        "temperature": { "min": 16, "max": 30, "optimal": 22 }
+        "temperature": {
+          "min": 16,
+          "max": 30,
+          "optimal": 22
+        }
       }
     }
   }

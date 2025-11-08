@@ -1,6 +1,7 @@
 import { manipulateAsync, SaveFormat, FlipType } from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logger } from './logger';
 
 export interface ImageOptimizationOptions {
   maxWidth?: number;
@@ -67,19 +68,14 @@ export async function optimizeImage(
   } = options;
 
   try {
-    console.log('🖼️ Starting image optimization:', { imageUri, options });
-    
     // Get original image info
     const originalInfo = await FileSystem.getInfoAsync(imageUri);
-    const originalSizeKB = (originalInfo.exists && 'size' in originalInfo) 
-      ? Math.round(originalInfo.size / 1024) 
+    const originalSizeKB = (originalInfo.exists && 'size' in originalInfo)
+      ? Math.round(originalInfo.size / 1024)
       : 0;
-    
-    console.log('📊 Original image size:', originalSizeKB, 'KB');
-    
+
     // If image is already small enough, return as-is
     if (originalSizeKB <= maxSizeKB) {
-      console.log('✅ Image already optimized, returning original');
       return imageUri;
     }
 
@@ -109,24 +105,12 @@ export async function optimizeImage(
 
       // Check the size of optimized image
       const optimizedInfo = await FileSystem.getInfoAsync(result.uri);
-      const optimizedSizeKB = (optimizedInfo.exists && 'size' in optimizedInfo) 
-        ? Math.round(optimizedInfo.size / 1024) 
+      const optimizedSizeKB = (optimizedInfo.exists && 'size' in optimizedInfo)
+        ? Math.round(optimizedInfo.size / 1024)
         : 0;
-      
-      console.log(`🔄 Optimization attempt ${attempts + 1}:`, {
-        quality: currentQuality,
-        sizeKB: optimizedSizeKB,
-        targetKB: maxSizeKB
-      });
 
       if (optimizedSizeKB <= maxSizeKB || currentQuality <= 0.3) {
         optimizedUri = result.uri;
-        console.log('✅ Image optimization complete:', {
-          originalKB: originalSizeKB,
-          optimizedKB: optimizedSizeKB,
-          reduction: `${Math.round((1 - optimizedSizeKB / originalSizeKB) * 100)}%`,
-          finalQuality: currentQuality
-        });
         break;
       }
 
@@ -137,7 +121,7 @@ export async function optimizeImage(
 
     return optimizedUri;
   } catch (error) {
-    console.error('❌ Image optimization failed:', error);
+    logger.error('❌ Image optimization failed:', error);
     return imageUri; // Return original on error
   }
 }
@@ -173,7 +157,7 @@ export async function createProgressiveImage(imageUri: string): Promise<{
       fullSize
     };
   } catch (error) {
-    console.error('❌ Progressive image creation failed:', error);
+    logger.error('❌ Progressive image creation failed:', error);
     return {
       thumbnail: imageUri,
       fullSize: imageUri
@@ -205,7 +189,7 @@ export async function cacheOptimizedImage(
     // Clean up old cache entries
     await cleanupImageCache();
   } catch (error) {
-    console.error('❌ Failed to cache optimized image:', error);
+    logger.error('❌ Failed to cache optimized image:', error);
   }
 }
 
@@ -234,10 +218,10 @@ export async function getCachedOptimizedImage(originalUri: string): Promise<stri
       await AsyncStorage.setItem(IMAGE_CACHE_KEY, JSON.stringify(cache));
       return null;
     }
-    
+
     return cacheEntry.uri;
   } catch (error) {
-    console.error('❌ Failed to get cached image:', error);
+    logger.error('❌ Failed to get cached image:', error);
     return null;
   }
 }
@@ -252,18 +236,17 @@ export async function smartOptimizeImage(
   // Check cache first
   const cached = await getCachedOptimizedImage(imageUri);
   if (cached) {
-    console.log('🎯 Using cached optimized image');
     return cached;
   }
-  
+
   // Optimize image
   const optimized = await optimizeImage(imageUri, options);
-  
+
   // Cache the result if it's different from original
   if (optimized !== imageUri) {
     await cacheOptimizedImage(imageUri, optimized);
   }
-  
+
   return optimized;
 }
 
@@ -275,7 +258,7 @@ async function getImageCache(): Promise<Record<string, ImageCacheInfo>> {
     const cacheData = await AsyncStorage.getItem(IMAGE_CACHE_KEY);
     return cacheData ? JSON.parse(cacheData) : {};
   } catch (error) {
-    console.error('❌ Failed to get image cache:', error);
+    logger.error('❌ Failed to get image cache:', error);
     return {};
   }
 }
@@ -291,9 +274,7 @@ async function cleanupImageCache(): Promise<void> {
     // Calculate total cache size
     const totalSize = entries.reduce((sum, [, info]) => sum + info.size, 0);
     const totalSizeMB = totalSize / (1024 * 1024);
-    
-    console.log('🧹 Cache cleanup - Total size:', Math.round(totalSizeMB), 'MB');
-    
+
     if (totalSizeMB > MAX_CACHE_SIZE_MB) {
       // Sort by timestamp (oldest first) and remove old entries
       const sortedEntries = entries.sort(([, a], [, b]) => a.timestamp - b.timestamp);
@@ -306,18 +287,17 @@ async function cleanupImageCache(): Promise<void> {
         try {
           await FileSystem.deleteAsync(cacheInfo.uri, { idempotent: true });
         } catch (fileError) {
-          console.warn('⚠️ Failed to delete cached file:', fileError);
+          logger.warn('⚠️ Failed to delete cached file:', fileError);
         }
         
         // Remove from cache
         delete cache[originalUri];
       }
-      
+
       await AsyncStorage.setItem(IMAGE_CACHE_KEY, JSON.stringify(cache));
-      console.log('✅ Cache cleanup complete - Removed', toRemove, 'entries');
     }
   } catch (error) {
-    console.error('❌ Cache cleanup failed:', error);
+    logger.error('❌ Cache cleanup failed:', error);
   }
 }
 
@@ -333,15 +313,14 @@ export async function clearImageCache(): Promise<void> {
       try {
         await FileSystem.deleteAsync(cacheInfo.uri, { idempotent: true });
       } catch (error) {
-        console.warn('⚠️ Failed to delete cached file:', error);
+        logger.warn('⚠️ Failed to delete cached file:', error);
       }
     }
-    
+
     // Clear cache storage
     await AsyncStorage.removeItem(IMAGE_CACHE_KEY);
-    console.log('✅ Image cache cleared');
   } catch (error) {
-    console.error('❌ Failed to clear image cache:', error);
+    logger.error('❌ Failed to clear image cache:', error);
   }
 }
 
@@ -377,7 +356,7 @@ export async function getImageCacheStats(): Promise<{
       newestEntry: new Date(Math.max(...timestamps))
     };
   } catch (error) {
-    console.error('❌ Failed to get cache stats:', error);
+    logger.error('❌ Failed to get cache stats:', error);
     return {
       totalEntries: 0,
       totalSizeMB: 0,
@@ -443,14 +422,11 @@ export async function enhanceImageForPlantIdentification(
   } = options;
 
   try {
-    console.log('🌿 Enhancing image for plant identification:', { imageUri, options });
-    
     let processedUri = imageUri;
-    
+
     // Auto-enhance based on image quality analysis
     if (autoEnhance) {
       const quality = await assessImageQualityForPlants(imageUri);
-      console.log('📊 Image quality assessment:', quality);
       
       if (quality.brightness < 0.3) {
         processedUri = await adjustImageBrightness(processedUri, 0.2);
@@ -475,11 +451,10 @@ export async function enhanceImageForPlantIdentification(
     if (sharpen) {
       processedUri = await sharpenImageForPlantDetails(processedUri);
     }
-    
-    console.log('✅ Plant image enhancement complete');
+
     return processedUri;
   } catch (error) {
-    console.error('❌ Plant image enhancement failed:', error);
+    logger.error('❌ Plant image enhancement failed:', error);
     return imageUri; // Return original on failure
   }
 }
@@ -490,8 +465,6 @@ export async function enhanceImageForPlantIdentification(
  */
 export async function assessImageQualityForPlants(imageUri: string): Promise<ImageQualityMetrics> {
   try {
-    console.log('🔍 Assessing image quality for plant identification...');
-    
     // For now, we'll provide a comprehensive assessment framework
     // In production, this would analyze actual pixel data
     const assessment: ImageQualityMetrics = {
@@ -523,11 +496,10 @@ export async function assessImageQualityForPlants(imageUri: string): Promise<Ima
     
     // Calculate overall quality
     assessment.overallQuality = calculateOverallImageQuality(assessment);
-    
-    console.log('✅ Plant image quality assessment complete:', assessment);
+
     return assessment;
   } catch (error) {
-    console.error('❌ Image quality assessment failed:', error);
+    logger.error('❌ Image quality assessment failed:', error);
     return {
       brightness: 0.5,
       contrast: 0.5,
@@ -557,8 +529,7 @@ async function analyzeImageForPlantColors(imageUri: string): Promise<ImageQualit
   try {
     // This is a framework for plant color analysis
     // In production, this would process actual image pixel data
-    console.log('🎨 Analyzing image for plant colors...');
-    
+
     // Simulate plant color detection
     const colorAnalysis = {
       hasGreen: Math.random() > 0.3,    // Common in most plants
@@ -586,11 +557,10 @@ async function analyzeImageForPlantColors(imageUri: string): Promise<ImageQualit
       colorAnalysis.dominantPlantColor = detectedColors[0];
       colorAnalysis.confidence = Math.min(0.9, 0.4 + (detectedColors.length * 0.15));
     }
-    
-    console.log('🎨 Plant color analysis complete:', colorAnalysis);
+
     return colorAnalysis;
   } catch (error) {
-    console.error('❌ Plant color analysis failed:', error);
+    logger.error('❌ Plant color analysis failed:', error);
     return {
       hasGreen: false,
       hasYellow: false,
@@ -610,8 +580,6 @@ async function analyzeImageForPlantColors(imageUri: string): Promise<ImageQualit
  */
 async function adjustImageBrightness(imageUri: string, level: number): Promise<string> {
   try {
-    console.log('☀️ Adjusting image brightness:', level);
-    
     // Note: expo-image-manipulator doesn't have direct brightness control
     // This would need to be implemented with a more advanced image processing library
     // For now, we'll use exposure-like adjustments through quality/contrast
@@ -624,11 +592,10 @@ async function adjustImageBrightness(imageUri: string, level: number): Promise<s
         format: SaveFormat.JPEG,
       }
     );
-    
-    console.log('✅ Brightness adjustment complete');
+
     return result.uri;
   } catch (error) {
-    console.error('❌ Brightness adjustment failed:', error);
+    logger.error('❌ Brightness adjustment failed:', error);
     return imageUri;
   }
 }
@@ -638,8 +605,6 @@ async function adjustImageBrightness(imageUri: string, level: number): Promise<s
  */
 async function enhanceImageContrast(imageUri: string, level: number): Promise<string> {
   try {
-    console.log('🔆 Enhancing image contrast:', level);
-    
     // Note: expo-image-manipulator has limited contrast control
     // This is a framework for contrast enhancement
     // In production, would use advanced image processing libraries
@@ -652,11 +617,10 @@ async function enhanceImageContrast(imageUri: string, level: number): Promise<st
         format: SaveFormat.JPEG,
       }
     );
-    
-    console.log('✅ Contrast enhancement complete');
+
     return result.uri;
   } catch (error) {
-    console.error('❌ Contrast enhancement failed:', error);
+    logger.error('❌ Contrast enhancement failed:', error);
     return imageUri;
   }
 }
@@ -666,8 +630,6 @@ async function enhanceImageContrast(imageUri: string, level: number): Promise<st
  */
 async function sharpenImageForPlantDetails(imageUri: string): Promise<string> {
   try {
-    console.log('🔍 Sharpening image for plant details...');
-    
     // Framework for image sharpening
     // expo-image-manipulator doesn't have built-in sharpening
     // Would need advanced image processing library for true sharpening
@@ -680,11 +642,10 @@ async function sharpenImageForPlantDetails(imageUri: string): Promise<string> {
         format: SaveFormat.JPEG,
       }
     );
-    
-    console.log('✅ Image sharpening complete');
+
     return result.uri;
   } catch (error) {
-    console.error('❌ Image sharpening failed:', error);
+    logger.error('❌ Image sharpening failed:', error);
     return imageUri;
   }
 }

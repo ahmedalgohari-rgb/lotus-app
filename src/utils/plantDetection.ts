@@ -4,6 +4,7 @@
  * Supports full spectrum of plant colors: green, yellow, white, purple, red, violet, rose
  */
 
+import { logger } from './logger';
 import { ImageQualityMetrics } from './imageUtils';
 
 export interface PlantDetectionResult {
@@ -33,9 +34,10 @@ export interface PlantDetectionConfig {
   detectionMode: 'conservative' | 'balanced' | 'aggressive';
 }
 
+// PHASE 4: Lowered threshold to allow more API calls during debugging
 // Default configuration optimized for diverse plant types
 const DEFAULT_CONFIG: PlantDetectionConfig = {
-  minimumPlantConfidence: 0.4,
+  minimumPlantConfidence: 0.2, // LOWERED from 0.4 to 0.2 (20%) for testing
   enableRealTimeDetection: true,
   colorSensitivity: 'medium',
   detectionMode: 'balanced'
@@ -112,21 +114,18 @@ export class PlantDetectionService {
    * Returns immediate feedback for user guidance
    */
   async detectPlantInRealTime(
-    imageDataOrUri: string | ImageData, 
-    frameWidth?: number, 
+    imageDataOrUri: string | ImageData,
+    frameWidth?: number,
     frameHeight?: number
   ): Promise<PlantDetectionResult> {
     try {
-      console.log('🌿 Real-time plant detection starting...');
-      
       // Simulate real-time plant detection analysis
       // In production, this would process actual image/frame data
       const mockResult = await this.simulatePlantDetection();
-      
-      console.log('🌿 Plant detection result:', mockResult);
+
       return mockResult;
     } catch (error) {
-      console.error('❌ Real-time plant detection failed:', error);
+      logger.error('❌ Real-time plant detection failed:', error);
       return this.getFailureResult();
     }
   }
@@ -137,15 +136,12 @@ export class PlantDetectionService {
    */
   async detectPlantInImage(imageUri: string): Promise<PlantDetectionResult> {
     try {
-      console.log('🌿 Comprehensive plant detection starting for:', imageUri);
-      
       // Simulate comprehensive plant analysis
       const result = await this.performComprehensivePlantAnalysis(imageUri);
-      
-      console.log('🌿 Comprehensive plant detection complete:', result);
+
       return result;
     } catch (error) {
-      console.error('❌ Comprehensive plant detection failed:', error);
+      logger.error('❌ Comprehensive plant detection failed:', error);
       return this.getFailureResult();
     }
   }
@@ -161,23 +157,23 @@ export class PlantDetectionService {
   }> {
     try {
       const detection = await this.detectPlantInImage(imageUri);
-      
+
       const issues: string[] = [];
       const recommendations: string[] = [];
-      
+
       if (detection.confidence < this.config.minimumPlantConfidence) {
         issues.push('Low plant detection confidence');
         recommendations.push('Ensure plant is clearly visible and well-lit');
       }
-      
+
       if (!detection.isPlantDetected) {
         issues.push('No plant detected in image');
         recommendations.push('Focus on plant subject and try again');
       }
-      
-      const isValid = detection.isPlantDetected && 
+
+      const isValid = detection.isPlantDetected &&
                      detection.confidence >= this.config.minimumPlantConfidence;
-      
+
       return {
         isValid,
         confidence: detection.confidence,
@@ -185,7 +181,7 @@ export class PlantDetectionService {
         recommendations: recommendations.length > 0 ? recommendations : detection.qualityFeedback
       };
     } catch (error) {
-      console.error('❌ Image validation failed:', error);
+      logger.error('❌ Image validation failed:', error);
       return {
         isValid: false,
         confidence: 0,
@@ -363,7 +359,6 @@ export class PlantDetectionService {
    */
   updateConfig(newConfig: Partial<PlantDetectionConfig>): void {
     this.config = { ...this.config, ...newConfig };
-    console.log('🔧 Plant detection config updated:', this.config);
   }
 
   /**

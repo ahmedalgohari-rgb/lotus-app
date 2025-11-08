@@ -1,6 +1,7 @@
 import React, { useState, useEffect, memo } from 'react';
 import { Image, View, ActivityIndicator, StyleSheet } from 'react-native';
 import { COLORS } from '../constants';
+import { logger } from '../utils/logger';
 
 interface OptimizedImageProps {
   uri: string;
@@ -36,19 +37,17 @@ const OptimizedImage: React.FC<OptimizedImageProps> = memo(({
   }, [uri]);
 
   const handleThumbnailLoad = () => {
-    console.log('📷 Thumbnail loaded');
     setIsLoading(false);
   };
 
   const handleFullImageLoad = () => {
-    console.log('🖼️ Full image loaded');
     setShowFullImage(true);
     setIsLoading(false);
     onLoad?.();
   };
 
   const handleError = (error: any) => {
-    console.error('❌ Image load error:', error);
+    logger.error('Image load error:', error);
     setHasError(true);
     setIsLoading(false);
     onError?.(error);

@@ -15,17 +15,18 @@ export const COLORS = {
 };
 
 export const PLANT_LOCATIONS = [
-  { value: 'living_room', label: 'Living Room', labelAr: 'غرفة المعيشة' },
-  { value: 'bedroom', label: 'Bedroom', labelAr: 'غرفة النوم' },
+  { value: 'living_room', label: 'Living Room', labelAr: 'أوضة المعيشة' },
+  { value: 'bedroom', label: 'Bedroom', labelAr: 'أوضة النوم' },
   { value: 'kitchen', label: 'Kitchen', labelAr: 'المطبخ' },
   { value: 'bathroom', label: 'Bathroom', labelAr: 'الحمام' },
-  { value: 'balcony', label: 'Balcony', labelAr: 'الشرفة' },
+  { value: 'balcony', label: 'Balcony', labelAr: 'البلكونة' },
+  { value: 'office', label: 'Office', labelAr: 'المكتب' },
 ] as const;
 
 export const WINDOW_DIRECTIONS = [
-  { value: 'north', label: 'North', labelAr: 'شمال', emoji: '⬆️' },
+  { value: 'north', label: 'North', labelAr: 'بحري', emoji: '⬆️' }, // Egyptian: bahri (north)
   { value: 'east', label: 'East', labelAr: 'شرق', emoji: '➡️' },
-  { value: 'south', label: 'South', labelAr: 'جنوب', emoji: '⬇️' },
+  { value: 'south', label: 'South', labelAr: 'قبلي', emoji: '⬇️' }, // Egyptian: qibli (south)
   { value: 'west', label: 'West', labelAr: 'غرب', emoji: '⬅️' },
 ] as const;
 
@@ -72,3 +73,18 @@ export const CACHE_KEYS = {
   PLANT_SPECIES: 'plant_species',
   USER_PROFILE: 'user_profile',
 } as const;
+
+// Golden Ratio Design System
+export {
+  PHI,
+  PHI_INVERSE,
+  FIBONACCI,
+  TYPOGRAPHY,
+  LAYOUT_RATIO,
+  GOLDEN_RECTANGLES,
+  ELEMENT_SIZES,
+  applyGoldenRatio,
+  splitByGoldenRatio,
+  getNextFibonacci,
+  getPreviousFibonacci,
+} from './goldenRatio';

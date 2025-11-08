@@ -15,9 +15,11 @@ import { COLORS, FIBONACCI, TYPOGRAPHY, ELEMENT_SIZES } from '../constants';
 import { useStore } from '../store';
 import { useRTL, useRTLStyles } from '../utils/rtl';
 import { WeatherService } from '../services/weather';
-import { WeatherData } from '../types';
+import { WeatherData, EnhancedCareRecommendation } from '../types';
 import { changeLanguage, getCurrentLanguage } from '../i18n';
 import { logger } from '../utils/logger';
+import { getPersonalizedCareRecommendations } from '../utils/careMap';
+import AccountDrawer from '../components/AccountDrawer';
 
 
 
@@ -166,12 +168,17 @@ const careCards = [
 ];
 
 export default function HomeScreen() {
-  const { user, weather, setWeather, setIsRTL, setUser, setAuthenticated, clearStorage, isFirstVisit, markAsReturningUser } = useStore();
+  const { user, isGuest, weather, setWeather, setIsRTL, setUser, setAuthenticated, clearStorage, isFirstVisit, markAsReturningUser } = useStore();
   const [weatherLoading, setWeatherLoading] = useState(false);
   const { t, i18n } = useTranslation();
   const navigation = useNavigation();
   const isRTL = useRTL();
   const [currentLanguage, setCurrentLanguage] = useState(getCurrentLanguage());
+  const [isAccountDrawerVisible, setIsAccountDrawerVisible] = useState(false);
+
+  // 🧪 TEST: Weather-Aware Care System (Phase 15.0)
+  const [testRecommendation, setTestRecommendation] = useState<EnhancedCareRecommendation | null>(null);
+  const [testLoading, setTestLoading] = useState(false);
 
   useEffect(() => {
     loadWeatherData();
@@ -208,9 +215,9 @@ export default function HomeScreen() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 18) return 'Good Afternoon';
-    return 'Good Evening';
+    if (hour < 12) return t('home.goodMorning');
+    if (hour < 18) return t('home.goodAfternoon');
+    return t('home.goodEvening');
   };
 
   const toggleLanguage = async () => {
@@ -246,6 +253,37 @@ export default function HomeScreen() {
     await loadWeatherData(true);
   };
 
+  // 🧪 TEST: Call Weather-Aware Care System
+  const testWeatherAwareCare = async (
+    plantId: string,
+    room: 'living_room' | 'bedroom' | 'kitchen' | 'bathroom' | 'balcony' | 'office',
+    direction: 'north' | 'east' | 'south' | 'west',
+    testName: string
+  ) => {
+    setTestLoading(true);
+    try {
+      logger.info(`🧪 Testing: ${testName}`);
+
+      const recommendation = await getPersonalizedCareRecommendations(
+        plantId,
+        room,
+        direction,
+        true // Include weather
+      );
+
+      setTestRecommendation(recommendation);
+
+      logger.info(`✅ ${testName} - Score: ${recommendation.score.stars}`);
+      logger.info(`Warnings: ${recommendation.warnings.length}`);
+      logger.info(`Weather: ${recommendation.weatherContext?.temperature}°C`);
+    } catch (error) {
+      logger.error(`❌ ${testName} failed:`, error);
+      setTestRecommendation(null);
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView 
@@ -261,7 +299,13 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View style={styles.greeting}>
             <Text style={styles.greetingText}>
-              {user ? (
+              {isGuest || !user ? (
+                // Guest user - no personalization
+                <>
+                  {t('home.guestWelcome')}! 👋
+                </>
+              ) : (
+                // Authenticated user
                 isFirstVisit ? (
                   // First time user
                   <>
@@ -273,11 +317,6 @@ export default function HomeScreen() {
                     {t('home.welcomeBack')}{isRTL ? ' ' : ', '}{user?.first_name || user?.name}! 👋
                   </>
                 )
-              ) : (
-                // Guest user
-                <>
-                  {t('home.guestWelcome')}! 👋
-                </>
               )}
             </Text>
           </View>
@@ -287,7 +326,10 @@ export default function HomeScreen() {
                 {currentLanguage === 'en' ? 'عربي' : 'EN'}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.profileButton}>
+            <TouchableOpacity
+              style={styles.profileButton}
+              onPress={() => setIsAccountDrawerVisible(true)}
+            >
               <Ionicons name="person-outline" size={20} color={COLORS.primary} />
             </TouchableOpacity>
           </View>
@@ -327,8 +369,7 @@ export default function HomeScreen() {
           {weatherLoading ? (
             <View style={styles.weatherLoadingCard}>
               <ActivityIndicator size="small" color={COLORS.primary} />
-              <Text style={styles.weatherLoadingText}>Loading Cairo weather...</Text>
-              <Text style={styles.weatherLoadingTextAr}>جاري تحميل بيانات الطقس...</Text>
+              <Text style={styles.weatherLoadingText}>{t('home.loadingWeather')}</Text>
             </View>
           ) : weather ? (
             <View style={styles.weatherCard}>
@@ -528,11 +569,125 @@ export default function HomeScreen() {
             </View>          ) : (
             <View style={styles.weatherErrorCard}>
               <Text style={styles.weatherErrorText}>
-                {isRTL ? 'لا يمكن تحميل بيانات الطقس' : 'Unable to load weather data'}
+                {t('home.weatherError')}
               </Text>
               <TouchableOpacity style={styles.retryButton} onPress={() => loadWeatherData()}>
                 <Text style={styles.retryButtonText}>{t('common.retry')}</Text>
               </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* 🧪 TEST: Weather-Aware Care System */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, isRTL && { textAlign: 'right' }]}>
+            🧪 Test: Weather-Aware Care
+          </Text>
+
+          <Text style={styles.testDescription}>
+            Compare how the same Snake Plant gets different scores in different locations:
+          </Text>
+
+          {/* Test Scenario Buttons Grid */}
+          <View style={styles.testButtonGrid}>
+            <TouchableOpacity
+              style={[styles.testButtonSmall, styles.testButtonSouth, testLoading && styles.testButtonDisabled]}
+              onPress={() => testWeatherAwareCare('snake_plant', 'living_room', 'south', 'South Window (Intense)')}
+              disabled={testLoading}
+            >
+              <Text style={styles.testButtonSmallText}>☀️ South</Text>
+              <Text style={styles.testButtonSmallSubtext}>Intense Sun</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.testButtonSmall, styles.testButtonNorth, testLoading && styles.testButtonDisabled]}
+              onPress={() => testWeatherAwareCare('snake_plant', 'living_room', 'north', 'North Window (Gentle)')}
+              disabled={testLoading}
+            >
+              <Text style={styles.testButtonSmallText}>🌤️ North</Text>
+              <Text style={styles.testButtonSmallSubtext}>Gentle Light</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.testButtonSmall, styles.testButtonBalcony, testLoading && styles.testButtonDisabled]}
+              onPress={() => testWeatherAwareCare('snake_plant', 'balcony', 'south', 'Balcony (Extreme)')}
+              disabled={testLoading}
+            >
+              <Text style={styles.testButtonSmallText}>🏖️ Balcony</Text>
+              <Text style={styles.testButtonSmallSubtext}>Extreme Dry</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.testButtonSmall, styles.testButtonBathroom, testLoading && styles.testButtonDisabled]}
+              onPress={() => testWeatherAwareCare('snake_plant', 'bathroom', 'north', 'Bathroom (Humid)')}
+              disabled={testLoading}
+            >
+              <Text style={styles.testButtonSmallText}>🚿 Bathroom</Text>
+              <Text style={styles.testButtonSmallSubtext}>High Humidity</Text>
+            </TouchableOpacity>
+          </View>
+
+          {testLoading && (
+            <View style={styles.testLoadingContainer}>
+              <ActivityIndicator size="small" color="#8B5CF6" />
+              <Text style={styles.testLoadingText}>Analyzing placement...</Text>
+            </View>
+          )}
+
+          {testRecommendation && (
+            <View style={styles.testResultCard}>
+              {/* Placement Score */}
+              <View style={styles.testResultRow}>
+                <Text style={styles.testResultLabel}>Placement Score:</Text>
+                <Text style={styles.testResultValue}>
+                  {testRecommendation.score.stars} ({testRecommendation.score.scoreText})
+                </Text>
+              </View>
+
+              {/* Weather Conditions */}
+              {testRecommendation.weatherContext && (
+                <View style={styles.testResultRow}>
+                  <Text style={styles.testResultLabel}>Weather:</Text>
+                  <Text style={styles.testResultValue}>
+                    {testRecommendation.weatherContext.temperature}°C, {testRecommendation.weatherContext.humidity}% humidity
+                  </Text>
+                </View>
+              )}
+
+              {/* Adjusted Watering */}
+              <View style={styles.testResultRow}>
+                <Text style={styles.testResultLabel}>Watering:</Text>
+                <Text style={styles.testResultValue}>
+                  {testRecommendation.adjusted.watering}
+                </Text>
+              </View>
+
+              {/* Warnings */}
+              {testRecommendation.warnings.length > 0 && (
+                <View style={styles.testWarningsSection}>
+                  <Text style={styles.testWarningsTitle}>⚠️ Warnings:</Text>
+                  {testRecommendation.warnings.map((warning, idx) => (
+                    <View key={idx} style={[styles.testWarning, warning.type === 'danger' && styles.testWarningDanger]}>
+                      <Text style={styles.testWarningIcon}>{warning.icon}</Text>
+                      <Text style={styles.testWarningText}>{warning.message}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {/* Tips */}
+              {testRecommendation.tips.length > 0 && (
+                <View style={styles.testTipsSection}>
+                  <Text style={styles.testTipsTitle}>💡 Tips:</Text>
+                  {testRecommendation.tips.slice(0, 3).map((tip, idx) => (
+                    <Text key={idx} style={styles.testTip}>• {tip}</Text>
+                  ))}
+                </View>
+              )}
+
+              <Text style={styles.testResultFooter}>
+                Check console logs for detailed output!
+              </Text>
             </View>
           )}
         </View>
@@ -550,6 +705,13 @@ export default function HomeScreen() {
         </View>
 
       </ScrollView>
+
+      {/* Account Drawer */}
+      <AccountDrawer
+        visible={isAccountDrawerVisible}
+        onClose={() => setIsAccountDrawerVisible(false)}
+        userName={user?.first_name || user?.name || 'Guest'}
+      />
     </SafeAreaView>
   );
 }
@@ -616,8 +778,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   profileButton: {
-    width: 32,
-    height: 32,
+    width: FIBONACCI.XL,
+    height: FIBONACCI.XL,
     borderRadius: 16,
     backgroundColor: COLORS.white,
     justifyContent: 'center',
@@ -818,7 +980,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   bottomPadding: {
-    height: 80,
+    height: FIBONACCI.XXXL,
   },
   // Weather Widget Styles
   weatherLoadingCard: {
@@ -1103,5 +1265,153 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.BASE, // 16px - Golden ratio typography
     fontWeight: '600',
     textAlign: 'center',
+  },
+
+  // 🧪 Test Section Styles
+  testDescription: {
+    fontSize: TYPOGRAPHY.SM,
+    color: COLORS.textSecondary,
+    marginBottom: FIBONACCI.SM,
+    lineHeight: 20,
+  },
+  testButtonGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: FIBONACCI.SM,
+  },
+  testButtonSmall: {
+    width: '48%',
+    paddingVertical: FIBONACCI.MD,
+    paddingHorizontal: FIBONACCI.SM,
+    borderRadius: ELEMENT_SIZES.RADIUS_MD,
+    alignItems: 'center',
+    marginBottom: FIBONACCI.SM,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  testButtonSouth: {
+    backgroundColor: '#EF4444', // Red for intense south
+  },
+  testButtonNorth: {
+    backgroundColor: '#3B82F6', // Blue for gentle north
+  },
+  testButtonBalcony: {
+    backgroundColor: '#F59E0B', // Orange for extreme balcony
+  },
+  testButtonBathroom: {
+    backgroundColor: '#10B981', // Green for humid bathroom
+  },
+  testButtonDisabled: {
+    opacity: 0.6,
+  },
+  testButtonSmallText: {
+    color: '#fff',
+    fontSize: TYPOGRAPHY.SM,
+    fontWeight: '700',
+    marginBottom: FIBONACCI.XXS,
+  },
+  testButtonSmallSubtext: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: TYPOGRAPHY.XXS,
+    fontWeight: '500',
+  },
+  testLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: FIBONACCI.SM,
+  },
+  testLoadingText: {
+    marginLeft: FIBONACCI.XS,
+    fontSize: TYPOGRAPHY.SM,
+    color: '#8B5CF6',
+    fontWeight: '600',
+  },
+  testResultCard: {
+    backgroundColor: '#fff',
+    borderRadius: ELEMENT_SIZES.RADIUS_MD,
+    padding: FIBONACCI.MD,
+    marginTop: FIBONACCI.SM,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  testResultRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: FIBONACCI.XS,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  testResultLabel: {
+    fontSize: TYPOGRAPHY.SM,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+    flex: 1,
+  },
+  testResultValue: {
+    fontSize: TYPOGRAPHY.SM,
+    color: COLORS.text,
+    flex: 2,
+    textAlign: 'right',
+  },
+  testWarningsSection: {
+    marginTop: FIBONACCI.SM,
+    padding: FIBONACCI.SM,
+    backgroundColor: '#FEF3C7',
+    borderRadius: FIBONACCI.XS,
+  },
+  testWarningsTitle: {
+    fontSize: TYPOGRAPHY.SM,
+    fontWeight: '700',
+    color: '#92400E',
+    marginBottom: FIBONACCI.XS,
+  },
+  testWarning: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: FIBONACCI.XS,
+    padding: FIBONACCI.XS,
+    backgroundColor: '#fff',
+    borderRadius: FIBONACCI.XXS,
+  },
+  testWarningDanger: {
+    backgroundColor: '#FEE2E2',
+  },
+  testWarningIcon: {
+    fontSize: TYPOGRAPHY.BASE,
+    marginRight: FIBONACCI.XS,
+  },
+  testWarningText: {
+    fontSize: TYPOGRAPHY.XS,
+    color: '#92400E',
+    flex: 1,
+  },
+  testTipsSection: {
+    marginTop: FIBONACCI.SM,
+    padding: FIBONACCI.SM,
+    backgroundColor: '#DBEAFE',
+    borderRadius: FIBONACCI.XS,
+  },
+  testTipsTitle: {
+    fontSize: TYPOGRAPHY.SM,
+    fontWeight: '700',
+    color: '#1E40AF',
+    marginBottom: FIBONACCI.XS,
+  },
+  testTip: {
+    fontSize: TYPOGRAPHY.XS,
+    color: '#1E3A8A',
+    marginTop: FIBONACCI.XXS,
+  },
+  testResultFooter: {
+    fontSize: TYPOGRAPHY.XXS,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginTop: FIBONACCI.SM,
+    fontStyle: 'italic',
   },
 });

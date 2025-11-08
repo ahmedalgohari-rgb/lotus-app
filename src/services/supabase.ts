@@ -3,17 +3,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { makeRedirectUri } from 'expo-auth-session';
 import { readAsStringAsync, EncodingType } from 'expo-file-system/legacy';
 import { Plant, PlantSpecies, CareEvent, User } from '../types';
+import { logger } from '../utils/logger';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Missing Supabase environment variables');
+  logger.warn('Missing Supabase environment variables');
 }
 
 const redirectTo = makeRedirectUri();
-console.log("Redirect URI for Supabase config:", redirectTo);
-
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -26,7 +25,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
 // Listen for auth state changes
 supabase.auth.onAuthStateChange(async (event, session) => {
-  console.log('Auth state changed:', event, session?.user?.email);
+  // Auth state monitoring
 });
 
 // Auth helpers
@@ -50,6 +49,20 @@ export const authService = {
       provider: 'apple',
       options: {
         redirectTo,
+      },
+    });
+    return { data, error };
+  },
+
+  signInWithFacebook: async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'facebook',
+      options: {
+        redirectTo,
+        queryParams: {
+          // Request additional permissions if needed
+          scope: 'email,public_profile',
+        },
       },
     });
     return { data, error };
@@ -85,22 +98,6 @@ export const authService = {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
-    });
-    return { data, error };
-  },
-
-  signInWithOtp: async (phone: string) => {
-    const { data, error } = await supabase.auth.signInWithOtp({
-      phone,
-    });
-    return { data, error };
-  },
-
-  verifyOtp: async (phone: string, token: string) => {
-    const { data, error } = await supabase.auth.verifyOtp({
-      phone,
-      token,
-      type: 'sms',
     });
     return { data, error };
   },
@@ -202,9 +199,36 @@ export const dbService = {
     return { data, error };
   },
 
+  updateUserProfile: async (userId: string, firstName: string) => {
+    // Use upsert to insert if not exists, or update if exists
+    const { data, error } = await supabase
+      .from('profiles')
+      .upsert(
+        {
+          id: userId,
+          first_name: firstName,
+          updated_at: new Date().toISOString()
+        },
+        {
+          onConflict: 'id',
+          ignoreDuplicates: false
+        }
+      )
+      .select()
+      .single();
+    return { data, error };
+  },
+
   // Storage
   uploadImage: async (file: { uri: string; type: string; name: string }, bucket: string = 'plant-images') => {
     try {
+      // Check if URI is already a remote URL (from search results)
+      if (file.uri.startsWith('http://') || file.uri.startsWith('https://')) {
+        logger.info('Using existing remote image URL:', file.uri);
+        return file.uri; // Return the remote URL directly, no upload needed
+      }
+
+      // Local file - proceed with upload to Supabase
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
 
@@ -229,7 +253,7 @@ export const dbService = {
 
       if (uploadError) {
         if (uploadError.message.includes('Bucket not found')) {
-          console.error(`Supabase Storage Error: Bucket '${bucket}' not found. Please create it in your Supabase project dashboard.`);
+          logger.error(`Supabase Storage Error: Bucket '${bucket}' not found. Please create it in your Supabase project dashboard.`);
         }
         throw uploadError;
       }
@@ -244,7 +268,7 @@ export const dbService = {
 
       return data.publicUrl;
     } catch (error) {
-      console.error('Upload error:', error);
+      logger.error('Upload error:', error);
       throw error; // Re-throw the error to be handled by the caller
     }
   },
