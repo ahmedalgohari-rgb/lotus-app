@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Image, View, Text, StyleSheet, ImageStyle, StyleProp } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY } from '../constants';
+import { logger } from '../utils/logger';
 
 interface PlantImageProps {
   imageUrl?: string | null;
@@ -33,6 +34,16 @@ export default function PlantImage({
 
   // If no URL or error occurred, show fallback
   if (!optimizedImageUrl || imageError) {
+    // Log why we're showing fallback
+    if (!imageUrl && plantName) {
+      logger.warn(`PlantImage: No image URL provided for plant "${plantName}"`);
+    } else if (imageError && imageUrl && plantName) {
+      logger.error(`PlantImage: Failed to load image for plant "${plantName}"`, {
+        originalUrl: imageUrl,
+        optimizedUrl: optimizedImageUrl,
+      });
+    }
+
     return (
       <View style={[styles.fallbackContainer, { width: size, height: size }, style]}>
         <Ionicons name="leaf" size={size * 0.5} color={COLORS.primary} />
@@ -50,7 +61,11 @@ export default function PlantImage({
       <Image
         source={{ uri: optimizedImageUrl }}
         style={[styles.image, { width: size, height: size }]}
-        onError={() => {
+        onError={(error) => {
+          logger.error(`PlantImage: Image load error for "${plantName}"`, {
+            url: optimizedImageUrl,
+            error: error.nativeEvent.error,
+          });
           setImageError(true);
         }}
       />

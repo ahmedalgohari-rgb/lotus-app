@@ -111,12 +111,68 @@ export default function AuthModal({ visible, onClose, onAuthSuccess }: AuthModal
     }
   };
 
+  const handleFacebookSignIn = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await authService.signInWithFacebook();
+      if (error) throw error;
+
+      if (data && 'user' in data && data.user) {
+        const { data: profileData } = await dbService.getProfile(data.user.id);
+        const hasFirstName = profileData?.first_name && profileData.first_name.trim().length > 0;
+        const facebookFullName = data.user.user_metadata?.name || data.user.user_metadata?.full_name;
+        const facebookFirstName = facebookFullName?.split(' ')[0]?.trim();
+
+        const userData = {
+          id: data.user.id,
+          email: data.user.email,
+          name: profileData?.first_name || facebookFullName || data.user.email,
+          first_name: profileData?.first_name || facebookFirstName,
+          avatar_url: data.user.user_metadata?.avatar_url,
+          created_at: data.user.created_at,
+        };
+
+        if (!hasFirstName && facebookFirstName) {
+          try {
+            await dbService.updateUserProfile(data.user.id, facebookFirstName);
+            setUser({
+              ...userData,
+              first_name: facebookFirstName,
+              name: facebookFirstName,
+            });
+            updateUserName(facebookFirstName);
+            setAuthenticated(true);
+            setIsLoading(false);
+            handlePostAuthNavigation();
+          } catch (saveError) {
+            setPendingUser(userData);
+            setShowNameCollection(true);
+            setIsLoading(false);
+          }
+        } else if (!hasFirstName && !facebookFirstName) {
+          setPendingUser(userData);
+          setShowNameCollection(true);
+          setIsLoading(false);
+        } else {
+          setUser(userData);
+          setAuthenticated(true);
+          setIsLoading(false);
+          handlePostAuthNavigation();
+        }
+      }
+    } catch (error) {
+      logger.error('Facebook sign in error:', error);
+      Alert.alert('Sign In Failed', 'Please try again.');
+      setIsLoading(false);
+    }
+  };
+
   const handleAppleSignIn = async () => {
     setIsLoading(true);
     try {
       const { data, error } = await authService.signInWithApple();
       if (error) throw error;
-      
+
       if (data && 'user' in data && data.user) {
         setUser({
           id: data.user.id,
@@ -278,21 +334,21 @@ export default function AuthModal({ visible, onClose, onAuthSuccess }: AuthModal
                     </View>
                     <View style={styles.authButtons}>
                         <TouchableOpacity
-                          style={styles.phoneButton}
-                          onPress={() => setShowPhoneAuth(true)}
-                          disabled={isLoading}
-                        >
-                          <Ionicons name="call" size={24} color={COLORS.primary} />
-                          <Text style={styles.phoneButtonText}>{t('auth.continueWithPhone')}</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
                           style={styles.googleButton}
                           onPress={handleGoogleSignIn}
                           disabled={isLoading}
                         >
                           <Ionicons name="logo-google" size={24} color={COLORS.primary} />
                           <Text style={styles.googleButtonText}>{t('auth.continueWithGoogle')}</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.facebookButton}
+                          onPress={handleFacebookSignIn}
+                          disabled={isLoading}
+                        >
+                          <Ionicons name="logo-facebook" size={24} color={COLORS.primary} />
+                          <Text style={styles.facebookButtonText}>{t('auth.continueWithFacebook')}</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
@@ -378,6 +434,26 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   googleButtonText: {
+    color: COLORS.primary,
+    fontSize: TYPOGRAPHY.BASE,
+    fontWeight: '600',
+    marginLeft: FIBONACCI.MD,
+  },
+  facebookButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.white,
+    height: ELEMENT_SIZES.BUTTON_MD, // 55px - Fibonacci button height
+    borderRadius: FIBONACCI.XL, // 34px - Golden ratio pill shape
+    marginBottom: FIBONACCI.LG, // 21px - Clean Fibonacci spacing
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: FIBONACCI.SM,
+    elevation: 4,
+  },
+  facebookButtonText: {
     color: COLORS.primary,
     fontSize: TYPOGRAPHY.BASE,
     fontWeight: '600',

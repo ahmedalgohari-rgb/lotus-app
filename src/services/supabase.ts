@@ -1,9 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { makeRedirectUri } from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
 import { readAsStringAsync, EncodingType } from 'expo-file-system/legacy';
 import { Plant, PlantSpecies, CareEvent, User } from '../types';
 import { logger } from '../utils/logger';
+
+// Complete the browser session on Android
+WebBrowser.maybeCompleteAuthSession();
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -12,7 +16,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
   logger.warn('Missing Supabase environment variables');
 }
 
-const redirectTo = makeRedirectUri();
+const redirectTo = makeRedirectUri({
+  scheme: 'lotus',
+  path: 'auth/callback',
+});
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -31,41 +38,238 @@ supabase.auth.onAuthStateChange(async (event, session) => {
 // Auth helpers
 export const authService = {
   signInWithGoogle: async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
+    try {
+      // Get the OAuth URL from Supabase
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true, // We'll handle the browser manually
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
-      },
-    });
-    return { data, error };
+      });
+
+      if (error) {
+        logger.error('Google OAuth URL generation failed:', error);
+        return { data: null, error };
+      }
+
+      if (!data?.url) {
+        logger.error('No OAuth URL returned from Supabase');
+        return { data: null, error: { message: 'No OAuth URL returned', name: 'OAuthError', status: 500 } as any };
+      }
+
+      // Open the OAuth URL in the browser
+      logger.debug('Opening Google OAuth browser with URL:', data.url);
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+
+      if (result.type === 'success') {
+        logger.debug('Google OAuth browser returned successfully');
+
+        // Poll for session with 500ms intervals (max 10 seconds)
+        // This fixes the race condition where the deep link handler hasn't set the session yet
+        logger.debug('Polling for session (max 10 seconds)...');
+        const maxAttempts = 20; // 20 attempts * 500ms = 10 seconds max
+        let sessionData = null;
+
+        for (let i = 0; i < maxAttempts; i++) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          const result = await supabase.auth.getSession();
+
+          if (result.data.session) {
+            sessionData = result;
+            logger.debug(`Session found after ${(i + 1) * 500}ms`);
+            break;
+          }
+        }
+
+        if (!sessionData?.data?.session) {
+          logger.error('No session found after OAuth completion (timeout after 10 seconds)');
+          return { data: null, error: { message: 'OAuth timeout - session not created within 10 seconds', name: 'TimeoutError', status: 408 } as any };
+        }
+
+        if (sessionData.error) {
+          logger.error('Failed to get session after OAuth:', sessionData.error);
+          return { data: null, error: sessionData.error };
+        }
+
+        logger.debug('Google OAuth successful, session retrieved');
+        return {
+          data: {
+            user: sessionData.data.session.user,
+            session: sessionData.data.session
+          },
+          error: null
+        };
+      } else if (result.type === 'cancel') {
+        logger.info('User cancelled Google OAuth');
+        return { data: null, error: { message: 'User cancelled OAuth', name: 'UserCancelled', status: 400 } as any };
+      } else {
+        logger.error('Google OAuth failed with type:', result.type);
+        return { data: null, error: { message: 'OAuth browser session failed', name: 'BrowserError', status: 500 } as any };
+      }
+    } catch (err) {
+      logger.error('Google OAuth error:', err);
+      return { data: null, error: err as any };
+    }
   },
 
   signInWithApple: async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'apple',
-      options: {
-        redirectTo,
-      },
-    });
-    return { data, error };
+    try {
+      // Get the OAuth URL from Supabase
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'apple',
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true, // We'll handle the browser manually
+        },
+      });
+
+      if (error) {
+        logger.error('Apple OAuth URL generation failed:', error);
+        return { data: null, error };
+      }
+
+      if (!data?.url) {
+        logger.error('No OAuth URL returned from Supabase');
+        return { data: null, error: { message: 'No OAuth URL returned', name: 'OAuthError', status: 500 } as any };
+      }
+
+      // Open the OAuth URL in the browser
+      logger.debug('Opening Apple OAuth browser with URL:', data.url);
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+
+      if (result.type === 'success') {
+        logger.debug('Apple OAuth browser returned successfully');
+
+        // Poll for session with 500ms intervals (max 10 seconds)
+        // This fixes the race condition where the deep link handler hasn't set the session yet
+        logger.debug('Polling for session (max 10 seconds)...');
+        const maxAttempts = 20; // 20 attempts * 500ms = 10 seconds max
+        let sessionData = null;
+
+        for (let i = 0; i < maxAttempts; i++) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          const result = await supabase.auth.getSession();
+
+          if (result.data.session) {
+            sessionData = result;
+            logger.debug(`Session found after ${(i + 1) * 500}ms`);
+            break;
+          }
+        }
+
+        if (!sessionData?.data?.session) {
+          logger.error('No session found after OAuth completion (timeout after 10 seconds)');
+          return { data: null, error: { message: 'OAuth timeout - session not created within 10 seconds', name: 'TimeoutError', status: 408 } as any };
+        }
+
+        if (sessionData.error) {
+          logger.error('Failed to get session after OAuth:', sessionData.error);
+          return { data: null, error: sessionData.error };
+        }
+
+        logger.debug('Apple OAuth successful, session retrieved');
+        return {
+          data: {
+            user: sessionData.data.session.user,
+            session: sessionData.data.session
+          },
+          error: null
+        };
+      } else if (result.type === 'cancel') {
+        logger.info('User cancelled Apple OAuth');
+        return { data: null, error: { message: 'User cancelled OAuth', name: 'UserCancelled', status: 400 } as any };
+      } else {
+        logger.error('Apple OAuth failed with type:', result.type);
+        return { data: null, error: { message: 'OAuth browser session failed', name: 'BrowserError', status: 500 } as any };
+      }
+    } catch (err) {
+      logger.error('Apple OAuth error:', err);
+      return { data: null, error: err as any };
+    }
   },
 
   signInWithFacebook: async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'facebook',
-      options: {
-        redirectTo,
-        queryParams: {
-          // Request additional permissions if needed
-          scope: 'email,public_profile',
+    try {
+      // Get the OAuth URL from Supabase
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'facebook',
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true, // We'll handle the browser manually
+          queryParams: {
+            scope: 'email,public_profile',
+          },
         },
-      },
-    });
-    return { data, error };
+      });
+
+      if (error) {
+        logger.error('Facebook OAuth URL generation failed:', error);
+        return { data: null, error };
+      }
+
+      if (!data?.url) {
+        logger.error('No OAuth URL returned from Supabase');
+        return { data: null, error: { message: 'No OAuth URL returned', name: 'OAuthError', status: 500 } as any };
+      }
+
+      // Open the OAuth URL in the browser
+      logger.debug('Opening Facebook OAuth browser with URL:', data.url);
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+
+      if (result.type === 'success') {
+        logger.debug('Facebook OAuth browser returned successfully');
+
+        // Poll for session with 500ms intervals (max 10 seconds)
+        // This fixes the race condition where the deep link handler hasn't set the session yet
+        logger.debug('Polling for session (max 10 seconds)...');
+        const maxAttempts = 20; // 20 attempts * 500ms = 10 seconds max
+        let sessionData = null;
+
+        for (let i = 0; i < maxAttempts; i++) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          const result = await supabase.auth.getSession();
+
+          if (result.data.session) {
+            sessionData = result;
+            logger.debug(`Session found after ${(i + 1) * 500}ms`);
+            break;
+          }
+        }
+
+        if (!sessionData?.data?.session) {
+          logger.error('No session found after OAuth completion (timeout after 10 seconds)');
+          return { data: null, error: { message: 'OAuth timeout - session not created within 10 seconds', name: 'TimeoutError', status: 408 } as any };
+        }
+
+        if (sessionData.error) {
+          logger.error('Failed to get session after OAuth:', sessionData.error);
+          return { data: null, error: sessionData.error };
+        }
+
+        logger.debug('Facebook OAuth successful, session retrieved');
+        return {
+          data: {
+            user: sessionData.data.session.user,
+            session: sessionData.data.session
+          },
+          error: null
+        };
+      } else if (result.type === 'cancel') {
+        logger.info('User cancelled Facebook OAuth');
+        return { data: null, error: { message: 'User cancelled OAuth', name: 'UserCancelled', status: 400 } as any };
+      } else {
+        logger.error('Facebook OAuth failed with type:', result.type);
+        return { data: null, error: { message: 'OAuth browser session failed', name: 'BrowserError', status: 500 } as any };
+      }
+    } catch (err) {
+      logger.error('Facebook OAuth error:', err);
+      return { data: null, error: err as any };
+    }
   },
 
   signOut: async () => {

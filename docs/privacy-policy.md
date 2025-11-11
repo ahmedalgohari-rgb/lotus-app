@@ -5,11 +5,11 @@
 
 ---
 
-## Welcome! 🌿
+## Introduction
 
-Thank you for using Lotus Plant Care! We created this app to help you take better care of your plants. This Privacy Policy explains what information we collect, how we use it, and your rights regarding your data.
+This Privacy Policy governs the manner in which Lotus Plant Care ("we," "us," or "our") collects, uses, maintains, and discloses information collected from users ("you" or "your") of the Lotus Plant Care mobile application ("Application" or "Service").
 
-We believe in being transparent and honest. We've written this in plain language because we want you to actually understand it (not just scroll past legal jargon).
+This Privacy Policy applies to the Application and all products and services offered by Lotus Plant Care.
 
 ---
 
@@ -18,7 +18,6 @@ We believe in being transparent and honest. We've written this in plain language
 **App Name:** Lotus Plant Care
 **Developer:** Ahmed Algohari
 **Contact:** ahmedalgohari.rgb@gmail.com
-**GitHub:** [github.com/ahmedalgohari-rgb/lotus-app](https://github.com/ahmedalgohari-rgb/lotus-app)
 
 ---
 
@@ -28,55 +27,55 @@ We believe in being transparent and honest. We've written this in plain language
 When you create an account or sign in, we collect:
 
 - **Email address** (to identify your account)
-- **Your name** (how we greet you in the app)
+- **Your name** (for account identification)
 - **Profile picture** (if you sign in with Google or Facebook)
-- **Authentication data** (to keep you logged in securely)
+- **Authentication data** (to maintain secure sessions)
 
-**How you provide this:**
+**Methods of Authentication:**
 - Signing in with Google
 - Signing in with Facebook
 - Creating an account with email/password
 - (Coming soon: Sign in with Apple)
 
 ### 2.2 Your Plant Data
-This is the heart of the app! We store:
+We store the following plant-related information:
 
-- **Plant photos** (the pictures you take or upload)
-- **Plant names and nicknames** (what you call your plants)
-- **Plant care logs** (when you water, fertilize, prune, or repot)
-- **Plant location** (which room: living room, bedroom, kitchen, etc.)
+- **Plant photos** (images you capture or upload)
+- **Plant names and nicknames** (plant identifiers)
+- **Plant care logs** (watering, fertilizing, pruning, and repotting records)
+- **Plant location** (room designation: living room, bedroom, kitchen, etc.)
 - **Window direction** (north, east, south, west - for light recommendations)
-- **Care notes** (any notes you add about your plants)
+- **Care notes** (user-entered observations and notes)
 
-**Why we need this:** To help you track your plants and give you personalized care recommendations!
+**Purpose:** This data enables personalized plant care recommendations and tracking.
 
 ### 2.3 App Preferences
 - **Language preference** (English or Arabic)
-- **Theme settings** (how the app looks)
+- **Theme settings** (application appearance preferences)
 
 ### 2.4 Technical Information
-- **Device type** (iOS or Android - to make the app work properly)
-- **Session tokens** (to keep you logged in securely)
-- **Cached data** (to make the app faster - like temporarily storing weather data)
+- **Device type** (iOS or Android - for compatibility)
+- **Session tokens** (for authentication persistence)
+- **Cached data** (temporary storage for performance optimization)
 
 ### 2.5 Camera & Photo Access
-- **Camera access** (to take plant photos)
+- **Camera access** (to capture plant photos)
 - **Photo library access** (to select existing photos)
 
-**We only access your camera when you tap the camera button. We don't access any other photos on your device.**
+We only access your camera when you explicitly initiate the camera function. We do not access other photos on your device.
 
 ---
 
 ## 3. Information We DON'T Collect
 
-To be clear, we do NOT collect:
+We do NOT collect:
 
-- ❌ Your precise GPS location
-- ❌ Your contacts or address book
-- ❌ Your browsing history
-- ❌ Data from other apps on your device
-- ❌ Your payment information (the app is free!)
-- ❌ Any data when you use the app in guest mode (it's all local and temporary)
+- Your precise GPS location
+- Your contacts or address book
+- Your browsing history
+- Data from other applications on your device
+- Your payment information (the Application is free)
+- Any data when you use the Application in guest mode (all data stored locally and temporarily)
 
 ---
 
@@ -85,21 +84,21 @@ To be clear, we do NOT collect:
 We use your data to:
 
 ### 4.1 Provide App Features
-- **Authenticate you** (so you can log in and access your plants)
-- **Store your plants** (so they're there when you open the app)
-- **Identify plants** (using PlantNet AI when you take a photo)
-- **Give care recommendations** (based on your plant types and location)
-- **Show weather data** (for Cairo, Egypt - to help with care timing)
-- **Sync across devices** (if you log in on multiple devices)
+- **Authenticate users** (account access and security)
+- **Store plant data** (persistent data storage)
+- **Identify plants** (using PlantNet AI technology)
+- **Generate care recommendations** (based on plant types and environmental factors)
+- **Display weather data** (localized weather information for Cairo, Egypt)
+- **Synchronize across devices** (multi-device access)
 
 ### 4.2 Improve the App
-- **Fix bugs** (when something goes wrong)
-- **Understand usage** (what features people use most)
-- **Add new features** (based on what helps users)
+- **Fix bugs** (error resolution and debugging)
+- **Analyze usage patterns** (feature optimization)
+- **Develop new features** (service enhancement)
 
 ### 4.3 Communicate with You
-- **Send important updates** (like policy changes)
-- **Respond to support requests** (if you contact us)
+- **Send important updates** (policy changes and service notifications)
+- **Respond to support requests** (customer service)
 
 ---
 
@@ -110,71 +109,71 @@ We share your data with:
 ### 5.1 Service Providers (Required for App to Function)
 
 **Supabase (Backend Infrastructure)**
-- **What they do:** Store your account, plant data, and photos
-- **What we share:** Email, name, user ID, plant data, photos
-- **Their privacy policy:** [supabase.com/privacy](https://supabase.com/privacy)
-- **Why:** We need a secure database to store your information
+- **Service:** Secure storage of account data, plant data, and photos
+- **Data Shared:** Email, name, user ID, plant data, photos
+- **Privacy Policy:** [supabase.com/privacy](https://supabase.com/privacy)
+- **Purpose:** Database and storage infrastructure
 
 **PlantNet API (Plant Identification)**
-- **What they do:** Identify plants from photos using AI
-- **What we share:** Plant photos (temporarily, for identification only)
-- **Their privacy policy:** [plantnet.org](https://plantnet.org)
-- **Important:** Photos sent for identification are NOT permanently stored by PlantNet
+- **Service:** AI-powered plant identification
+- **Data Shared:** Plant photos (temporarily, for identification only)
+- **Privacy Policy:** [plantnet.org](https://plantnet.org)
+- **Note:** Photos are not permanently stored by PlantNet
 
 **OpenWeather API (Weather Data)**
-- **What they do:** Provide weather data for Cairo, Egypt
-- **What we share:** Nothing personal (just request weather for Cairo)
-- **Their privacy policy:** [openweather.co.uk/privacy-policy](https://openweather.co.uk/privacy-policy)
+- **Service:** Weather data provision
+- **Data Shared:** No personal information (only location: Cairo, Egypt)
+- **Privacy Policy:** [openweather.co.uk/privacy-policy](https://openweather.co.uk/privacy-policy)
 
-### 5.2 Authentication Providers (If You Choose to Use Them)
+### 5.2 Authentication Providers (Optional)
 
 **Google OAuth**
-- **What they do:** Let you sign in with your Google account
-- **What we share:** We receive your email, name, and profile picture from Google
-- **Their privacy policy:** [policies.google.com/privacy](https://policies.google.com/privacy)
+- **Service:** Google account authentication
+- **Data Received:** Email, name, profile picture
+- **Privacy Policy:** [policies.google.com/privacy](https://policies.google.com/privacy)
 
 **Facebook OAuth**
-- **What they do:** Let you sign in with your Facebook account
-- **What we share:** We receive your email, name, and public profile from Facebook
-- **Their privacy policy:** [facebook.com/privacy/policy](https://www.facebook.com/privacy/policy)
+- **Service:** Facebook account authentication
+- **Data Received:** Email, name, public profile
+- **Privacy Policy:** [facebook.com/privacy/policy](https://www.facebook.com/privacy/policy)
 
 **Apple Sign In (Coming Soon)**
-- **What they do:** Let you sign in with your Apple ID
-- **Their privacy policy:** [apple.com/legal/privacy](https://www.apple.com/legal/privacy)
+- **Service:** Apple ID authentication
+- **Privacy Policy:** [apple.com/legal/privacy](https://www.apple.com/legal/privacy)
 
 ### 5.3 What We DON'T Share
 
 We do NOT:
-- ❌ Sell your data to anyone
-- ❌ Share your data with advertisers
-- ❌ Share your plant data with other users (all private!)
-- ❌ Use your photos for marketing
-- ❌ Share with third parties except as listed above
+- Sell your data to any third parties
+- Share your data with advertisers
+- Share your plant data with other users (all data is private)
+- Use your photos for marketing purposes
+- Share data with third parties except as listed above
 
 ---
 
 ## 6. Data Security
 
-We take security seriously:
+We implement the following security measures:
 
-- **Encryption:** All data transmitted is encrypted (HTTPS)
-- **Secure authentication:** OAuth 2.0 and secure session tokens
-- **Access control:** Supabase Row Level Security ensures you can only access YOUR data
-- **No local password storage:** If you use OAuth, no passwords are stored on your device
+- **Encryption:** All data transmission is encrypted using HTTPS
+- **Secure Authentication:** OAuth 2.0 and secure session token management
+- **Access Control:** Supabase Row Level Security ensures users can only access their own data
+- **No Local Password Storage:** OAuth-authenticated users do not have passwords stored on devices
 
-**However, no system is 100% secure.** If you believe your account has been compromised, contact us immediately at ahmedalgohari.rgb@gmail.com.
+**Disclaimer:** No system is 100% secure. If you believe your account has been compromised, contact us immediately at ahmedalgohari.rgb@gmail.com.
 
 ---
 
 ## 7. Data Retention
 
-**How long we keep your data:**
+**Data retention periods:**
 
-- **Account data:** Until you delete your account
-- **Plant data & photos:** Until you delete them or delete your account
-- **Care logs:** Until you delete them or delete your account
-- **Cached data:** 10-30 minutes (then automatically cleared)
-- **Session tokens:** Until you log out or they expire
+- **Account data:** Retained until account deletion
+- **Plant data & photos:** Retained until deletion by user or account deletion
+- **Care logs:** Retained until deletion by user or account deletion
+- **Cached data:** 10-30 minutes (automatically cleared)
+- **Session tokens:** Until logout or expiration
 
 ---
 
@@ -183,31 +182,31 @@ We take security seriously:
 You have the right to:
 
 ### 8.1 Access Your Data
-- View all your plants, photos, and care logs in the app
-- Contact us for a copy of your data: ahmedalgohari.rgb@gmail.com
+- View all plants, photos, and care logs within the Application
+- Request a copy of your data by contacting ahmedalgohari.rgb@gmail.com
 
 ### 8.2 Edit Your Data
-- Change plant names, locations, care logs anytime in the app
-- Update your profile name in settings
+- Modify plant names, locations, and care logs at any time within the Application
+- Update profile information in settings
 
 ### 8.3 Delete Your Data
-- Delete individual plants and photos in the app
-- Delete your entire account (see [Data Deletion Instructions](/data-deletion))
+- Delete individual plants and photos within the Application
+- Delete your entire account (see Data Deletion Instructions)
 
 ### 8.4 Export Your Data
-- Contact us to request a data export: ahmedalgohari.rgb@gmail.com
-- We'll provide your data in a readable format (JSON or CSV)
+- Request data export by contacting ahmedalgohari.rgb@gmail.com
+- Data provided in machine-readable format (JSON or CSV)
 
 ### 8.5 Opt-Out
-- You can stop using the app anytime
-- Delete your account to remove all data
-- Use guest mode to try the app without creating an account
+- Discontinue use of the Application at any time
+- Delete account to remove all data
+- Use guest mode to try the Application without creating an account
 
 ---
 
 ## 9. Children's Privacy
 
-Lotus is not intended for children under 13 years old. We do not knowingly collect information from children under 13. If you believe a child has provided us with personal information, please contact us and we'll delete it immediately.
+The Application is not intended for children under 13 years old. We do not knowingly collect information from children under 13. If you believe a child has provided personal information, contact us immediately for deletion.
 
 ---
 
@@ -216,8 +215,8 @@ Lotus is not intended for children under 13 years old. We do not knowingly colle
 **Primary Market:** Egypt (Cairo)
 **Languages:** English, Arabic
 
-**If you're in the European Union (EU):**
-- You have additional rights under GDPR
+**European Union (EU) Users:**
+Users in the EU have additional rights under GDPR:
 - Right to data portability (export your data)
 - Right to be forgotten (delete your account)
 - Right to object to processing
@@ -230,43 +229,42 @@ Contact us to exercise these rights: ahmedalgohari.rgb@gmail.com
 ## 11. Cookies & Tracking
 
 **We do NOT use:**
-- ❌ Advertising cookies
-- ❌ Third-party tracking scripts
-- ❌ Analytics tools (Google Analytics, Firebase, etc.)
-- ❌ Social media pixels
+- Advertising cookies
+- Third-party tracking scripts
+- Analytics tools (Google Analytics, Firebase, etc.)
+- Social media pixels
 
 **We DO use:**
-- ✅ Local storage (AsyncStorage) for app functionality (session tokens, preferences)
-- ✅ API response caching (10-30 minutes, to make the app faster)
+- Local storage (AsyncStorage) for application functionality (session tokens, preferences)
+- API response caching (10-30 minutes, for performance optimization)
 
-This data stays on YOUR device and is not transmitted to us.
+This data remains on your device and is not transmitted to our servers.
 
 ---
 
 ## 12. Third-Party Links
 
-The app may contain links to third-party websites (like PlantNet, OpenWeather). We are not responsible for their privacy practices. Please review their privacy policies.
+The Application may contain links to third-party websites (e.g., PlantNet, OpenWeather). We are not responsible for their privacy practices. Please review their respective privacy policies.
 
 ---
 
 ## 13. Changes to This Privacy Policy
 
-We may update this Privacy Policy from time to time. When we do:
+We may update this Privacy Policy from time to time. When updates occur:
 
-- We'll update the "Last Updated" date at the top
-- We'll notify you in the app (for major changes)
-- Continued use of the app means you accept the changes
+- The "Last Updated" date will be revised
+- Users will be notified within the Application (for major changes)
+- Continued use of the Application constitutes acceptance of changes
 
-**Your Rights:** If you disagree with changes, you can delete your account and stop using the app.
+**Your Rights:** If you disagree with changes, you may delete your account and discontinue use of the Application.
 
 ---
 
 ## 14. Contact Us
 
-Questions? Concerns? Feedback?
+For questions, concerns, or inquiries regarding this Privacy Policy:
 
 **Email:** ahmedalgohari.rgb@gmail.com
-**GitHub:** [github.com/ahmedalgohari-rgb/lotus-app](https://github.com/ahmedalgohari-rgb/lotus-app)
 
 We typically respond within 48-72 hours.
 
@@ -274,26 +272,24 @@ We typically respond within 48-72 hours.
 
 ## 15. Legal Basis for Processing (GDPR)
 
-If you're in the EU, we process your data based on:
+For EU users, we process data based on:
 
-- **Contract:** To provide the app service you signed up for
-- **Consent:** When you create an account or use optional features
-- **Legitimate Interest:** To improve the app and fix bugs
+- **Contract:** To provide the Application services
+- **Consent:** When creating an account or using optional features
+- **Legitimate Interest:** To improve the Application and fix bugs
 
-You can withdraw consent anytime by deleting your account.
-
----
-
-## Summary (TL;DR)
-
-**What we collect:** Email, name, plant photos, care logs
-**Why:** To help you track and care for your plants
-**Who we share with:** Supabase (storage), PlantNet (plant ID), Google/Facebook (if you use OAuth)
-**What we DON'T do:** Sell data, track you, show ads, share with other users
-**Your rights:** View, edit, delete your data anytime
+You may withdraw consent at any time by deleting your account.
 
 ---
 
-Thank you for trusting Lotus with your plant care journey! 🌿
+## Summary
+
+**Information Collected:** Email, name, plant photos, care logs
+**Purpose:** To provide plant tracking and care recommendation services
+**Third-Party Sharing:** Supabase (storage), PlantNet (plant identification), Google/Facebook (if using OAuth)
+**Prohibited Practices:** No data selling, no user tracking, no advertisements, no cross-user data sharing
+**User Rights:** Access, edit, export, and delete data at any time
+
+---
 
 **Questions?** Email us: ahmedalgohari.rgb@gmail.com

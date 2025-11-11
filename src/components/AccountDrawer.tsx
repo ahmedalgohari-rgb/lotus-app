@@ -42,7 +42,8 @@ export default function AccountDrawer({ visible, onClose, userName = 'Guest' }: 
   const { t } = useTranslation();
   const isRTL = useRTL();
   const { clearStorage, setAuthenticated } = useStore();
-  const slideAnim = useRef(new Animated.Value(SCREEN_WIDTH)).current;
+  // ALWAYS start off-screen to the RIGHT (drawer width off-screen)
+  const slideAnim = useRef(new Animated.Value(DRAWER_WIDTH)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
   const [shouldRender, setShouldRender] = useState(visible);
@@ -55,10 +56,10 @@ export default function AccountDrawer({ visible, onClose, userName = 'Guest' }: 
 
       // Parallel animations for smooth entrance
       Animated.parallel([
-        // Slide in from right with smooth easing
+        // Slide in from RIGHT with smooth easing (ALWAYS from right, regardless of language)
         Animated.timing(slideAnim, {
-          toValue: SCREEN_WIDTH - DRAWER_WIDTH,
-          duration: 450,
+          toValue: 0, // No transform = full 80% drawer visible at right: 0
+          duration: 600, // Slower, more elegant slide-in
           easing: Easing.bezier(0.25, 0.1, 0.25, 1), // Smooth ease-out
           useNativeDriver: true,
         }),
@@ -80,10 +81,10 @@ export default function AccountDrawer({ visible, onClose, userName = 'Guest' }: 
     } else {
       // Parallel animations for smooth exit
       Animated.parallel([
-        // Slide out to right with snappy easing
+        // Slide out off-screen to the RIGHT (ALWAYS, regardless of language)
         Animated.timing(slideAnim, {
-          toValue: SCREEN_WIDTH,
-          duration: 350,
+          toValue: DRAWER_WIDTH, // Slide entire 80% drawer off-screen to the right
+          duration: 500, // Slower, more controlled slide-out
           easing: Easing.bezier(0.4, 0, 0.6, 1), // Smooth ease-in
           useNativeDriver: true,
         }),
@@ -187,11 +188,11 @@ export default function AccountDrawer({ visible, onClose, userName = 'Guest' }: 
           style={StyleSheet.absoluteFill}
           onPress={onClose}
         />
-        {/* Drawer container */}
+        {/* Drawer container - ALWAYS on right side */}
         <Animated.View
           style={[
             styles.drawer,
-            isRTL && styles.drawerRTL,
+            // Removed RTL styling - drawer always slides from right side
             {
               transform: [
                 { translateX: slideAnim },

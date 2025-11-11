@@ -15,12 +15,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
 
 import { useTranslation } from 'react-i18next';
 import { COLORS, FIBONACCI, TYPOGRAPHY, ELEMENT_SIZES } from '../constants';
 import { authService, dbService } from '../services/supabase';
 import { useStore } from '../store';
 import NameCollectionModal from '../components/NameCollectionModal';
+import LegalDocumentModal from '../components/LegalDocumentModal';
 import { logger, timer } from '../utils/logger';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -34,6 +36,9 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showNameCollection, setShowNameCollection] = useState(false);
   const [pendingUser, setPendingUser] = useState<any>(null);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showLegalModal, setShowLegalModal] = useState(false);
+  const [legalDocumentType, setLegalDocumentType] = useState<'terms' | 'privacy'>('terms');
   const { setUser, setAuthenticated, signInAsGuest, updateUserName } = useStore();
 
   // Get return navigation parameters
@@ -47,6 +52,16 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
     // When isAuthenticated/isGuest state changes, the entire nav tree rebuilds automatically
     // and shows the correct screens. No manual navigation needed.
     logger.debug('✅ Auth state updated - NavigationContainer will auto-navigate');
+  };
+
+  const handleOpenTerms = () => {
+    setLegalDocumentType('terms');
+    setShowLegalModal(true);
+  };
+
+  const handleOpenPrivacy = () => {
+    setLegalDocumentType('privacy');
+    setShowLegalModal(true);
   };
 
   const handleGoogleSignIn = async () => {
@@ -374,6 +389,13 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
         onSubmit={handleNameSubmit}
       />
 
+      {/* Legal Document Modal */}
+      <LegalDocumentModal
+        visible={showLegalModal}
+        onClose={() => setShowLegalModal(false)}
+        documentType={legalDocumentType}
+      />
+
       <LinearGradient
         colors={[COLORS.primary, COLORS.secondary]}
         start={{ x: 0, y: 0 }}
@@ -427,33 +449,66 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
               </Text>
             </View>
 
+          {/* Terms & Conditions Checkbox */}
+          <View style={styles.termsContainer}>
+            <TouchableOpacity
+              style={styles.checkboxContainer}
+              onPress={() => setAgreedToTerms(!agreedToTerms)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
+                {agreedToTerms && (
+                  <MaterialIcons name="check" size={18} color={COLORS.white} />
+                )}
+              </View>
+              <View style={styles.termsTextContainer}>
+                <Text style={styles.termsText}>
+                  I agree to the{' '}
+                  <Text style={styles.termsLink} onPress={handleOpenTerms}>
+                    Terms of Service
+                  </Text>
+                  {' '}and{' '}
+                  <Text style={styles.termsLink} onPress={handleOpenPrivacy}>
+                    Privacy Policy
+                  </Text>
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
           {/* Auth Buttons */}
           <View style={styles.authButtons}>
             <TouchableOpacity
-              style={styles.googleButton}
+              style={[styles.googleButton, (!agreedToTerms || isLoading) && styles.buttonDisabled]}
               onPress={handleGoogleSignIn}
-              disabled={isLoading}
+              disabled={!agreedToTerms || isLoading}
             >
-              <Ionicons name="logo-google" size={24} color={COLORS.primary} />
-              <Text style={styles.googleButtonText}>{t('auth.continueWithGoogle')}</Text>
+              <Ionicons name="logo-google" size={24} color={!agreedToTerms ? '#999' : COLORS.primary} />
+              <Text style={[styles.googleButtonText, !agreedToTerms && styles.buttonTextDisabled]}>
+                {t('auth.continueWithGoogle')}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.facebookButton}
+              style={[styles.facebookButton, (!agreedToTerms || isLoading) && styles.buttonDisabled]}
               onPress={handleFacebookSignIn}
-              disabled={isLoading}
+              disabled={!agreedToTerms || isLoading}
             >
-              <Ionicons name="logo-facebook" size={24} color={COLORS.primary} />
-              <Text style={styles.facebookButtonText}>{t('auth.continueWithFacebook')}</Text>
+              <Ionicons name="logo-facebook" size={24} color={!agreedToTerms ? '#999' : COLORS.primary} />
+              <Text style={[styles.facebookButtonText, !agreedToTerms && styles.buttonTextDisabled]}>
+                {t('auth.continueWithFacebook')}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.appleButton}
+              style={[styles.appleButton, styles.buttonDisabled]}
               disabled={true}
             >
               <View style={styles.appleButtonContent}>
-                <Ionicons name="logo-apple" size={24} color={COLORS.primary} />
-                <Text style={styles.appleButtonText}>{t('auth.continueWithApple')}</Text>
+                <Ionicons name="logo-apple" size={24} color="#999" />
+                <Text style={[styles.appleButtonText, styles.buttonTextDisabled]}>
+                  {t('auth.continueWithApple')}
+                </Text>
                 <View style={styles.comingSoonContainer}>
                   <Text style={styles.comingSoonText}>{t('auth.comingSoon')}</Text>
                 </View>
@@ -687,5 +742,48 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: '#FFFFFF', // Pure white for maximum brightness matching October 10th
     fontWeight: '700',
+  },
+  // Terms & Conditions Checkbox Styles
+  termsContainer: {
+    paddingHorizontal: SCREEN_WIDTH * 0.08,
+    marginBottom: FIBONACCI.LG,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: COLORS.white,
+    marginRight: FIBONACCI.SM,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  checkboxChecked: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  termsTextContainer: {
+    flex: 1,
+  },
+  termsText: {
+    fontSize: TYPOGRAPHY.SM,
+    color: COLORS.white,
+    lineHeight: 20,
+  },
+  termsLink: {
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+    color: COLORS.white,
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+  buttonTextDisabled: {
+    color: '#999',
   },
 });

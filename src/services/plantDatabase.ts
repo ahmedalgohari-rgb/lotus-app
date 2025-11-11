@@ -75,6 +75,7 @@ export interface Plant {
   care: PlantCareInfo;
   characteristics: PlantCharacteristics;
   egyptian_specific: PlantEgyptianInfo;
+  image_url?: string; // Optional plant image URL (e.g., from Kaynuna CDN)
 }
 
 export interface PlantCategory {

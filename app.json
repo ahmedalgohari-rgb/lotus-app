@@ -34,7 +34,8 @@
     },
     "plugins": [
       "@config-plugins/detox",
-      "expo-font"
+      "expo-font",
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {

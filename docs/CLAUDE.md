@@ -755,23 +755,157 @@ npm install --legacy-peer-deps
 
 ---
 
-**Last Updated**: September 29, 2025
-**Version**: 7.3.0 (Phase 8.6 Complete - UI Redesign Success)  
-**Status**: 🎨 Plant Identification Redesign Complete - Auth Button Debug Required
-**Achievement**: Target Design Implementation Complete + ScrollView Performance Fixed 🌿✨
-- to memorize
-- to memorize
-- to memorize
-- to memorize
-- to memorize
-- to memorize
-- to memorize
-- to memorize
-- to memorize
-- to memorize
-- to memorize
-- to memorize
-- to memorize
-- to memorize
-- to memorize
-- to memorize
+## 13. Legal Documentation Status
+
+### Phase 9.1: Facebook OAuth Compliance (November 9, 2025) ✅
+
+**Completed (Option B - Critical Files for Facebook OAuth):**
+
+Successfully updated all critical legal documents required for Facebook OAuth approval:
+
+1. **privacy-policy.html** ✅
+   - Removed all emojis and GitHub repository links
+   - Professional legal formatting
+   - Facebook OAuth compliant structure
+   - Location: `/docs/privacy-policy.html`
+
+2. **terms-of-service.html** ✅
+   - Complete rewrite in professional legal format
+   - Removed all emojis and casual language
+   - Professional disclaimers and liability limitations
+   - Location: `/docs/terms-of-service.html`
+
+3. **data-deletion.html** ✅
+   - Removed 32 instances of emojis/GitHub references
+   - Professional legal format
+   - GDPR-compliant deletion procedures
+   - Location: `/docs/data-deletion.html`
+
+4. **LegalDocumentModal Component** ✅
+   - New modal component for displaying T&C and Privacy Policy
+   - PageSheet presentation style for native mobile feel
+   - Scrollable content with "I Understand" button
+   - Location: `/src/components/LegalDocumentModal.tsx`
+
+5. **AuthScreen T&C Checkbox** ✅
+   - Added required T&C agreement checkbox
+   - Disabled auth buttons until checkbox is checked
+   - Clickable links to open Terms and Privacy modals
+   - Professional checkbox styling with lock icons
+   - Location: `/src/screens/AuthScreen.tsx`
+
+**Rationale for Option B Implementation:**
+
+Facebook OAuth review requires three specific public URLs:
+- Privacy Policy: `https://ahmedalgohari-rgb.github.io/lotus-app/privacy-policy.html`
+- Terms of Service: `https://ahmedalgohari-rgb.github.io/lotus-app/terms-of-service.html`
+- Data Deletion: `https://ahmedalgohari-rgb.github.io/lotus-app/data-deletion.html`
+
+These three HTML files were prioritized to meet immediate OAuth compliance requirements, while maintaining legal protections for the free MVP version of the app.
+
+**GitHub Pages Setup Required:**
+
+⚠️ **IMPORTANT:** GitHub Pages must be enabled for these URLs to work. Follow these steps:
+
+1. **Enable GitHub Pages:**
+   - Go to: `https://github.com/ahmedalgohari-rgb/lotus-app/settings/pages`
+   - Under "Source", select: **Deploy from a branch**
+   - Under "Branch", select: **main** (or your default branch)
+   - Under "Folder", select: **/docs**
+   - Click **Save**
+   - GitHub will deploy within 2-3 minutes
+
+2. **Verify Deployment:**
+   - Wait 2-3 minutes after saving settings
+   - Visit: `https://ahmedalgohari-rgb.github.io/lotus-app/`
+   - Check all three URLs listed above are accessible
+
+3. **Troubleshooting:**
+   - If URLs return 404, wait another 2-3 minutes and refresh
+   - Check that files exist in `/docs/` directory
+   - Verify branch name matches (main vs master)
+   - Check repository visibility is Public (required for GitHub Pages)
+
+**Production Status:** ⏳ Awaiting GitHub Pages deployment
+
+---
+
+### Future Work: Option A - Complete Legal Documentation Update
+
+**Pending Files (Deferred for Post-OAuth Approval):**
+
+The following files still contain emojis and GitHub links but are not required for Facebook OAuth approval:
+
+1. **privacy-policy.md** (Markdown source)
+   - Location: `/docs/privacy-policy.md`
+   - Status: ⏳ Contains emojis, GitHub links
+   - Priority: Low (HTML version is authoritative)
+   - Update when: Significant policy changes or before App Store submission
+
+2. **terms-of-service.md** (Markdown source)
+   - Location: `/docs/terms-of-service.md` (does not exist yet)
+   - Status: ⏳ Needs creation from HTML version
+   - Priority: Low (HTML version is authoritative)
+   - Update when: Content management requires Markdown format
+
+3. **data-deletion.md** (Markdown source)
+   - Location: `/docs/data-deletion.md` (does not exist yet)
+   - Status: ⏳ Needs creation from HTML version
+   - Priority: Low (HTML version is authoritative)
+   - Update when: Content management requires Markdown format
+
+4. **index.html** (Homepage/Landing page)
+   - Location: `/docs/index.html`
+   - Status: ⏳ May contain casual branding with emojis
+   - Priority: Medium (public-facing but not OAuth-required)
+   - Update when: Marketing website launch
+
+5. **styles.css** (Shared stylesheet)
+   - Location: `/docs/styles.css`
+   - Status: ⏳ May have emoji-related styles
+   - Priority: Low (supporting file)
+   - Update when: Completing Option A
+
+**Instructions for Completing Option A:**
+
+When ready to update remaining legal documents (post-OAuth approval or pre-App Store submission):
+
+```bash
+# Step 1: Update all Markdown source files
+# Remove emojis: 🌿, ❌, ✅, 🔒, 🗑️, etc.
+# Remove GitHub repository links (keep GitHub Pages URLs for hosting)
+# Keep current legal terms (free app, no monetization, no data selling)
+
+# Step 2: Regenerate HTML from Markdown (if using Markdown-to-HTML workflow)
+# Ensure HTML output matches professional format of completed files
+
+# Step 3: Update index.html homepage
+# Remove casual branding and emojis
+# Professional landing page for legal documents
+# Keep navigation to all three legal pages
+
+# Step 4: Update styles.css
+# Remove emoji-specific styles
+# Professional color scheme (grays, blacks, minimal color)
+# Accessible font sizes and spacing
+
+# Step 5: Test all links and navigation
+# Verify all internal links work
+# Check responsive design on mobile
+# Test GitHub Pages deployment
+```
+
+**Current Recommendation:** Defer Option A until one of these triggers:
+- Facebook OAuth approval received (celebrate, then polish)
+- App Store submission preparation begins
+- Legal terms need updates (monetization, new features)
+- Marketing website launch planned
+
+**GitHub Pages URLs:** Continue using GitHub Pages for hosting legal documents. The URLs themselves are fine for Facebook - we only removed links to the source code repository from the document content.
+
+---
+
+**Last Updated**: November 9, 2025
+**Version**: 7.4.0 (Phase 9.1 Complete - Facebook OAuth Legal Compliance)
+**Status**: ✅ Critical Legal Documents Complete - Option A Deferred
+**Achievement**: Professional Legal Framework + T&C Agreement Flow Implemented 🌿✨
