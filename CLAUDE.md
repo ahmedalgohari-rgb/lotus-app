@@ -1,0 +1,64 @@
+- **Redesigned Plant Card Component:** Updated `src/components/PlantCard.tsx` to solve text truncation for long plant names.
+  - Implemented a fixed card height to ensure all cards in a list have a uniform size.
+  - Allowed the common name to wrap to two lines.
+  - Vertically centered the text block to handle both single and double-line names elegantly.
+  - Applied "Taxonomic" styling to the scientific name, making the genus bold and the species italic for improved readability and design sophistication.
+
+- **Plant Detection Architecture (Security & ML Implementation):**
+  - **Secured API Keys:** Moved PlantNet and OpenWeather API keys from client-side (EXPO_PUBLIC_*) to Supabase Edge Functions
+    - Created `/supabase/functions/identify-plant/index.ts` - PlantNet API with rate limiting (10 req/hour per user)
+    - Created `/supabase/functions/get-weather/index.ts` - Weather API with 6-hour caching
+    - API keys now stored as Supabase secrets (not exposed in app bundle)
+  - **Database Security:** Applied Row-Level Security (RLS) on all tables
+    - Migration: `001_api_usage_table.sql` - Tracks API usage for rate limiting
+    - Migration: `002_enable_rls_security.sql` - Users can only access their own data
+  - **Disabled Simulated Validation:** Removed mock plant detection that was using random confidence scores
+    - Updated `src/services/plantnet.ts` - Removed pre-capture validation (line 227-233)
+    - Updated `validateImageForCapture()` to always return true (line 172-183)
+    - All photos now sent directly to PlantNet Edge Function for real AI analysis
+  - **PlantNet Confidence Filtering:** Reject low-confidence results to prevent misidentification
+    - Modified `processBestMatch()` in plantnet.ts to reject confidence < 30%
+    - Returns null for very low confidence → triggers "No plant detected" message
+  - **Next Step - Lightweight Pre-Filter:** See `/SIMPLE_PLANT_PREFILTER_IDEAS.md` for implementation plan
+    - Recommended: Color Histogram Analysis (1-2 hours, 75-80% accuracy, +10KB bundle)
+    - Goal: Reject obvious non-plants (cups, pens) BEFORE calling PlantNet API
+    - Stay on ScanScreen.tsx with alert feedback (no navigation)
+    - Alternative: Full ML with TensorFlow Lite (8-10 days, 92%+ accuracy, +8MB bundle) - See `/Users/ahmedalgohari/.claude/plans/velvet-foraging-puffin.md`
+
+- **ScanScreen UI/UX Redesign (Golden Harmony Implementation):**
+  - **Fixed CameraView Architecture:** Resolved React Native warning by moving all overlays outside CameraView component
+    - CameraView now has no children - all UI elements positioned absolutely from parent container
+    - Eliminates "CameraView does not support children" warning
+  - **iPhone Camera Pattern Adoption:** Applied iOS native camera app UX principles for familiar user experience
+    - Capture button enlarged: 80×80px → 100×100px (25% larger)
+    - Moved to thumb zone: 66% → 80% from top (ergonomic sweet spot)
+    - Removed "Tap to Capture" text label (button is self-explanatory affordance)
+    - Icon size increased: 32px → 36px for better visibility
+  - **Golden Ratio Positioning:** Mathematical design harmony using φ (1.618) divine proportion
+    - Instruction text positioned at 62% from top (golden ratio anchor: 844px ÷ 1.618 = 522px)
+    - Screen division: Upper 522px (62%) : Lower 322px (38%) ≈ 1.62 ratio
+    - Creates subconscious visual satisfaction through natural proportions
+  - **Fibonacci Spacing System:** All vertical gaps follow Fibonacci sequence
+    - Frame → Instruction: ~89px (FIBONACCI.XXXL)
+    - Instruction → Capture: ~152px (18% screen height for visual balance)
+    - Capture → Gallery: 55px (FIBONACCI.XXL)
+    - Horizontal padding: FIBONACCI.LG (21px), FIBONACCI.MD (13px)
+  - **Instruction Pill Optimization:** Reduced visual dominance for cleaner composition
+    - Width reduced: 85% → 65% max-width (compact, text-fitted)
+    - Font size: TYPOGRAPHY.SM (14px) with adjustsFontSizeToFit
+    - Single line constraint: numberOfLines={1}
+    - Background: rgba(70,70,70,0.9) with 50px border radius
+  - **Frame Corner Visibility:** All 4 green brackets properly displayed and positioned
+    - Frame size: 260×260px square at 20% from top
+    - Corner brackets: 50×50px with 3px borders, 8px border radius
+    - Green color (COLORS.primary) with smooth rounded corners
+    - Complete visual guidance frame always visible in viewport
+  - **Header Layout:** Back button (left), title (center), flashlight toggle (right)
+    - Positioned at 50px from top
+    - Semi-transparent dark backgrounds (rgba(0,0,0,0.3))
+    - Flashlight icon: "flash" when enabled, "flash-outline" when disabled
+  - **Gallery Button Positioning:** Bottom-left at FIBONACCI.XXL (55px) from bottom
+    - Proper clearance from enlarged capture button
+    - Maintains single-thumb operation zone
+    - Semi-transparent background with icon + text label
+  - **Result:** Mathematically harmonious UI following golden ratio and Fibonacci progression, iPhone-inspired ergonomics for muscle memory, cleaner visual hierarchy with optimized element sizing

@@ -49,28 +49,59 @@ export default function App() {
     };
   }, []);
 
-  const handleDeepLink = (url: string) => {
-    const fragment = url.split('#')[1];
-    if (!fragment) return;
+  const handleDeepLink = async (url: string) => {
+    console.log('🔗 Deep link received:', url);
 
     const params: Record<string, string> = {};
-    fragment.split('&').forEach(part => {
-      const [key, value] = part.split('=');
-      if (key && value) {
-        params[key] = value;
-      }
-    });
 
+    // Extract params from URL fragment (#access_token=...)
+    const fragment = url.split('#')[1];
+    if (fragment) {
+      fragment.split('&').forEach(part => {
+        const [key, value] = part.split('=');
+        if (key && value) {
+          params[key] = decodeURIComponent(value);
+        }
+      });
+    }
+
+    // Extract params from query string (?code=... or ?error=...)
+    const queryString = url.split('?')[1]?.split('#')[0];
+    if (queryString) {
+      queryString.split('&').forEach(part => {
+        const [key, value] = part.split('=');
+        if (key && value) {
+          params[key] = decodeURIComponent(value);
+        }
+      });
+    }
+
+    console.log('🔗 Extracted params:', params);
+
+    // Handle OAuth errors
+    if (params['error']) {
+      console.error('❌ OAuth error:', params['error'], params['error_description']);
+      return;
+    }
+
+    // Handle tokens directly in URL (implicit flow)
     const accessToken = params['access_token'];
     const refreshToken = params['refresh_token'];
 
     if (accessToken && refreshToken) {
-      supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      }).then(async ({ data }) => {
+      console.log('✅ Found tokens in URL, setting session...');
+      try {
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+
+        if (error) {
+          console.error('❌ Error setting session:', error);
+          return;
+        }
+
         if (data.user) {
-          // Get user's profile with first_name
           const { data: profileData } = await dbService.getProfile(data.user.id);
 
           setUser({
@@ -82,10 +113,13 @@ export default function App() {
             created_at: data.user.created_at,
           });
           setAuthenticated(true);
+          console.log('✅ Session set successfully!');
         }
-      }).catch(error => {
-        console.error('Error setting session:', error);
-      });
+      } catch (error) {
+        console.error('❌ Error in deep link handler:', error);
+      }
+    } else {
+      console.log('ℹ️ No tokens found in deep link URL');
     }
   };
 

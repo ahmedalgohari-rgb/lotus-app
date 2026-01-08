@@ -36,7 +36,6 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showNameCollection, setShowNameCollection] = useState(false);
   const [pendingUser, setPendingUser] = useState<any>(null);
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showLegalModal, setShowLegalModal] = useState(false);
   const [legalDocumentType, setLegalDocumentType] = useState<'terms' | 'privacy'>('terms');
   const { setUser, setAuthenticated, signInAsGuest, updateUserName } = useStore();
@@ -144,10 +143,15 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
           handlePostAuthNavigation();
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Google sign in error:', error);
       logger.groupEnd();
-      Alert.alert('Sign In Failed', 'Please try again.');
+
+      // Don't show error alert if user intentionally cancelled
+      if (error?.name !== 'UserCancelled' && error?.message !== 'User cancelled OAuth') {
+        Alert.alert('Sign In Failed', 'Please try again.');
+      }
+
       setIsLoading(false);
     }
   };
@@ -185,9 +189,13 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
           handlePostAuthNavigation();
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Apple sign in error:', error);
-      Alert.alert('Sign In Failed', 'Please try again.');
+
+      // Don't show error alert if user intentionally cancelled
+      if (error?.name !== 'UserCancelled' && error?.message !== 'User cancelled OAuth') {
+        Alert.alert('Sign In Failed', 'Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -273,10 +281,15 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
           handlePostAuthNavigation();
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Facebook sign in error:', error);
       logger.groupEnd();
-      Alert.alert('Sign In Failed', 'Please try again.');
+
+      // Don't show error alert if user intentionally cancelled
+      if (error?.name !== 'UserCancelled' && error?.message !== 'User cancelled OAuth') {
+        Alert.alert('Sign In Failed', 'Please try again.');
+      }
+
       setIsLoading(false);
     }
   };
@@ -284,69 +297,6 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
   const handleGuestMode = async () => {
     await signInAsGuest();
     handlePostAuthNavigation();
-  };
-
-  const handleTestUserSignIn = async () => {
-    setIsLoading(true);
-    logger.group('🧪 Test User Sign-In (Ahmad)');
-
-    try {
-      // Sign in with real Supabase credentials (bypasses RLS)
-      logger.info('Attempting to sign in with test@lotus.com...');
-      const { data, error } = await authService.signIn('test@lotus.com', 'testpassword123');
-
-      // Log detailed error for debugging
-      if (error) {
-        logger.error('Sign in error details:', {
-          message: error.message,
-          status: error.status,
-          name: error.name,
-        });
-        throw new Error(`Sign in failed: ${error.message}`);
-      }
-
-      if (!data?.user) {
-        throw new Error('No user data returned from sign in');
-      }
-
-      // Successfully signed in with existing Supabase account
-      const supabaseUser = data.user;
-      logger.info('Supabase user object:', {
-        id: supabaseUser.id,
-        email: supabaseUser.email,
-        confirmed: supabaseUser.email_confirmed_at,
-      });
-
-      const testUser = {
-        id: supabaseUser.id,
-        email: supabaseUser.email || 'test@lotus.com',
-        name: 'Ahmad', // Display name as "Ahmad" for test user
-        first_name: 'Ahmad',
-        avatar_url: null,
-        created_at: supabaseUser.created_at,
-      };
-
-      logger.success('✅ Ahmad (test user) signed in successfully!');
-      setUser(testUser);
-      updateUserName('Ahmad');
-      setAuthenticated(true);
-
-      logger.groupEnd();
-      setIsLoading(false);
-      handlePostAuthNavigation();
-    } catch (error: any) {
-      logger.error('❌ Test sign in error:', error);
-      logger.error('Error details:', error.message || error);
-      logger.groupEnd();
-
-      // Show helpful error message
-      const errorMessage = error.message || 'Unknown error';
-      Alert.alert(
-        'Sign In Failed',
-        `Could not sign in as Ahmad (test user).\n\nError: ${errorMessage}\n\nPlease check:\n1. Account exists in Supabase\n2. Email is confirmed\n3. Password is correct: testpassword123`
-      );
-      setIsLoading(false);
-    }
   };
 
   const handleNameSubmit = async (firstName: string) => {
@@ -402,17 +352,6 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
         end={{ x: 1, y: 1 }}
         style={styles.gradientContainer}
       >
-        {/* Test User Sign In Button - Top Left */}
-        <View style={styles.testUserContainer}>
-          <TouchableOpacity
-            onPress={handleTestUserSignIn}
-            testID="test-user-login-button"
-            style={styles.testUserButton}
-          >
-            <Text style={styles.testUserText}>Sign in as Ahmad</Text>
-          </TouchableOpacity>
-        </View>
-
         {/* Skip Button - Top Right */}
         <View style={styles.skipContainer}>
           <TouchableOpacity
@@ -439,7 +378,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
             {/* Logo and Taglines */}
             <View style={styles.heroSection}>
               <Image
-                source={require('../../assets/lotus-logo-new.png')}
+                source={require('../../assets/lotus-logo.png')}
                 style={styles.logoImage}
                 resizeMode="contain"
               />
@@ -449,53 +388,26 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
               </Text>
             </View>
 
-          {/* Terms & Conditions Checkbox */}
-          <View style={styles.termsContainer}>
-            <TouchableOpacity
-              style={styles.checkboxContainer}
-              onPress={() => setAgreedToTerms(!agreedToTerms)}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
-                {agreedToTerms && (
-                  <MaterialIcons name="check" size={18} color={COLORS.white} />
-                )}
-              </View>
-              <View style={styles.termsTextContainer}>
-                <Text style={styles.termsText}>
-                  I agree to the{' '}
-                  <Text style={styles.termsLink} onPress={handleOpenTerms}>
-                    Terms of Service
-                  </Text>
-                  {' '}and{' '}
-                  <Text style={styles.termsLink} onPress={handleOpenPrivacy}>
-                    Privacy Policy
-                  </Text>
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-
           {/* Auth Buttons */}
           <View style={styles.authButtons}>
             <TouchableOpacity
-              style={[styles.googleButton, (!agreedToTerms || isLoading) && styles.buttonDisabled]}
+              style={[styles.googleButton, isLoading && styles.buttonDisabled]}
               onPress={handleGoogleSignIn}
-              disabled={!agreedToTerms || isLoading}
+              disabled={isLoading}
             >
-              <Ionicons name="logo-google" size={24} color={!agreedToTerms ? '#999' : COLORS.primary} />
-              <Text style={[styles.googleButtonText, !agreedToTerms && styles.buttonTextDisabled]}>
+              <Ionicons name="logo-google" size={24} color={COLORS.primary} />
+              <Text style={styles.googleButtonText}>
                 {t('auth.continueWithGoogle')}
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.facebookButton, (!agreedToTerms || isLoading) && styles.buttonDisabled]}
+              style={[styles.facebookButton, isLoading && styles.buttonDisabled]}
               onPress={handleFacebookSignIn}
-              disabled={!agreedToTerms || isLoading}
+              disabled={isLoading}
             >
-              <Ionicons name="logo-facebook" size={24} color={!agreedToTerms ? '#999' : COLORS.primary} />
-              <Text style={[styles.facebookButtonText, !agreedToTerms && styles.buttonTextDisabled]}>
+              <Ionicons name="logo-facebook" size={24} color={COLORS.primary} />
+              <Text style={styles.facebookButtonText}>
                 {t('auth.continueWithFacebook')}
               </Text>
             </TouchableOpacity>
@@ -527,7 +439,14 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
             {/* Legal Text */}
             <View style={styles.legalSection}>
               <Text style={styles.legalText}>
-                {t('auth.termsAgreement')}
+                By continuing you agree to our{' '}
+                <Text style={styles.termsLink} onPress={handleOpenTerms}>
+                  Terms of Service
+                </Text>
+                {' '}and{' '}
+                <Text style={styles.termsLink} onPress={handleOpenPrivacy}>
+                  Privacy Policy
+                </Text>
               </Text>
             </View>
           </ScrollView>
@@ -543,25 +462,6 @@ const styles = StyleSheet.create({
   },
   gradientContainer: {
     flex: 1,
-  },
-  testUserContainer: {
-    position: 'absolute',
-    top: 50,
-    left: 24,
-    zIndex: 1,
-  },
-  testUserButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: FIBONACCI.LG,
-    paddingVertical: FIBONACCI.SM,
-    borderRadius: FIBONACCI.LG,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  testUserText: {
-    fontSize: TYPOGRAPHY.BASE,
-    color: COLORS.white,
-    fontWeight: '500',
   },
   skipContainer: {
     position: 'absolute',

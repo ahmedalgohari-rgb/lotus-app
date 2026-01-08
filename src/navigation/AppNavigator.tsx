@@ -43,6 +43,7 @@ function MainStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MainTabs" component={MainTabs} />
       <Stack.Screen name="Camera" component={ScanScreen} />
+      <Stack.Screen name="AddScan" component={AddScanScreen} />
       <Stack.Screen name="PlantResult" component={PlantResultScreen} />
       <Stack.Screen name="AddPlant" component={AddPlantScreen} />
     </Stack.Navigator>
@@ -58,13 +59,14 @@ function MainTabs() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
+        keyboardHidesTabBar: false, // Prevent keyboard from dismissing
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap;
 
           if (route.name === 'Home') {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'Scan') {
-            iconName = focused ? 'camera' : 'camera-outline';
+            iconName = focused ? 'add-circle' : 'add-circle-outline';
           } else if (route.name === 'Plants') {
             iconName = focused ? 'leaf' : 'leaf-outline';
           } else {
@@ -109,7 +111,7 @@ function MainTabs() {
         name="Scan"
         component={AddScanScreen}
         options={{
-          tabBarLabel: t('navigation.scan'),
+          tabBarLabel: t('navigation.add') || 'Add',
         }}
       />
       <Tab.Screen 

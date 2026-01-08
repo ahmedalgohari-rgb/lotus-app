@@ -1,4 +1,5 @@
-import * as FileSystem from 'expo-file-system';
+// ✅ FIX: Use legacy FileSystem API to avoid deprecation errors
+import * as FileSystem from 'expo-file-system/legacy';
 import React from 'react';
 import { logger } from './logger';
 

@@ -3,6 +3,7 @@
     "loading": "Loading...",
     "error": "Error",
     "success": "Success",
+    "ok": "OK",
     "cancel": "Cancel",
     "save": "Save",
     "delete": "Delete",
@@ -18,6 +19,7 @@
   "navigation": {
     "home": "Home",
     "scan": "Scan",
+    "add": "Add",
     "plants": "My Garden",
     "profile": "Profile",
     "settings": "Settings"
@@ -74,7 +76,7 @@
   },
   "addScan": {
     "title": "Find Your Plant",
-    "subtitle": "You can add your plant to your garden with a common name search for free without any limits",
+    "subtitle": "Search by name or snap a photo to add to your garden.",
     "searchPlaceholder": "Search plant...",
     "or": "or",
     "identify": "Identify",
@@ -99,6 +101,7 @@
     "manualAdd": "Add Manually",
     "instructions": {
       "centerPlant": "Center your plant in the frame",
+      "tapCapture": "Tap to Capture",
       "gallery": "Gallery",
       "tips": "Tips",
       "showGuide": "Show Guide",
@@ -108,6 +111,7 @@
       "requesting": "Camera access is needed to scan plants",
       "noAccess": "Camera access denied",
       "grantButton": "Grant Permission",
+      "openSettings": "Open Settings",
       "settingsPrompt": "Please enable camera access in settings to identify plants"
     },
     "results": {
@@ -175,7 +179,7 @@
     "careReminder": "Set up care reminders",
     "plantAge": "Plant age",
     "careStreak": "Care streak",
-    "careGuide": "Plant Care Guide",
+    "careGuide": "Plant Info",
     "wateringCycle": "Watering cycle",
     "now": "Now!",
     "tomorrow": "Tomorrow",
@@ -329,6 +333,7 @@
   },
   "plantResult": {
     "title": "Plant Identified!",
+    "titleDatabase": "Meet Your Plant!",
     "plantStory": "Your Plant's Story",
     "unlockPotential": "Unlock Your Plant's Full Potential",
     "imageProcessingNote": "Image processing complete, but quality could be improved",
@@ -344,11 +349,104 @@
       "saveAuth": "Add to My Plants",
       "saveGuest": "Save My Plant",
       "tryAnother": "Try Another"
+    },
+    "matchTypes": {
+      "full": "In Our Database",
+      "genus": "Genus Match",
+      "family": "Similar Plants Available",
+      "none": "Identified by AI"
+    },
+    "matchMessages": {
+      "fullMatch": "Excellent! We have detailed care information for this plant ({{confidence}}% match).",
+      "genusMatch": "We found plants in the same genus. General care guidance applies, but varieties may differ.",
+      "familyMatch": "We have similar plants in our database. The care tips below are general guidance.",
+      "noMatch": "This plant isn't in our curated database yet. Here are general care guidelines based on similar plants."
+    }
+  },
+  "plantRequest": {
+    "requestCare": "Request Care Tips",
+    "requestSpecific": "Request Specific Variety",
+    "requested": "Request Submitted ✓",
+    "submitting": "Submitting...",
+    "thankYou": "Thank you! We'll prioritize adding this plant.",
+    "alternatives": {
+      "title": "We have {{count}} varieties of {{genus}}",
+      "subtitle": "Tap to view similar plants:",
+      "requestButton": "Request Specific Variety"
+    },
+    "genericCare": {
+      "title": "General Care Guidelines",
+      "warning": "These are general guidelines - not specific to this variety",
+      "wateringGeneral": "Water when top 2-3 cm of soil is dry",
+      "wateringSucculent": "Water sparingly, every 2-3 weeks",
+      "wateringTropical": "Keep soil consistently moist",
+      "lightGeneral": "Bright indirect light (near window)",
+      "lightSucculent": "Direct sunlight tolerated",
+      "lightTropical": "Bright indirect light, avoid direct sun",
+      "cairoTip": "Cairo climate: Keep indoors during peak summer heat",
+      "cairoSucculent": "Cairo climate: Perfect for balconies",
+      "cairoTropical": "Cairo climate: Mist weekly (low humidity)",
+      "airflow": "Good air circulation, avoid AC drafts",
+      "soil": "Well-draining soil recommended"
     }
   },
   "account": {
     "termsAndConditions": "Terms & Conditions",
     "accountManagement": "Account Management",
     "logout": "Logout"
+  },
+  "errors": {
+    "notAPlant": {
+      "title": "Not a Plant",
+      "subtitle": "We couldn't find a plant in your photo. Try:",
+      "tips": {
+        "closer": "Get closer to the leaves",
+        "lighting": "Improve lighting",
+        "focus": "Focus on one plant at a time",
+        "wholePlant": "Show the whole plant"
+      },
+      "tryAgain": "Try Again",
+      "viewTips": "View Tips"
+    },
+    "lowConfidence": {
+      "title": "We Found a Plant",
+      "subtitle": "But We're Not Sure Which One",
+      "bestGuess": "Our best guess:",
+      "confidence": "{{percent}}% confident",
+      "explanation": "This might be too small or blurry to identify clearly. Try:",
+      "tips": {
+        "clearer": "Take a clearer photo",
+        "moreLeaves": "Show more leaves",
+        "lighting": "Better lighting"
+      },
+      "tryAgain": "Try Again",
+      "useAnyway": "Use This Anyway"
+    },
+    "service": {
+      "rateLimit": {
+        "title": "Too Many Requests",
+        "message": "You've identified many plants quickly. Please wait a few moments and try again."
+      },
+      "apiDown": {
+        "title": "Service Temporarily Down",
+        "message": "The plant identification service is currently unavailable. Please try again in a few moments."
+      },
+      "network": {
+        "title": "No Internet Connection",
+        "message": "Please check your internet connection and try again."
+      },
+      "config": {
+        "title": "Configuration Error",
+        "message": "There is a configuration issue. Please contact support."
+      },
+      "unknown": {
+        "title": "Something Went Wrong",
+        "message": "An unexpected error occurred. Please try again."
+      },
+      "errorCode": "Error Code:",
+      "tryAgain": "Try Again",
+      "goHome": "Go Home",
+      "support": "Still having issues? Contact us at support@lotus.app"
+    }
   }
 }

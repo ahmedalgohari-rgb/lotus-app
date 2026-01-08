@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "lotus-app",
+    "name": "Lotus",
     "slug": "lotus-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -18,12 +18,17 @@
       "bundleIdentifier": "com.lotus.plantcare",
       "config": {
         "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSCameraUsageDescription": "Lotus needs access to your camera to identify plants and take photos of your plant collection.",
+        "NSPhotoLibraryUsageDescription": "Lotus needs access to your photo library to save and retrieve photos of your plants.",
+        "NSPhotoLibraryAddUsageDescription": "Lotus needs permission to save plant photos to your photo library."
       }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#D4C5B0"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -35,13 +40,20 @@
     "plugins": [
       "@config-plugins/detox",
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-localization"
     ],
     "extra": {
       "eas": {
         "projectId": "cd097998-0535-4921-91cf-d0f5abd4a3e2"
       }
     },
-    "owner": "ahmedalgohari"
+    "owner": "ahmedalgohari",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/cd097998-0535-4921-91cf-d0f5abd4a3e2"
+    }
   }
 }

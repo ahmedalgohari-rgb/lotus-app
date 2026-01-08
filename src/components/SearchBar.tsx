@@ -17,7 +17,7 @@ interface SearchBarProps {
   placeholder?: string;
 }
 
-export default function SearchBar({ value, onChangeText, onClear, placeholder }: SearchBarProps) {
+const SearchBar = React.memo(function SearchBar({ value, onChangeText, onClear, placeholder }: SearchBarProps) {
   const { t } = useTranslation();
 
   return (
@@ -33,10 +33,11 @@ export default function SearchBar({ value, onChangeText, onClear, placeholder }:
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder || t('addScan.searchPlaceholder')}
-        placeholderTextColor={COLORS.text}
+        placeholderTextColor={COLORS.textSecondary}
         autoCapitalize="none"
         autoCorrect={false}
         returnKeyType="search"
+        blurOnSubmit={false}
       />
       {value.length > 0 && onClear && (
         <TouchableOpacity onPress={onClear} style={styles.clearButton}>
@@ -49,7 +50,9 @@ export default function SearchBar({ value, onChangeText, onClear, placeholder }:
       )}
     </View>
   );
-}
+});
+
+export default SearchBar;
 
 const styles = StyleSheet.create({
   container: {

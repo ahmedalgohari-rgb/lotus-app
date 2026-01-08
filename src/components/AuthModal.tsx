@@ -104,9 +104,12 @@ export default function AuthModal({ visible, onClose, onAuthSuccess }: AuthModal
           handlePostAuthNavigation();
         }
       }
-    } catch (error) {
-      logger.error('Google sign in error:', error);
-      Alert.alert('Sign In Failed', 'Please try again.');
+    } catch (error: any) {
+      // Don't log or show error if user intentionally cancelled
+      if (error?.name !== 'UserCancelled' && error?.message !== 'User cancelled OAuth') {
+        logger.error('Google sign in error:', error);
+        Alert.alert('Sign In Failed', 'Please try again.');
+      }
       setIsLoading(false);
     }
   };
@@ -160,9 +163,12 @@ export default function AuthModal({ visible, onClose, onAuthSuccess }: AuthModal
           handlePostAuthNavigation();
         }
       }
-    } catch (error) {
-      logger.error('Facebook sign in error:', error);
-      Alert.alert('Sign In Failed', 'Please try again.');
+    } catch (error: any) {
+      // Don't log or show error if user intentionally cancelled
+      if (error?.name !== 'UserCancelled' && error?.message !== 'User cancelled OAuth') {
+        logger.error('Facebook sign in error:', error);
+        Alert.alert('Sign In Failed', 'Please try again.');
+      }
       setIsLoading(false);
     }
   };
@@ -184,10 +190,12 @@ export default function AuthModal({ visible, onClose, onAuthSuccess }: AuthModal
         setAuthenticated(true);
         handlePostAuthNavigation();
       }
-    } catch (error) {
-      logger.error('Apple sign in error:', error);
-      Alert.alert('Sign In Failed', 'Please try again.');
-    } finally {
+    } catch (error: any) {
+      // Don't log or show error if user intentionally cancelled
+      if (error?.name !== 'UserCancelled' && error?.message !== 'User cancelled OAuth') {
+        logger.error('Apple sign in error:', error);
+        Alert.alert('Sign In Failed', 'Please try again.');
+      }
       setIsLoading(false);
     }
   };

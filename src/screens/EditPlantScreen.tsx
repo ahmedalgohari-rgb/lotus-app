@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,11 +8,16 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  LayoutAnimation,
+  Platform,
+  KeyboardAvoidingView,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { logger } from '../utils/logger';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import {
   COLORS,
@@ -28,7 +33,37 @@ import { dbService } from '../services/supabase';
 import { Plant, EnhancedCareRecommendation } from '../types';
 import { useRTL } from '../utils/rtl';
 import { useTranslation } from 'react-i18next';
-import { getCareRecommendations, getCareRecommendationTranslated, getCurrentSeason, getPersonalizedCareRecommendations } from '../utils/careMap';
+import { getPersonalizedCareRecommendations } from '../utils/careMap';
+import PlantImage from '../components/PlantImage';
+
+const getScoreGradient = (score: number): [string, string] => {
+  switch (score) {
+    case 5: return ['#D9F7BE', '#52C41A']; // Excellent - Brand Success Green (Lotus)
+    case 4: return ['#FEF3C7', '#F59E0B']; // Very Good - Cream to Gold
+    case 3: return ['#FEF3C7', '#F59E0B']; // Good - Light yellow to Amber
+    case 2: return ['#FED7AA', '#F97316']; // Challenging - Peach to Orange
+    case 1: return ['#FEE2E2', '#EF4444']; // Not Recommended - Pink to Red
+    default: return ['#F3F4F6', '#D1D5DB']; // Fallback - Gray
+  }
+};
+
+// Helper function to extract maximum watering days from text like "Water every 12-16 days"
+const extractMaxWateringDays = (wateringText: string): number => {
+  if (!wateringText) return 7; // Default fallback
+
+  // Match patterns like "12-16 days" or "14 days"
+  const rangeMatch = wateringText.match(/(\d+)-(\d+)\s*days?/i);
+  if (rangeMatch) {
+    return parseInt(rangeMatch[2], 10); // Return the max value (16 from "12-16")
+  }
+
+  const singleMatch = wateringText.match(/(\d+)\s*days?/i);
+  if (singleMatch) {
+    return parseInt(singleMatch[1], 10); // Return single value (14 from "14 days")
+  }
+
+  return 7; // Fallback to 7 days if no pattern found
+};
 
 interface RouteParams {
   plantId: string;
@@ -49,8 +84,12 @@ export default function EditPlantScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [enhancedCare, setEnhancedCare] = useState<EnhancedCareRecommendation | null>(null);
   const [isLoadingCare, setIsLoadingCare] = useState(false);
-  const [isCareGuideExpanded, setIsCareGuideExpanded] = useState(false);
-  const [isCareTipsExpanded, setIsCareTipsExpanded] = useState(false);
+  const [showFullCareGuide, setShowFullCareGuide] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [bestLocation, setBestLocation] = useState<string | null>(null);
+  const [bestDirection, setBestDirection] = useState<string | null>(null);
+
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     const foundPlant = plants.find(p => p.id === plantId);
@@ -62,13 +101,86 @@ export default function EditPlantScreen() {
     setIsLoading(false);
   }, [plantId, plants]);
 
+  // Auto-detect best location and direction when plant loads
+  useEffect(() => {
+    const findBestPlacement = async () => {
+      if (!plant || !plant.species_id) {
+        setBestLocation(null);
+        setBestDirection(null);
+        return;
+      }
+
+      // Test all combinations to find the best placement
+      let highestScore = 0;
+      let bestLoc = location;
+      let bestDir = windowDirection;
+
+      for (const loc of PLANT_LOCATIONS) {
+        for (const dir of WINDOW_DIRECTIONS) {
+          try {
+            const recommendation = await getPersonalizedCareRecommendations(
+              plant.species_id,
+              loc.value as any,
+              dir.value as any,
+              false
+            );
+            if (recommendation.score.score > highestScore) {
+              highestScore = recommendation.score.score;
+              bestLoc = loc.value as any;
+              bestDir = dir.value as any;
+            }
+          } catch (error) {
+            // Skip errors, continue testing
+          }
+        }
+      }
+
+      setBestLocation(bestLoc);
+      setBestDirection(bestDir);
+      logger.info(`✅ Auto-selected best placement: ${bestLoc} + ${bestDir} (score: ${highestScore})`);
+    };
+
+    findBestPlacement();
+  }, [plant]);
+
+  useEffect(() => {
+    if (enhancedCare) {
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 1.05,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [enhancedCare?.score.score]);
+
+  useEffect(() => {
+    if (currentStep !== 1) {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    }
+  }, [currentStep]);
+
   const handleSave = async () => {
     setIsSaving(true);
 
     try {
+      // Calculate new next watering based on new location's care tips
+      const nextWatering = new Date();
+      const wateringDays = enhancedCare?.adjusted?.watering
+        ? extractMaxWateringDays(enhancedCare.adjusted.watering)
+        : 7;
+      nextWatering.setDate(nextWatering.getDate() + wateringDays);
+
       const updates: Partial<Plant> = {
         location,
         window_direction: windowDirection,
+        next_watering_at: nextWatering.toISOString(),
         updated_at: new Date().toISOString(),
       };
 
@@ -93,53 +205,173 @@ export default function EditPlantScreen() {
     }
   };
 
-  const getCareMapRecommendations = () => {
-    const currentSeason = getCurrentSeason();
-    const careRecs = getCareRecommendations(location, windowDirection, currentSeason);
-    return getCareRecommendationTranslated(careRecs, isRTL);
-  };
-
   // Load enhanced care recommendations with real-time updates
-  const loadEnhancedCare = async () => {
-    if (!plant) {
-      logger.warn('Cannot load enhanced care: missing plant');
-      return;
-    }
+  useEffect(() => {
+    const loadEnhancedCare = async () => {
+      if (!plant) {
+        setEnhancedCare(null);
+        return;
+      }
 
-    // Use species_id if available, otherwise use a default generic plant
-    const plantId = plant.species_id || 'snake_plant';
+      // Use species_id if available, otherwise use a default generic plant
+      const plantDbId = plant.species_id || 'snake_plant';
 
-    if (!plant.species_id) {
-      logger.warn(`Plant ${plant.id} missing species_id, using default: ${plantId}`);
-    }
+      if (!plant.species_id) {
+        logger.warn(`Plant ${plant.id} missing species_id, using default: ${plantDbId}`);
+      }
 
-    setIsLoadingCare(true);
-    try {
-      logger.info(`🌿 Loading enhanced care for ${plantId} in ${location} (${windowDirection})`);
+      setIsLoadingCare(true);
+      try {
+        logger.info(`🌿 Loading enhanced care for ${plantDbId} in ${location} (${windowDirection})`);
 
-      const recommendation = await getPersonalizedCareRecommendations(
-        plantId,
-        location as 'living_room' | 'bedroom' | 'kitchen' | 'bathroom' | 'balcony' | 'office',
-        windowDirection as 'north' | 'east' | 'south' | 'west',
-        true // Include weather
-      );
+        const recommendation = await getPersonalizedCareRecommendations(
+          plantDbId,
+          location as any,
+          windowDirection as any,
+          true // Include weather
+        );
 
-      setEnhancedCare(recommendation);
-      logger.info(`✅ Enhanced care loaded: ${recommendation.score.stars} (${recommendation.score.scoreText})`);
-    } catch (error) {
-      logger.error('Error loading enhanced care:', error);
-      // Graceful fallback - keep using old care map display
-    } finally {
-      setIsLoadingCare(false);
+        setEnhancedCare(recommendation);
+        logger.info(`✅ Enhanced care loaded: ${recommendation.score.stars} (${recommendation.score.scoreText})`);
+      } catch (error) {
+        logger.error('Error loading enhanced care:', error);
+        setEnhancedCare(null);
+      } finally {
+        setIsLoadingCare(false);
+      }
+    };
+
+    loadEnhancedCare();
+  }, [plant, location, windowDirection]);
+
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <View style={styles.formGroup}>
+            <Text style={styles.sectionTitle}>{t('addPlant.whereWillPlantLive')}</Text>
+            <View style={styles.optionsGrid}>
+              {PLANT_LOCATIONS.map((loc) => (
+                <TouchableOpacity
+                  key={loc.value}
+                  style={[
+                    styles.optionCard,
+                    location === loc.value && styles.optionCardSelected,
+                  ]}
+                  onPress={() => setLocation(loc.value)}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={[
+                      styles.optionText,
+                      location === loc.value && styles.optionTextSelected,
+                    ]}>
+                      {isRTL ? loc.labelAr : loc.label}
+                    </Text>
+                    {bestLocation === loc.value && (
+                      <View style={styles.recommendedBadge}>
+                        <Text style={styles.recommendedText}>R</Text>
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        );
+      case 2:
+        return (
+          <View style={styles.formGroup}>
+            <Text style={styles.sectionTitle}>{isRTL ? 'ما هو اتجاه الشباك؟' : 'What is the window direction?'}</Text>
+            <View style={styles.compassContainer}>
+              <View style={styles.compass}>
+                {WINDOW_DIRECTIONS.map((direction) => (
+                  <TouchableOpacity
+                    key={direction.value}
+                    style={[
+                      styles.compassDirection,
+                      (direction.value === 'north' || direction.value === 'south') && styles.compassDirectionNS,
+                      (styles as any)[`compass${direction.value.charAt(0).toUpperCase() + direction.value.slice(1)}`],
+                      windowDirection === direction.value && styles.compassDirectionSelected,
+                    ]}
+                    onPress={() => setWindowDirection(direction.value)}
+                  >
+                    {(direction.value === 'north' || direction.value === 'south') ? (
+                      <View style={styles.compassBilingualContainer}>
+                        {direction.value === 'north' ? (
+                          <>
+                            <Text style={[styles.compassEnglishLetter, windowDirection === direction.value && styles.compassTextSelected]}>
+                              {direction.value.charAt(0).toUpperCase()}
+                            </Text>
+                            <Text style={[styles.compassArabicText, windowDirection === direction.value && styles.compassTextSelected]}>
+                              {direction.labelAr}
+                            </Text>
+                          </>
+                        ) : (
+                          <>
+                            <Text style={[styles.compassArabicText, windowDirection === direction.value && styles.compassTextSelected]}>
+                              {direction.labelAr}
+                            </Text>
+                            <Text style={[styles.compassEnglishLetter, windowDirection === direction.value && styles.compassTextSelected]}>
+                              {direction.value.charAt(0).toUpperCase()}
+                            </Text>
+                          </>
+                        )}
+                      </View>
+                    ) : (
+                      <Text style={[styles.compassText, windowDirection === direction.value && styles.compassTextSelected]}>
+                        {direction.value.charAt(0).toUpperCase()}
+                      </Text>
+                    )}
+                    {bestDirection === direction.value && (
+                      <View style={styles.compassRecommendedBadge}>
+                        <Text style={styles.compassRecommendedText}>R</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))}
+                <View style={styles.compassCenter}>
+                  <Ionicons name="compass-outline" size={34} color={COLORS.white} />
+                </View>
+              </View>
+              <Text style={styles.selectedDirection}>
+                {t('addPlant.selectedDirection')} {t(`addPlant.directions.${windowDirection}`)}
+              </Text>
+            </View>
+          </View>
+        );
+      case 3:
+        return (
+          <View style={styles.formGroup}>
+            {enhancedCare && (
+              <View style={styles.tipsContainer}>
+                {enhancedCare.warnings.map((warning, idx) => (
+                  <View key={`warn-${idx}`} style={[styles.tipCard, warning.type === 'danger' && styles.tipCardDanger]}>
+                    <Ionicons name={warning.type === 'danger' ? 'alert-circle-outline' : 'information-circle-outline'} size={20} color={warning.type === 'danger' ? COLORS.error : COLORS.primary} />
+                    <Text style={styles.tipText}>{warning.message}</Text>
+                  </View>
+                ))}
+                <View style={styles.tipCard}>
+                  <Ionicons name="water-outline" size={20} color={COLORS.primary} />
+                  <Text style={styles.tipText}>{enhancedCare.adjusted.watering}</Text>
+                </View>
+                <View style={styles.tipCard}>
+                  <Ionicons name="calendar-outline" size={20} color={COLORS.primary} />
+                  <Text style={styles.tipText}>{enhancedCare.adjusted.wateringFrequency}</Text>
+                </View>
+                {enhancedCare.tips.length > 0 && (
+                  <View style={styles.tipCard}>
+                    <Ionicons name="bulb-outline" size={20} color={COLORS.primary} />
+                    <Text style={styles.tipText}>{enhancedCare.tips[0]}</Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+        );
+      default:
+        return null;
     }
   };
-
-  // Load enhanced care when plant is loaded or when location/direction changes
-  useEffect(() => {
-    if (plant) {
-      loadEnhancedCare();
-    }
-  }, [plant?.id, location, windowDirection]);
 
   if (isLoading || !plant) {
     return (
@@ -151,450 +383,235 @@ export default function EditPlantScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <Ionicons name="arrow-back" size={28} color={COLORS.text} />
-          </TouchableOpacity>
-          <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle}>{isRTL ? 'إعادة توجيه النبتة' : 'Reorient Plant'}</Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.forwardButton}
-          >
-            <Ionicons name="arrow-forward" size={28} color={COLORS.text} />
-          </TouchableOpacity>
-        </View>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
+        {/* 1. FIXED HEADER BANNER */}
+        <View style={styles.layoutHeader}>
+          <View style={styles.headerCard}>
+            <View style={styles.headerContentRow}>
+              <PlantImage
+                plantId={plant.species_id || plant.plant_id}
+                capturedImageUri={plant.captured_image_uri}
+                imageUrl={plant.image_url}
+                plantName={plant.common_name || plant.nickname}
+                size={FIBONACCI.XXL}
+                style={styles.headerImage}
+              />
+              <View style={styles.headerTextContainer}>
+                <Text style={styles.headerTitle}>✓ {plant.common_name || plant.nickname}</Text>
+                <Text style={styles.headerSubtitle}>{plant.plant_type || 'Plant'}</Text>
+              </View>
+            </View>
 
-        {/* Plant Preview Section */}
-        <View style={styles.previewSection}>
-          <View style={styles.identificationInfo}>
-            <Text style={styles.identifiedName}>
-              {plant?.common_name || plant?.nickname || 'My Plant'}
-            </Text>
-            {plant?.scientific_name && (
-              <Text style={styles.scientificName}>
-                {plant.scientific_name}
-              </Text>
-            )}
-
-            {/* Plant Care Information - Collapsible Section */}
-            {(plant?.plant_info || plant?.plant_type) && (
-              <View style={styles.careInfoSection}>
-                <TouchableOpacity
-                  style={styles.careHeader}
-                  onPress={() => setIsCareGuideExpanded(!isCareGuideExpanded)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.careTitle}>
-                    {isRTL ? 'دليل العناية' : 'Care Guide'}
-                  </Text>
-                  <Ionicons
-                    name={isCareGuideExpanded ? "chevron-up" : "chevron-down"}
-                    size={20}
-                    color={COLORS.primary}
-                  />
-                </TouchableOpacity>
-
-                {isCareGuideExpanded && (
-                  <View>
-                    {plant.plant_info && (
-                      <Text style={styles.plantDescription}>
-                        {plant.plant_info}
-                      </Text>
-                    )}
-
-                    <View style={styles.careDetails}>
-                      {plant.plant_type && (
-                        <View style={styles.careItem}>
-                          <Ionicons name="leaf" size={16} color={COLORS.primary} />
-                          <Text style={styles.careLabel}>
-                            {isRTL ? 'النوع' : 'Type'}
-                          </Text>
-                          <Text style={styles.careValue}>
-                            {plant.plant_type.charAt(0).toUpperCase() + plant.plant_type.slice(1)}
-                          </Text>
-                        </View>
-                      )}
-
-                      {plant.watering_schedule && (
-                        <View style={styles.careItem}>
-                          <Ionicons name="water" size={16} color={COLORS.primary} />
-                          <Text style={styles.careLabel}>
-                            {isRTL ? 'الري' : 'Watering'}
-                          </Text>
-                          <Text style={styles.careValue}>
-                            {plant.watering_schedule}
-                          </Text>
-                        </View>
-                      )}
-
-                      {plant.preferred_humidity && (
-                        <View style={styles.careItem}>
-                          <Ionicons name="cloud" size={16} color={COLORS.primary} />
-                          <Text style={styles.careLabel}>
-                            {isRTL ? 'الرطوبة' : 'Humidity'}
-                          </Text>
-                          <Text style={styles.careValue}>
-                            {plant.preferred_humidity.charAt(0).toUpperCase() + plant.preferred_humidity.slice(1)}
-                          </Text>
-                        </View>
-                      )}
-
-                      {plant.preferred_orientation && (
-                        <View style={styles.careItem}>
-                          <Ionicons name="sunny" size={16} color={COLORS.primary} />
-                          <Text style={styles.careLabel}>
-                            {isRTL ? 'الإضاءة' : 'Light'}
-                          </Text>
-                          <Text style={styles.careValue}>
-                            {plant.preferred_orientation}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                )}
+            {showFullCareGuide && plant.plant_info && (
+              <View style={styles.descriptionExpanded}>
+                <Text style={styles.plantDescription}>
+                  {plant.plant_info}
+                </Text>
               </View>
             )}
-          </View>
 
-          {/* Adjusted Care Tips Section - Collapsible */}
-          {enhancedCare && (
-            <View style={styles.careInfoSection}>
-              <TouchableOpacity
-                style={styles.careHeader}
-                onPress={() => setIsCareTipsExpanded(!isCareTipsExpanded)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.careTitle}>
-                  {isRTL ? 'نصائح العناية المخصصة' : 'Adjusted Care Tips'}
-                </Text>
+            {plant.plant_info && (
+              <TouchableOpacity onPress={() => setShowFullCareGuide(!showFullCareGuide)} style={styles.viewMoreButton}>
                 <Ionicons
-                  name={isCareTipsExpanded ? "chevron-up" : "chevron-down"}
+                  name={showFullCareGuide ? 'chevron-up' : 'chevron-down'}
                   size={20}
                   color={COLORS.primary}
                 />
               </TouchableOpacity>
+            )}
+          </View>
+        </View>
 
-              {isCareTipsExpanded && (
-                <View style={styles.careTipsContent}>
-                  <View style={styles.tipCard}>
-                    <Ionicons name="water-outline" size={20} color={COLORS.primary} />
-                    <Text style={styles.tipText}>
-                      {enhancedCare.adjusted.watering}
-                    </Text>
-                  </View>
-
-                  <View style={styles.tipCard}>
-                    <Ionicons name="calendar-outline" size={20} color={COLORS.primary} />
-                    <Text style={styles.tipText}>
-                      {enhancedCare.adjusted.wateringFrequency}
-                    </Text>
-                  </View>
-
-                  {enhancedCare.tips.length > 0 && (
-                    <View style={styles.tipCard}>
-                      <Ionicons name="bulb-outline" size={20} color={COLORS.primary} />
-                      <Text style={styles.tipText}>
-                        {enhancedCare.tips[0]}
-                      </Text>
-                    </View>
-                  )}
+        {/* 2. HERO: LOCATION RATING (FIXED) */}
+        <View style={styles.layoutHero}>
+          {(enhancedCare || isLoadingCare) && (
+            <View style={styles.heroContainer}>
+              {isLoadingCare ? (
+                <View style={styles.heroLoadingState}>
+                  <ActivityIndicator size="small" color={COLORS.primary} />
+                  <Text style={styles.heroLoadingText}>{t('addPlant.calculatingScore')}</Text>
                 </View>
+              ) : enhancedCare && (
+                <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+                  <LinearGradient
+                    colors={getScoreGradient(enhancedCare.score.score)}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.heroGradientCard}
+                  >
+                    {/* Headline */}
+                    <Text style={styles.heroHeadline}>{t('addPlant.locationRating')}</Text>
+
+                    {/* Main Row: Stars + Score Text */}
+                    <View style={styles.heroMainRow}>
+                      <Text style={styles.heroStars}>{enhancedCare.score.stars}</Text>
+                      <Text style={styles.heroScoreText}>{
+                        enhancedCare.score.score === 5 ? t('addPlant.scores.excellent') :
+                        enhancedCare.score.score === 4 ? t('addPlant.scores.veryGood') :
+                        enhancedCare.score.score === 3 ? t('addPlant.scores.good') :
+                        enhancedCare.score.score === 2 ? t('addPlant.scores.challenging') :
+                        t('addPlant.scores.veryChallenging')
+                      }</Text>
+                    </View>
+                  </LinearGradient>
+                </Animated.View>
               )}
             </View>
           )}
         </View>
 
-        {/* Form Section */}
-        <View style={styles.form}>
-          <Text style={styles.sectionTitle}>
-            {isRTL ? 'ضبط الموقع' : 'Customize Location'}
-          </Text>
-          {/* Plant Location */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>{t('addPlant.plantLocation')}</Text>
-            <View style={styles.optionsGrid}>
-              {PLANT_LOCATIONS.map((loc) => (
-                <TouchableOpacity
-                  key={loc.value}
-                  style={[
-                    styles.optionCard,
-                    location === loc.value && styles.optionCardSelected,
-                  ]}
-                  onPress={() => setLocation(loc.value)}
-                >
-                  <Text style={[
-                    styles.optionText,
-                    location === loc.value && styles.optionTextSelected,
-                  ]}>
-                    {loc.label}
-                  </Text>
-                  <Text style={[
-                    styles.optionTextAr,
-                    location === loc.value && styles.optionTextArSelected,
-                  ]}>
-                    {loc.labelAr}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+        {/* 3. QUESTION & CHOICE AREA (FLEX) */}
+        <ScrollView
+          style={styles.layoutContentScrollView}
+          contentContainerStyle={styles.layoutContentContainer}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.stepContentContainer}>
+            {renderStepContent()}
           </View>
+        </ScrollView>
 
-          {/* Window Direction */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>{t('addPlant.windowDirection')}</Text>
-            
-            <View style={styles.compassContainer}>
-              <View style={styles.compass}>
-                {WINDOW_DIRECTIONS.map((direction) => (
-                  <TouchableOpacity
-                    key={direction.value}
-                    style={[
-                      styles.compassDirection,
-                      (styles as any)[`compass${direction.value.charAt(0).toUpperCase() + direction.value.slice(1)}`],
-                      windowDirection === direction.value && styles.compassDirectionSelected,
-                    ]}
-                    onPress={() => setWindowDirection(direction.value)}
-                  >
-                    {(direction.value === 'north' || direction.value === 'south') ? (
-                      <View style={styles.compassBilingualContainer}>
-                        {direction.value === 'north' ? (
-                          <>
-                            <Text style={[
-                              styles.compassEnglishLetter,
-                              windowDirection === direction.value && styles.compassTextSelected,
-                            ]}>
-                              {direction.value.charAt(0).toUpperCase()}
-                            </Text>
-                            <Text style={[
-                              styles.compassArabicText,
-                              windowDirection === direction.value && styles.compassTextSelected,
-                              { fontFamily: 'DecotypeNaskhSwashes' }
-                            ]}>
-                              {direction.labelAr}
-                            </Text>
-                          </>
-                        ) : (
-                          <>
-                            <Text style={[
-                              styles.compassArabicText,
-                              windowDirection === direction.value && styles.compassTextSelected,
-                              { fontFamily: 'DecotypeNaskhSwashes' }
-                            ]}>
-                              {direction.labelAr}
-                            </Text>
-                            <Text style={[
-                              styles.compassEnglishLetter,
-                              windowDirection === direction.value && styles.compassTextSelected,
-                            ]}>
-                              {direction.value.charAt(0).toUpperCase()}
-                            </Text>
-                          </>
-                        )}
-                      </View>
-                    ) : (
-                      <Text style={[
-                        styles.compassText,
-                        windowDirection === direction.value && styles.compassTextSelected,
-                      ]}>
-                        {direction.value.charAt(0).toUpperCase()}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                ))}
-                
-                <View style={styles.compassCenter}>
-                  <Text style={styles.compassCenterIcon}>🧭</Text>
-                </View>
-              </View>
-              
-              <Text style={styles.selectedDirection}>
-                {t('addPlant.selectedDirection')} {t(`addPlant.directions.${windowDirection}`)}
-              </Text>
-            </View>
-          </View>
-
-          {/* 🌿 Smart Placement Analysis (Phase 15.0) - Matching AddPlantScreen */}
-          {enhancedCare ? (
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Smart Placement Analysis</Text>
-
-              {/* Placement Score Card with Color-Coded Background */}
-              <View style={[
-                styles.placementScoreCard,
-                enhancedCare.score.score <= 2 && styles.placementScoreDanger,
-                enhancedCare.score.score === 3 && styles.placementScoreWarning,
-                enhancedCare.score.score >= 4 && styles.placementScoreGood,
-              ]}>
-                <View style={styles.placementScoreHeader}>
-                  <Text style={styles.placementScoreStars}>{enhancedCare.score.stars}</Text>
-                  <Text style={styles.placementScoreText}>{enhancedCare.score.scoreText}</Text>
-                </View>
-
-                {/* Weather Conditions Inline */}
-                {enhancedCare.weatherContext && (
-                  <Text style={styles.weatherConditions}>
-                    📍 Cairo: {enhancedCare.weatherContext.temperature}°C, {enhancedCare.weatherContext.humidity}% humidity
-                  </Text>
-                )}
-              </View>
-
-              {/* Warnings */}
-              {enhancedCare.warnings.length > 0 && (
-                <View style={styles.warningsContainer}>
-                  {enhancedCare.warnings.map((warning, idx) => (
-                    <View
-                      key={idx}
-                      style={[
-                        styles.warningCard,
-                        warning.type === 'danger' && styles.warningCardDanger,
-                      ]}
-                    >
-                      <Text style={styles.warningIcon}>{warning.icon}</Text>
-                      <Text style={styles.warningText}>{warning.message}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-          ) : isLoadingCare ? (
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Analyzing placement...</Text>
-              <View style={styles.loadingContainer}>
-                <Text style={styles.loadingText}>🌿 Checking Cairo weather...</Text>
-              </View>
-            </View>
-          ) : (
-              // Fallback to old care map while loading
-              <View style={styles.tipsContainer}>
-                {(() => {
-                  const careMap = getCareMapRecommendations();
-                  return (
-                    <>
-                      <View style={styles.tipCard}>
-                        <Ionicons name="water-outline" size={20} color={COLORS.primary} />
-                        <Text style={styles.tipText}>
-                          Watering: {careMap.watering}
-                        </Text>
-                      </View>
-
-                      <View style={styles.tipCard}>
-                        <Ionicons name="sunny-outline" size={20} color={COLORS.primary} />
-                        <Text style={styles.tipText}>
-                          Light: {careMap.light} near {careMap.placement}
-                        </Text>
-                      </View>
-
-                      <View style={styles.tipCard}>
-                        <Ionicons name="cloud-outline" size={20} color={COLORS.primary} />
-                        <Text style={styles.tipText}>
-                          Humidity: {careMap.humidity}
-                        </Text>
-                      </View>
-                    </>
-                  );
-                })()}
-              </View>
-            )}
-
-          {/* Save Button */}
+        {/* 4. FIXED FOOTER NAVIGATION */}
+        <View style={styles.fixedFooter}>
           <TouchableOpacity
-            style={[
-              styles.saveButtonLarge,
-              isSaving && styles.saveButtonLargeDisabled,
-            ]}
-            onPress={handleSave}
-            disabled={isSaving}
+            style={[styles.footerButton, styles.footerButtonSecondary]}
+            onPress={() => {
+              if (currentStep === 1) {
+                // On first step, go back to previous screen
+                navigation.goBack();
+              } else {
+                // On later steps, go to previous step
+                setCurrentStep(currentStep - 1);
+              }
+            }}
           >
-            <Ionicons
-              name="checkmark-circle-outline"
-              size={24}
-              color={isSaving ? COLORS.textSecondary : COLORS.white}
-            />
-            <Text style={[
-              styles.saveButtonLargeText,
-              isSaving && styles.saveButtonLargeTextDisabled,
-            ]}>
-              {isSaving ? t('common.loading') : 'Save Changes'}
+            <Ionicons name="arrow-back" size={24} color={COLORS.primary} />
+            <Text style={[styles.footerButtonText, styles.footerButtonSecondaryText]}>
+              {isRTL ? 'رجوع' : 'Back'}
             </Text>
           </TouchableOpacity>
-        </View>
 
-        <View style={styles.bottomPadding} />
-      </ScrollView>
+          <View style={styles.footerProgress}>
+            <View style={[styles.stepDot, currentStep >= 1 && styles.stepDotActive]} />
+            <View style={[styles.stepDot, currentStep >= 2 && styles.stepDotActive]} />
+            <View style={[styles.stepDot, currentStep >= 3 && styles.stepDotActive]} />
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.footerButton,
+              styles.footerButtonPrimary,
+              ((currentStep === 1 && !location) || (currentStep === 2 && !windowDirection) || isSaving) && styles.footerButtonPrimaryDisabled
+            ]}
+            disabled={
+              (currentStep === 1 && !location) ||
+              (currentStep === 2 && !windowDirection) ||
+              isSaving
+            }
+            onPress={currentStep === 3 ? handleSave : () => setCurrentStep(currentStep + 1)}
+          >
+            <Text style={[
+              styles.footerButtonText,
+              styles.footerButtonPrimaryText,
+              ((currentStep === 1 && !location) || (currentStep === 2 && !windowDirection) || isSaving) && styles.footerButtonPrimaryTextDisabled
+            ]}>
+              {currentStep === 3 ? (isSaving ? t('common.loading') : (isRTL ? 'حفظ التغييرات' : 'Save Changes')) : (isRTL ? 'التالي' : 'Next')}
+            </Text>
+            {currentStep < 3 && <Ionicons name="arrow-forward" size={20} color={COLORS.white} />}
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
-// Merged styles from AddPlantScreen and EditPlantScreen
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: '#F8FBF6',
   },
-  scrollView: {
-    flex: 1,
+  headerCard: {
+    backgroundColor: COLORS.background,
+    borderRadius: ELEMENT_SIZES.RADIUS_MD,
+    margin: FIBONACCI.MD,
+    padding: FIBONACCI.MD,
   },
-  header: {
+  headerContentRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 0,
-    paddingVertical: FIBONACCI.MD,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    position: 'relative',
-    height: ELEMENT_SIZES.INPUT_MD,
+    alignItems: 'flex-start',
+    marginBottom: FIBONACCI.SM,
   },
-  backButton: {
-    paddingHorizontal: FIBONACCI.LG,
-    paddingVertical: FIBONACCI.SM,
-    justifyContent: 'center',
-    alignItems: 'center',
+  headerImage: {
+    width: FIBONACCI.XXL,
+    height: FIBONACCI.XXL,
+    borderRadius: 30,
+    marginRight: FIBONACCI.LG, // Increased from MD (13) to LG (21) for more space
+    flexShrink: 0, // Prevent image from shrinking
   },
-  forwardButton: {
-    paddingHorizontal: FIBONACCI.LG,
-    paddingVertical: FIBONACCI.SM,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitleContainer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: -1,
+  headerTextContainer: {
+    flex: 1,
+    justifyContent: 'center', // Center text vertically with image
+    paddingRight: FIBONACCI.MD, // Add padding to prevent text from reaching edge
   },
   headerTitle: {
-    fontSize: TYPOGRAPHY.MD,
-    fontWeight: '600',
-    color: COLORS.text,
-    textAlign: 'center',
-  },
-  form: {
-    padding: FIBONACCI.LG,
-  },
-  formGroup: {
-    marginBottom: FIBONACCI.XL,
-  },
-  label: {
     fontSize: TYPOGRAPHY.BASE,
     fontWeight: '600',
+    color: COLORS.success,
+  },
+  headerSubtitle: {
+    fontSize: TYPOGRAPHY.SM,
+    color: COLORS.textSecondary,
+  },
+  viewMoreButton: {
+    alignSelf: 'center',
+    paddingVertical: FIBONACCI.SM,
+    paddingHorizontal: FIBONACCI.MD,
+    marginTop: FIBONACCI.XXS,
+  },
+  plantDescription: {
+    fontSize: TYPOGRAPHY.SM,
     color: COLORS.text,
-    marginBottom: FIBONACCI.XXS,
+    lineHeight: FIBONACCI.LG,
+  },
+  // New Layout Styles
+  layoutHeader: {
+    paddingBottom: FIBONACCI.LG,
+    justifyContent: 'center',
+  },
+  layoutHero: {
+    justifyContent: 'center',
+    paddingHorizontal: FIBONACCI.MD,
+  },
+  layoutContentScrollView: {
+    flex: 1,
+  },
+  layoutContentContainer: {
+    justifyContent: 'center',
+    paddingVertical: FIBONACCI.MD,
+    paddingBottom: 100,
+  },
+  stepContentContainer: {
+    justifyContent: 'center',
+  },
+  formGroup: {
+    marginHorizontal: FIBONACCI.MD,
+  },
+  sectionTitle: {
+    fontSize: TYPOGRAPHY.MD,
+    fontWeight: '600',
+    color: COLORS.primary,
+    marginBottom: FIBONACCI.MD,
+    textAlign: 'center',
   },
   optionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: FIBONACCI.MD,
+    gap: FIBONACCI.SM,
   },
   optionCard: {
     flex: 1,
@@ -602,7 +619,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     padding: FIBONACCI.MD,
     borderRadius: ELEMENT_SIZES.RADIUS_MD,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: COLORS.border,
     alignItems: 'center',
   },
@@ -618,75 +635,60 @@ const styles = StyleSheet.create({
   optionTextSelected: {
     color: COLORS.white,
   },
-  optionTextAr: {
-    fontSize: TYPOGRAPHY.SM,
-    fontWeight: '400',
-    color: COLORS.text,
-  },
-  optionTextArSelected: {
-    color: COLORS.white,
-  },
   compassContainer: {
     alignItems: 'center',
   },
   compass: {
     width: GOLDEN_RECTANGLES.LARGE.width,
-    height: GOLDEN_RECTANGLES.LARGE.width,
+    height: GOLDEN_RECTANGLES.LARGE.height,
     position: 'relative',
     backgroundColor: COLORS.background,
-    borderRadius: GOLDEN_RECTANGLES.LARGE.width / 2,
-    marginBottom: FIBONACCI.MD,
+    borderRadius: 110,
+    marginBottom: FIBONACCI.SM,
   },
   compassDirection: {
     position: 'absolute',
-    width: ELEMENT_SIZES.BUTTON_MD,
-    height: ELEMENT_SIZES.BUTTON_MD,
+    width: 63,
+    height: 63,
     backgroundColor: COLORS.white,
-    borderRadius: ELEMENT_SIZES.BUTTON_MD / 2,
-    borderWidth: 2,
+    borderRadius: 31.5,
+    borderWidth: 1,
     borderColor: COLORS.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  compassDirectionNS: {
+    width: FIBONACCI.XXXL,
+    height: FIBONACCI.XXL,
+    borderRadius: 35,
+  },
   compassDirectionSelected: {
     backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
+    transform: [{ scale: 1.1 }],
   },
   compassNorth: {
-    top: -FIBONACCI.SM,
+    top: -5,
     left: '50%',
-    marginLeft: -(FIBONACCI.XXXL / 2),
-    width: FIBONACCI.XXXL,
-    height: ELEMENT_SIZES.BUTTON_MD,
-    borderRadius: FIBONACCI.LG,
-    paddingHorizontal: FIBONACCI.XS,
-    paddingTop: FIBONACCI.XXS,
-    paddingBottom: FIBONACCI.XS,
+    marginLeft: -40,
   },
   compassEast: {
-    right: 0,
+    right: -FIBONACCI.XS,
     top: '50%',
-    marginTop: -(ELEMENT_SIZES.BUTTON_MD / 2),
+    marginTop: -31.5,
   },
   compassSouth: {
-    bottom: -FIBONACCI.SM,
+    bottom: -5,
     left: '50%',
-    marginLeft: -(FIBONACCI.XXXL / 2),
-    width: FIBONACCI.XXXL,
-    height: ELEMENT_SIZES.BUTTON_MD,
-    borderRadius: FIBONACCI.LG,
-    paddingHorizontal: FIBONACCI.XS,
-    paddingTop: FIBONACCI.XXS,
-    paddingBottom: FIBONACCI.XS,
+    marginLeft: -40,
   },
   compassWest: {
-    left: 0,
+    left: -FIBONACCI.XS,
     top: '50%',
-    marginTop: -(ELEMENT_SIZES.BUTTON_MD / 2),
+    marginTop: -31.5,
   },
   compassText: {
     fontSize: TYPOGRAPHY.BASE,
-    fontWeight: '600',
     color: COLORS.text,
   },
   compassTextSelected: {
@@ -695,23 +697,19 @@ const styles = StyleSheet.create({
   compassBilingualContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: FIBONACCI.XXS,
-    width: '100%',
-    height: '100%',
+    gap: 3,
+    flex: 1,
+    paddingHorizontal: 6,
   },
   compassArabicText: {
-    fontSize: TYPOGRAPHY.SM + 1,
-    fontWeight: '600',
+    fontSize: TYPOGRAPHY.SM,
     color: COLORS.text,
     textAlign: 'center',
-    width: '100%',
-    includeFontPadding: false,
-    lineHeight: FIBONACCI.LG,
-    marginLeft: FIBONACCI.MD,
+    fontFamily: 'TharwatEmaraRuqaa',
+    letterSpacing: 0.5,
   },
   compassEnglishLetter: {
-    fontSize: TYPOGRAPHY.MD,
-    fontWeight: '700',
+    fontSize: TYPOGRAPHY.SM,
     color: COLORS.textSecondary,
     textAlign: 'center',
   },
@@ -719,25 +717,23 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: '50%',
     left: '50%',
-    marginTop: -FIBONACCI.XL / 2,
-    marginLeft: -FIBONACCI.XL / 2,
-    width: FIBONACCI.XL,
-    height: FIBONACCI.XL,
+    marginTop: -ELEMENT_SIZES.ICON_LG / 2,
+    marginLeft: -ELEMENT_SIZES.ICON_LG / 2,
+    width: ELEMENT_SIZES.ICON_LG,
+    height: ELEMENT_SIZES.ICON_LG,
     backgroundColor: COLORS.primary,
-    borderRadius: FIBONACCI.XL / 2,
+    borderRadius: ELEMENT_SIZES.ICON_LG / 2,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  compassCenterIcon: {
-    fontSize: FIBONACCI.LG,
   },
   selectedDirection: {
     fontSize: TYPOGRAPHY.SM,
     color: COLORS.primary,
     fontWeight: '500',
+    marginTop: FIBONACCI.SM,
   },
   tipsContainer: {
-    gap: FIBONACCI.MD,
+    gap: FIBONACCI.SM,
   },
   tipCard: {
     flexDirection: 'row',
@@ -745,7 +741,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     padding: FIBONACCI.MD,
     borderRadius: ELEMENT_SIZES.RADIUS_MD,
-    gap: FIBONACCI.MD,
+    gap: FIBONACCI.SM,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  tipCardDanger: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#EF4444',
   },
   tipText: {
     flex: 1,
@@ -753,210 +755,170 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     lineHeight: FIBONACCI.LG,
   },
-  saveButtonLarge: {
+  fixedFooter: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    backgroundColor: COLORS.white,
+    padding: FIBONACCI.MD,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: FIBONACCI.SM,
+  },
+  // Location Rating Hero - COMPACT PREMIUM DESIGN
+  heroContainer: {
+    marginBottom: FIBONACCI.MD,
+  },
+  heroGradientCard: {
+    borderRadius: ELEMENT_SIZES.RADIUS_MD,
+    paddingVertical: FIBONACCI.MD,
+    paddingHorizontal: FIBONACCI.MD,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  heroHeadline: {
+    fontSize: TYPOGRAPHY.BASE,
+    fontWeight: '500',
+    color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: FIBONACCI.XXS,
+  },
+  heroMainRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: FIBONACCI.XXS,
+  },
+  heroStars: {
+    fontSize: 20,
+    color: '#F59E0B',
+    letterSpacing: 2,
+  },
+  heroScoreText: {
+    fontSize: TYPOGRAPHY.MD,
+    fontWeight: '700',
+    color: COLORS.text,
+    letterSpacing: 0.5,
+    marginLeft: FIBONACCI.SM,
+  },
+  heroLoadingState: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: FIBONACCI.LG,
+    backgroundColor: COLORS.background,
+    borderRadius: ELEMENT_SIZES.RADIUS_MD,
+  },
+  heroLoadingText: {
+    fontSize: TYPOGRAPHY.SM,
+    color: COLORS.textSecondary,
+    marginLeft: FIBONACCI.SM,
+  },
+  descriptionExpanded: {
+    marginTop: FIBONACCI.SM,
+    marginBottom: FIBONACCI.SM,
+    paddingTop: FIBONACCI.SM,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  footerButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.primary,
-    paddingVertical: FIBONACCI.MD,
-    paddingHorizontal: FIBONACCI.LG,
+    paddingVertical: FIBONACCI.SM,
+    paddingHorizontal: FIBONACCI.MD,
     borderRadius: ELEMENT_SIZES.RADIUS_LG,
     gap: FIBONACCI.SM,
-    marginTop: FIBONACCI.MD,
-    height: ELEMENT_SIZES.BUTTON_MD,
+    height: 55,
   },
-  saveButtonLargeDisabled: {
+  footerButtonPrimary: {
+    backgroundColor: COLORS.primary,
+    flex: 1,
+  },
+  footerButtonPrimaryDisabled: {
     backgroundColor: COLORS.border,
   },
-  saveButtonLargeText: {
-    color: COLORS.white,
+  footerButtonSecondary: {
+    backgroundColor: 'transparent',
+    minWidth: 100,
+  },
+  footerButtonText: {
     fontSize: TYPOGRAPHY.BASE,
     fontWeight: '600',
   },
-  saveButtonLargeTextDisabled: {
+  footerButtonPrimaryText: {
+    color: COLORS.white,
+  },
+  footerButtonPrimaryTextDisabled: {
     color: COLORS.textSecondary,
   },
-  bottomPadding: {
-    height: FIBONACCI.LG,
-  },
-
-  // 🌿 Phase 15.0: Smart Placement Analysis Styles (Matching AddPlantScreen)
-  placementScoreCard: {
-    backgroundColor: COLORS.background,
-    padding: FIBONACCI.MD, // 13px
-    borderRadius: ELEMENT_SIZES.RADIUS_MD, // 13px
-    marginBottom: FIBONACCI.MD, // 13px
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  placementScoreDanger: {
-    backgroundColor: '#FFEBEE',
-    borderColor: COLORS.error,
-  },
-  placementScoreWarning: {
-    backgroundColor: '#FFF3E0',
-    borderColor: COLORS.warning,
-  },
-  placementScoreGood: {
-    backgroundColor: '#E8F5E9',
-    borderColor: COLORS.success,
-  },
-  placementScoreHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: FIBONACCI.SM, // 8px
-    marginBottom: FIBONACCI.XS, // 5px
-  },
-  placementScoreStars: {
-    fontSize: TYPOGRAPHY.XL, // 24px
-    letterSpacing: 2,
-  },
-  placementScoreText: {
-    fontSize: TYPOGRAPHY.LG, // 21px
-    fontWeight: '700',
-    color: COLORS.text,
-  },
-  weatherConditions: {
-    fontSize: TYPOGRAPHY.XS, // 12px
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-  },
-
-  // Warnings Section (Matching AddPlantScreen)
-  warningsContainer: {
-    gap: FIBONACCI.SM, // 8px
-    marginBottom: FIBONACCI.MD, // 13px
-  },
-  warningCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF3E0',
-    padding: FIBONACCI.MD, // 13px
-    borderRadius: ELEMENT_SIZES.RADIUS_MD, // 13px
-    gap: FIBONACCI.SM, // 8px
-  },
-  warningCardDanger: {
-    backgroundColor: '#FFEBEE',
-  },
-  warningIcon: {
-    fontSize: TYPOGRAPHY.MD, // 18px
-  },
-  warningText: {
-    flex: 1,
-    fontSize: TYPOGRAPHY.SM, // 14px
-    color: COLORS.text,
-    lineHeight: FIBONACCI.LG, // 21px
-  },
-
-  // Loading State
-  loadingContainer: {
-    padding: FIBONACCI.LG, // 21px
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: TYPOGRAPHY.SM, // 14px
-    color: COLORS.textSecondary,
-  },
-
-  // Plant Preview Section (matching AddPlantScreen)
-  previewSection: {
-    paddingHorizontal: FIBONACCI.LG, // 21px
-    paddingTop: FIBONACCI.LG, // 21px
-  },
-  previewImage: {
-    width: '100%',
-    height: GOLDEN_RECTANGLES.LARGE.height, // Golden ratio height
-    borderRadius: ELEMENT_SIZES.RADIUS_LG, // 21px
-    marginBottom: FIBONACCI.MD, // 13px
-  },
-  identificationInfo: {
-    backgroundColor: COLORS.background,
-    borderRadius: ELEMENT_SIZES.RADIUS_MD, // 13px
-    padding: FIBONACCI.MD, // 13px
-    marginBottom: FIBONACCI.MD, // 13px
-  },
-  identifiedName: {
-    fontSize: TYPOGRAPHY.LG, // 21px
-    fontWeight: '700',
-    color: COLORS.success,
-    textAlign: 'center',
-    marginBottom: FIBONACCI.XXS, // 3px
-  },
-  scientificName: {
-    fontSize: TYPOGRAPHY.SM, // 14px
-    fontStyle: 'italic',
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginBottom: FIBONACCI.MD, // 13px
-  },
-
-  // Care Guide Section
-  careInfoSection: {
-    backgroundColor: COLORS.white,
-    borderRadius: ELEMENT_SIZES.RADIUS_MD, // 13px
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    overflow: 'hidden',
-  },
-  careHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: FIBONACCI.MD, // 13px
-    backgroundColor: COLORS.background,
-  },
-  careTitle: {
-    fontSize: TYPOGRAPHY.BASE, // 16px
-    fontWeight: '600',
+  footerButtonSecondaryText: {
     color: COLORS.primary,
   },
-  plantDescription: {
-    fontSize: TYPOGRAPHY.SM, // 14px
-    color: COLORS.text,
-    lineHeight: FIBONACCI.LG, // 21px
-    padding: FIBONACCI.MD, // 13px
-    paddingTop: FIBONACCI.SM, // 8px
-    textAlign: 'center',
-  },
-  careDetails: {
-    padding: FIBONACCI.MD, // 13px
-    paddingTop: FIBONACCI.SM, // 8px
-    gap: FIBONACCI.SM, // 8px
-  },
-  careItem: {
-    flexDirection: 'row',
+  footerProgress: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.background,
-    padding: FIBONACCI.MD, // 13px
-    borderRadius: ELEMENT_SIZES.RADIUS_SM, // 8px
-    gap: FIBONACCI.SM, // 8px
+    flexDirection: 'row',
+    gap: FIBONACCI.SM,
+    zIndex: -1,
   },
-  careLabel: {
-    fontSize: TYPOGRAPHY.SM, // 14px
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-    marginLeft: FIBONACCI.XS, // 5px
+  stepDot: {
+    width: FIBONACCI.SM,
+    height: FIBONACCI.SM,
+    borderRadius: FIBONACCI.SM / 2,
+    backgroundColor: COLORS.border,
   },
-  careValue: {
-    fontSize: TYPOGRAPHY.SM, // 14px
-    color: COLORS.text,
-    flex: 1,
-    textAlign: 'right',
+  stepDotActive: {
+    backgroundColor: COLORS.primary,
   },
-
-  // Care Tips Content (for collapsible Adjusted Care Tips)
-  careTipsContent: {
-    padding: FIBONACCI.MD, // 13px
-    paddingTop: FIBONACCI.SM, // 8px
-    gap: FIBONACCI.MD, // 13px
+  recommendedBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: FIBONACCI.MD, // 13px
+    height: FIBONACCI.MD,
+    borderRadius: FIBONACCI.MD / 2,
+    backgroundColor: '#EF4444', // Red
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
   },
-
-  // Section Title (matching AddPlantScreen)
-  sectionTitle: {
-    fontSize: TYPOGRAPHY.LG, // 21px
+  recommendedText: {
+    color: '#FFFFFF',
+    fontSize: FIBONACCI.SM, // 8px
     fontWeight: '700',
-    color: COLORS.text,
-    marginBottom: FIBONACCI.LG, // 21px
+  },
+  compassRecommendedBadge: {
+    position: 'absolute',
+    top: -3,
+    right: -3,
+    width: FIBONACCI.MD,
+    height: FIBONACCI.MD,
+    borderRadius: FIBONACCI.MD / 2,
+    backgroundColor: '#EF4444',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  compassRecommendedText: {
+    color: '#FFFFFF',
+    fontSize: FIBONACCI.SM,
+    fontWeight: '700',
   },
 });

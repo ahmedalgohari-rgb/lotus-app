@@ -4,6 +4,7 @@
  */
 
 import plantCareDatabase from '../data/plantCareDatabase.json';
+import { logger } from '../utils/logger';
 
 // Enhanced interfaces for structured plant data
 export interface PlantWateringInfo {
@@ -115,26 +116,41 @@ class PlantDatabaseService {
    * Get all plants in the database
    */
   getAllPlants(): Plant[] {
-    return this.plants;
+    try {
+      return this.plants;
+    } catch (error) {
+      logger.error('Error in getAllPlants:', error);
+      return [];
+    }
   }
 
   /**
    * Get plant by ID
    */
   getPlantById(id: string): Plant | null {
-    return this.plants.find(plant => plant.id === id) || null;
+    try {
+      return this.plants.find(plant => plant.id === id) || null;
+    } catch (error) {
+      logger.error('Error in getPlantById:', error);
+      return null;
+    }
   }
 
   /**
    * Get plants by category
    */
   getPlantsByCategory(categoryId: string): Plant[] {
-    const category = this.categories[categoryId];
-    if (!category) return [];
-    
-    return category.plants
-      .map(plantId => this.getPlantById(plantId))
-      .filter(plant => plant !== null) as Plant[];
+    try {
+      const category = this.categories[categoryId];
+      if (!category) return [];
+
+      return category.plants
+        .map(plantId => this.getPlantById(plantId))
+        .filter(plant => plant !== null) as Plant[];
+    } catch (error) {
+      logger.error('Error in getPlantsByCategory:', error);
+      return [];
+    }
   }
 
   /**
@@ -172,7 +188,8 @@ class PlantDatabaseService {
     airPurifying?: boolean;
     growthRate?: string[];
   }): PlantMatch[] {
-    let results = this.plants;
+    try {
+      let results = this.plants;
 
     // Filter by difficulty
     if (query.difficulty && query.difficulty.length > 0) {
@@ -254,6 +271,10 @@ class PlantDatabaseService {
       matchType: 'exact' as const,
       matchedName: plant.names.common[0]
     }));
+    } catch (error) {
+      logger.error('Error in searchPlants:', error);
+      return []; // Return empty array as fallback
+    }
   }
 
   /**
@@ -349,22 +370,23 @@ class PlantDatabaseService {
    * Get plant care data with language preference and fallback to family care
    */
   getComprehensivePlantCare(
-    scientificName: string, 
-    commonName?: string, 
+    scientificName: string,
+    commonName?: string,
     family?: string,
     language: 'en' | 'ar' = 'en'
-  ): { 
+  ): {
     plant_name: string;
-    plant_info: string; 
+    plant_info: string;
     watering_frequency: string;
     orientation: string;
     plant_type: string;
     matchInfo?: PlantMatch
   } {
-    // Try to find exact plant match
-    const searchResults = this.searchPlants({
-      text: `${scientificName} ${commonName || ''}`.trim()
-    });
+    try {
+      // Try to find exact plant match
+      const searchResults = this.searchPlants({
+        text: `${scientificName} ${commonName || ''}`.trim()
+      });
 
     if (searchResults.length > 0 && searchResults[0].confidence >= 60) {
       const bestMatch = searchResults[0];
@@ -388,13 +410,24 @@ class PlantDatabaseService {
     const defaultFamily = this.getFamily('default')!;
     return {
       plant_name: commonName || scientificName,
-      plant_info: commonName 
+      plant_info: commonName
         ? `${commonName} - ${defaultFamily.care.plant_info}`
         : defaultFamily.care.plant_info,
       watering_frequency: this.formatWateringFrequency(defaultFamily.care.watering.schedule, language),
       orientation: this.formatOrientation(defaultFamily.care.light.requirement, language),
       plant_type: defaultFamily.care.plant_type
     };
+    } catch (error) {
+      logger.error('Error in getComprehensivePlantCare:', error);
+      // Return safe default values
+      return {
+        plant_name: commonName || scientificName || 'Unknown Plant',
+        plant_info: 'Care information temporarily unavailable. Please try again.',
+        watering_frequency: '60% Dry - Water when mostly dry',
+        orientation: 'Indoor - East/West Window (Bright Indirect)',
+        plant_type: 'foliage'
+      };
+    }
   }
 
   /**
@@ -485,34 +518,39 @@ class PlantDatabaseService {
     airPurifying?: boolean;
     cairoClimate?: boolean;
   }): Plant[] {
-    let query: any = {};
-    
-    if (conditions.experience) {
-      query.difficulty = [conditions.experience];
+    try {
+      let query: any = {};
+
+      if (conditions.experience) {
+        query.difficulty = [conditions.experience];
+      }
+
+      if (conditions.lightLevel) {
+        const lightMap = {
+          low: ['low_light', 'north'],
+          medium: ['bright_indirect', 'east', 'west'],
+          bright: ['bright_direct', 'south', 'bright_indirect']
+        };
+        query.lightRequirement = lightMap[conditions.lightLevel];
+      }
+
+      if (conditions.petSafe !== undefined) {
+        query.petSafe = conditions.petSafe;
+      }
+
+      if (conditions.airPurifying !== undefined) {
+        query.airPurifying = conditions.airPurifying;
+      }
+
+      if (conditions.cairoClimate) {
+        query.cairoSuitability = ['excellent', 'good'];
+      }
+
+      return this.searchPlants(query).map(match => match.plant);
+    } catch (error) {
+      logger.error('Error in getPlantRecommendations:', error);
+      return [];
     }
-    
-    if (conditions.lightLevel) {
-      const lightMap = {
-        low: ['low_light', 'north'],
-        medium: ['bright_indirect', 'east', 'west'],
-        bright: ['bright_direct', 'south', 'bright_indirect']
-      };
-      query.lightRequirement = lightMap[conditions.lightLevel];
-    }
-    
-    if (conditions.petSafe !== undefined) {
-      query.petSafe = conditions.petSafe;
-    }
-    
-    if (conditions.airPurifying !== undefined) {
-      query.airPurifying = conditions.airPurifying;
-    }
-    
-    if (conditions.cairoClimate) {
-      query.cairoSuitability = ['excellent', 'good'];
-    }
-    
-    return this.searchPlants(query).map(match => match.plant);
   }
 
   /**

@@ -26,15 +26,22 @@ export default function PlantCard({ plant, onPress, imageUrl }: PlantCardProps) 
   // Use image from plant database or provided imageUrl
   const plantImageUrl = (plant as any).image_url || imageUrl;
 
+  // For Taxonomic styling
+  const scientificNameParts = scientificName.split(' ');
+  const genus = scientificNameParts[0] || '';
+  const species = scientificNameParts.slice(1).join(' ');
+
   return (
     <TouchableOpacity
       style={styles.container}
       onPress={onPress}
       activeOpacity={0.7}
     >
-      {/* Plant Image - Circular with Smart Fallback */}
+      {/* Plant Image */}
       <View style={styles.imageContainer}>
         <PlantImage
+          capturedImageUri={plant.captured_image_uri}
+          plantId={plant.plant_id || plant.species_id || plant.id}
           imageUrl={plantImageUrl}
           plantName={commonName}
           size={ELEMENT_SIZES.AVATAR_MD}
@@ -44,11 +51,12 @@ export default function PlantCard({ plant, onPress, imageUrl }: PlantCardProps) 
 
       {/* Plant Info */}
       <View style={styles.infoContainer}>
-        <Text style={[styles.commonName, isRTL && styles.commonNameRTL]} numberOfLines={1}>
+        <Text style={[styles.commonName, isRTL && styles.commonNameRTL]}>
           {commonName}
         </Text>
-        <Text style={[styles.scientificName, isRTL && styles.scientificNameRTL]} numberOfLines={1}>
-          {scientificName}
+        <Text style={[styles.scientificNameBase, isRTL && styles.scientificNameRTL]} numberOfLines={1}>
+          <Text style={styles.genusName}>{genus} </Text>
+          <Text style={styles.speciesName}>{species}</Text>
         </Text>
       </View>
     </TouchableOpacity>
@@ -57,10 +65,10 @@ export default function PlantCard({ plant, onPress, imageUrl }: PlantCardProps) 
 
 const styles = StyleSheet.create({
   container: {
+    height: 120, // Fixed height for all cards
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.white,
-    paddingVertical: FIBONACCI.MD,
     paddingHorizontal: FIBONACCI.LG,
     marginBottom: FIBONACCI.MD,
     borderRadius: ELEMENT_SIZES.RADIUS_MD,
@@ -76,11 +84,12 @@ const styles = StyleSheet.create({
     marginRight: FIBONACCI.LG,
   },
   image: {
-    borderRadius: ELEMENT_SIZES.AVATAR_MD / 2, // Circular
+    borderRadius: ELEMENT_SIZES.RADIUS_MD, // Match container radius
   },
   infoContainer: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'center', // Vertically center the text block
+    height: '100%', // Ensure it takes full height to allow centering
   },
   commonName: {
     fontSize: TYPOGRAPHY.LG, // 21px
@@ -91,10 +100,15 @@ const styles = StyleSheet.create({
   commonNameRTL: {
     textAlign: 'right',
   },
-  scientificName: {
+  scientificNameBase: {
     fontSize: TYPOGRAPHY.SM, // 14px
     color: COLORS.textSecondary,
-    fontStyle: 'italic',
+  },
+  genusName: {
+    fontWeight: '700', // Bold
+  },
+  speciesName: {
+    fontStyle: 'italic', // Italic
   },
   scientificNameRTL: {
     textAlign: 'right',

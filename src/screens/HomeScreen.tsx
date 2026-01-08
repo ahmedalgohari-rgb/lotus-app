@@ -15,11 +15,11 @@ import { COLORS, FIBONACCI, TYPOGRAPHY, ELEMENT_SIZES } from '../constants';
 import { useStore } from '../store';
 import { useRTL, useRTLStyles } from '../utils/rtl';
 import { WeatherService } from '../services/weather';
-import { WeatherData, EnhancedCareRecommendation } from '../types';
+import { WeatherData, Plant } from '../types';
 import { changeLanguage, getCurrentLanguage } from '../i18n';
 import { logger } from '../utils/logger';
-import { getPersonalizedCareRecommendations } from '../utils/careMap';
 import AccountDrawer from '../components/AccountDrawer';
+import { dbService } from '../services/supabase';
 
 
 
@@ -176,12 +176,17 @@ export default function HomeScreen() {
   const [currentLanguage, setCurrentLanguage] = useState(getCurrentLanguage());
   const [isAccountDrawerVisible, setIsAccountDrawerVisible] = useState(false);
 
-  // 🧪 TEST: Weather-Aware Care System (Phase 15.0)
-  const [testRecommendation, setTestRecommendation] = useState<EnhancedCareRecommendation | null>(null);
-  const [testLoading, setTestLoading] = useState(false);
+  // Garden stats
+  const [plants, setPlants] = useState<Plant[]>([]);
+  const [gardenStats, setGardenStats] = useState({
+    total: 0,
+    needsWater: 0,
+    thriving: 0
+  });
 
   useEffect(() => {
     loadWeatherData();
+    loadPlants();
 
     // Mark user as returning after they visit home screen
     if (isFirstVisit) {
@@ -191,6 +196,59 @@ export default function HomeScreen() {
       }, 2000); // Wait 2 seconds before marking as returning user
     }
   }, []);
+
+  const loadPlants = async () => {
+    if (isGuest || !user?.id) {
+      setPlants([]);
+      setGardenStats({ total: 0, needsWater: 0, thriving: 0 });
+      return;
+    }
+
+    try {
+      const { data: userPlants } = await dbService.getPlants(user.id);
+      if (userPlants) {
+        setPlants(userPlants);
+
+        // Calculate stats
+        const total = userPlants.length;
+        const now = new Date();
+
+        // NEEDS WATER = Never watered OR overdue for watering
+        const needsWater = userPlants.filter(plant => {
+          // Case 1: Never been watered (no last_watered_at)
+          if (!plant.last_watered_at) return true;
+
+          // Case 2: Has next_watering_at and it's in the past (overdue)
+          if (plant.next_watering_at) {
+            const nextWateringDate = new Date(plant.next_watering_at);
+            return now > nextWateringDate; // Overdue
+          }
+
+          return false;
+        }).length;
+
+        // THRIVING = Good placement (3-5 stars) AND good watering (watered + not overdue)
+        const thriving = userPlants.filter(plant => {
+          // Check placement score (3, 4, or 5 stars = Good, Very Good, or Excellent)
+          const hasGoodPlacement = plant.placement_score && plant.placement_score >= 3;
+
+          // Check watering status (has been watered AND not overdue)
+          const hasBeenWatered = !!plant.last_watered_at;
+          const isNotOverdue = plant.next_watering_at
+            ? now <= new Date(plant.next_watering_at)
+            : true; // If no next watering date, assume on schedule
+
+          return hasGoodPlacement && hasBeenWatered && isNotOverdue;
+        }).length;
+
+        setGardenStats({ total, needsWater, thriving });
+      }
+    } catch (error) {
+      logger.error('Error loading plants:', error);
+      setPlants([]);
+      setGardenStats({ total: 0, needsWater: 0, thriving: 0 });
+    }
+  };
 
   const loadWeatherData = async (showLoading = true) => {
     if (showLoading) {
@@ -247,42 +305,6 @@ export default function HomeScreen() {
     }
   };
 
-  const refreshWeather = async () => {
-    // Clear cache to force fresh data
-    WeatherService.clearCache();
-    await loadWeatherData(true);
-  };
-
-  // 🧪 TEST: Call Weather-Aware Care System
-  const testWeatherAwareCare = async (
-    plantId: string,
-    room: 'living_room' | 'bedroom' | 'kitchen' | 'bathroom' | 'balcony' | 'office',
-    direction: 'north' | 'east' | 'south' | 'west',
-    testName: string
-  ) => {
-    setTestLoading(true);
-    try {
-      logger.info(`🧪 Testing: ${testName}`);
-
-      const recommendation = await getPersonalizedCareRecommendations(
-        plantId,
-        room,
-        direction,
-        true // Include weather
-      );
-
-      setTestRecommendation(recommendation);
-
-      logger.info(`✅ ${testName} - Score: ${recommendation.score.stars}`);
-      logger.info(`Warnings: ${recommendation.warnings.length}`);
-      logger.info(`Weather: ${recommendation.weatherContext?.temperature}°C`);
-    } catch (error) {
-      logger.error(`❌ ${testName} failed:`, error);
-      setTestRecommendation(null);
-    } finally {
-      setTestLoading(false);
-    }
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -339,26 +361,31 @@ export default function HomeScreen() {
 
 
 
-        {/* Care Guidelines */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, isRTL && { textAlign: 'right' }]}>
-            {t('home.careBasics')}
-          </Text>
-          
-          <View style={styles.careGrid}>
-            {careCards.map((card) => (
-              <View key={card.id} style={styles.careCard}>
-                <Ionicons name={card.icon as any} size={24} color={COLORS.primary} style={styles.cardIcon} />
-                <Text style={[styles.cardTitle, isRTL && { textAlign: 'center', fontFamily: 'Arial' }]}>
-                  {isRTL ? card.titleAr : card.title}
-                </Text>
-                <Text style={[styles.cardDescription, isRTL && { textAlign: 'center', fontFamily: 'Arial' }]}>
-                  {isRTL ? t(`tips.${card.id}.description`) : card.description}
-                </Text>
+        {/* Care Tracker - Only show for authenticated users with plants */}
+        {!isGuest && user && gardenStats.total > 0 && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, isRTL && { textAlign: 'right' }]}>
+              {isRTL ? 'متتبع العناية' : 'Care Tracker'}
+            </Text>
+
+            <View style={styles.gardenStatsContainer}>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>{gardenStats.total}</Text>
+                <Text style={styles.statLabel}>{isRTL ? 'نباتاتك' : 'Your\nPlants'}</Text>
               </View>
-            ))}
+
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>{gardenStats.needsWater}</Text>
+                <Text style={styles.statLabel}>{isRTL ? 'يحتاج ري' : 'Need\nWater'}</Text>
+              </View>
+
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>{gardenStats.thriving}</Text>
+                <Text style={styles.statLabel}>{isRTL ? 'مزدهر' : 'Thriving'}</Text>
+              </View>
+            </View>
           </View>
-        </View>
+        )}
 
         {/* Weather Tips */}
         <View style={styles.section}>
@@ -378,7 +405,7 @@ export default function HomeScreen() {
                 <View style={[styles.weatherMain, isRTL && styles.weatherMainRTL]}>
                   <View style={[styles.weatherTempRow, isRTL && styles.weatherTempRowRTL]}>
                     <Text style={[styles.weatherTemp, isRTL && styles.weatherTempRTL]}>{weather.temperature}°C</Text>
-                    {/* Icons positioned close to temp text */}
+                    {/* Weather icon positioned close to temp text */}
                     <View style={[styles.weatherIconSection, isRTL && styles.weatherIconSectionRTL]}>
                       <Text style={styles.weatherIcon}>
                         {(() => {
@@ -405,13 +432,6 @@ export default function HomeScreen() {
                           }
                         })()}
                       </Text>
-                      <TouchableOpacity
-                        onPress={refreshWeather}
-                        style={styles.refreshButton}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                      >
-                        <Ionicons name="refresh-outline" size={20} color={COLORS.primary} />
-                      </TouchableOpacity>
                     </View>
                   </View>
                   <Text style={[styles.weatherLocation, isRTL && styles.weatherLocationRTL]}>{isRTL ? 'القاهرة' : 'Cairo'}</Text>
@@ -578,132 +598,6 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* 🧪 TEST: Weather-Aware Care System */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, isRTL && { textAlign: 'right' }]}>
-            🧪 Test: Weather-Aware Care
-          </Text>
-
-          <Text style={styles.testDescription}>
-            Compare how the same Snake Plant gets different scores in different locations:
-          </Text>
-
-          {/* Test Scenario Buttons Grid */}
-          <View style={styles.testButtonGrid}>
-            <TouchableOpacity
-              style={[styles.testButtonSmall, styles.testButtonSouth, testLoading && styles.testButtonDisabled]}
-              onPress={() => testWeatherAwareCare('snake_plant', 'living_room', 'south', 'South Window (Intense)')}
-              disabled={testLoading}
-            >
-              <Text style={styles.testButtonSmallText}>☀️ South</Text>
-              <Text style={styles.testButtonSmallSubtext}>Intense Sun</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.testButtonSmall, styles.testButtonNorth, testLoading && styles.testButtonDisabled]}
-              onPress={() => testWeatherAwareCare('snake_plant', 'living_room', 'north', 'North Window (Gentle)')}
-              disabled={testLoading}
-            >
-              <Text style={styles.testButtonSmallText}>🌤️ North</Text>
-              <Text style={styles.testButtonSmallSubtext}>Gentle Light</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.testButtonSmall, styles.testButtonBalcony, testLoading && styles.testButtonDisabled]}
-              onPress={() => testWeatherAwareCare('snake_plant', 'balcony', 'south', 'Balcony (Extreme)')}
-              disabled={testLoading}
-            >
-              <Text style={styles.testButtonSmallText}>🏖️ Balcony</Text>
-              <Text style={styles.testButtonSmallSubtext}>Extreme Dry</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.testButtonSmall, styles.testButtonBathroom, testLoading && styles.testButtonDisabled]}
-              onPress={() => testWeatherAwareCare('snake_plant', 'bathroom', 'north', 'Bathroom (Humid)')}
-              disabled={testLoading}
-            >
-              <Text style={styles.testButtonSmallText}>🚿 Bathroom</Text>
-              <Text style={styles.testButtonSmallSubtext}>High Humidity</Text>
-            </TouchableOpacity>
-          </View>
-
-          {testLoading && (
-            <View style={styles.testLoadingContainer}>
-              <ActivityIndicator size="small" color="#8B5CF6" />
-              <Text style={styles.testLoadingText}>Analyzing placement...</Text>
-            </View>
-          )}
-
-          {testRecommendation && (
-            <View style={styles.testResultCard}>
-              {/* Placement Score */}
-              <View style={styles.testResultRow}>
-                <Text style={styles.testResultLabel}>Placement Score:</Text>
-                <Text style={styles.testResultValue}>
-                  {testRecommendation.score.stars} ({testRecommendation.score.scoreText})
-                </Text>
-              </View>
-
-              {/* Weather Conditions */}
-              {testRecommendation.weatherContext && (
-                <View style={styles.testResultRow}>
-                  <Text style={styles.testResultLabel}>Weather:</Text>
-                  <Text style={styles.testResultValue}>
-                    {testRecommendation.weatherContext.temperature}°C, {testRecommendation.weatherContext.humidity}% humidity
-                  </Text>
-                </View>
-              )}
-
-              {/* Adjusted Watering */}
-              <View style={styles.testResultRow}>
-                <Text style={styles.testResultLabel}>Watering:</Text>
-                <Text style={styles.testResultValue}>
-                  {testRecommendation.adjusted.watering}
-                </Text>
-              </View>
-
-              {/* Warnings */}
-              {testRecommendation.warnings.length > 0 && (
-                <View style={styles.testWarningsSection}>
-                  <Text style={styles.testWarningsTitle}>⚠️ Warnings:</Text>
-                  {testRecommendation.warnings.map((warning, idx) => (
-                    <View key={idx} style={[styles.testWarning, warning.type === 'danger' && styles.testWarningDanger]}>
-                      <Text style={styles.testWarningIcon}>{warning.icon}</Text>
-                      <Text style={styles.testWarningText}>{warning.message}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              {/* Tips */}
-              {testRecommendation.tips.length > 0 && (
-                <View style={styles.testTipsSection}>
-                  <Text style={styles.testTipsTitle}>💡 Tips:</Text>
-                  {testRecommendation.tips.slice(0, 3).map((tip, idx) => (
-                    <Text key={idx} style={styles.testTip}>• {tip}</Text>
-                  ))}
-                </View>
-              )}
-
-              <Text style={styles.testResultFooter}>
-                Check console logs for detailed output!
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Sign Out Button - Positioned at bottom */}
-        <View style={styles.section}>
-          <TouchableOpacity
-            style={styles.authDesignButton}
-            onPress={handleLogout}
-          >
-            <Text style={styles.authDesignButtonText}>
-              Sign Out
-            </Text>
-          </TouchableOpacity>
-        </View>
-
       </ScrollView>
 
       {/* Account Drawer */}
@@ -814,6 +708,40 @@ const styles = StyleSheet.create({
   },
   sectionTitleRTL: {
     textAlign: 'right',
+  },
+
+  // Garden Stats Styles
+  gardenStatsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: FIBONACCI.MD,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: COLORS.white,
+    borderRadius: ELEMENT_SIZES.RADIUS_MD,
+    padding: FIBONACCI.LG,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+    minHeight: 90,
+  },
+  statNumber: {
+    fontFamily: 'PlusJakartaSans-Bold',
+    fontSize: 32,
+    color: COLORS.primary,
+    marginBottom: FIBONACCI.XS,
+  },
+  statLabel: {
+    fontFamily: 'PlusJakartaSans-Medium',
+    fontSize: TYPOGRAPHY.XS,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 16,
   },
 
   careGrid: {
@@ -1267,151 +1195,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // 🧪 Test Section Styles
-  testDescription: {
-    fontSize: TYPOGRAPHY.SM,
-    color: COLORS.textSecondary,
-    marginBottom: FIBONACCI.SM,
-    lineHeight: 20,
-  },
-  testButtonGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: FIBONACCI.SM,
-  },
-  testButtonSmall: {
-    width: '48%',
-    paddingVertical: FIBONACCI.MD,
-    paddingHorizontal: FIBONACCI.SM,
-    borderRadius: ELEMENT_SIZES.RADIUS_MD,
-    alignItems: 'center',
-    marginBottom: FIBONACCI.SM,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  testButtonSouth: {
-    backgroundColor: '#EF4444', // Red for intense south
-  },
-  testButtonNorth: {
-    backgroundColor: '#3B82F6', // Blue for gentle north
-  },
-  testButtonBalcony: {
-    backgroundColor: '#F59E0B', // Orange for extreme balcony
-  },
-  testButtonBathroom: {
-    backgroundColor: '#10B981', // Green for humid bathroom
-  },
-  testButtonDisabled: {
-    opacity: 0.6,
-  },
-  testButtonSmallText: {
-    color: '#fff',
-    fontSize: TYPOGRAPHY.SM,
-    fontWeight: '700',
-    marginBottom: FIBONACCI.XXS,
-  },
-  testButtonSmallSubtext: {
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: TYPOGRAPHY.XXS,
-    fontWeight: '500',
-  },
-  testLoadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: FIBONACCI.SM,
-  },
-  testLoadingText: {
-    marginLeft: FIBONACCI.XS,
-    fontSize: TYPOGRAPHY.SM,
-    color: '#8B5CF6',
-    fontWeight: '600',
-  },
-  testResultCard: {
-    backgroundColor: '#fff',
-    borderRadius: ELEMENT_SIZES.RADIUS_MD,
-    padding: FIBONACCI.MD,
-    marginTop: FIBONACCI.SM,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  testResultRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: FIBONACCI.XS,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  testResultLabel: {
-    fontSize: TYPOGRAPHY.SM,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-    flex: 1,
-  },
-  testResultValue: {
-    fontSize: TYPOGRAPHY.SM,
-    color: COLORS.text,
-    flex: 2,
-    textAlign: 'right',
-  },
-  testWarningsSection: {
-    marginTop: FIBONACCI.SM,
-    padding: FIBONACCI.SM,
-    backgroundColor: '#FEF3C7',
-    borderRadius: FIBONACCI.XS,
-  },
-  testWarningsTitle: {
-    fontSize: TYPOGRAPHY.SM,
-    fontWeight: '700',
-    color: '#92400E',
-    marginBottom: FIBONACCI.XS,
-  },
-  testWarning: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginTop: FIBONACCI.XS,
-    padding: FIBONACCI.XS,
-    backgroundColor: '#fff',
-    borderRadius: FIBONACCI.XXS,
-  },
-  testWarningDanger: {
-    backgroundColor: '#FEE2E2',
-  },
-  testWarningIcon: {
-    fontSize: TYPOGRAPHY.BASE,
-    marginRight: FIBONACCI.XS,
-  },
-  testWarningText: {
-    fontSize: TYPOGRAPHY.XS,
-    color: '#92400E',
-    flex: 1,
-  },
-  testTipsSection: {
-    marginTop: FIBONACCI.SM,
-    padding: FIBONACCI.SM,
-    backgroundColor: '#DBEAFE',
-    borderRadius: FIBONACCI.XS,
-  },
-  testTipsTitle: {
-    fontSize: TYPOGRAPHY.SM,
-    fontWeight: '700',
-    color: '#1E40AF',
-    marginBottom: FIBONACCI.XS,
-  },
-  testTip: {
-    fontSize: TYPOGRAPHY.XS,
-    color: '#1E3A8A',
-    marginTop: FIBONACCI.XXS,
-  },
-  testResultFooter: {
-    fontSize: TYPOGRAPHY.XXS,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginTop: FIBONACCI.SM,
-    fontStyle: 'italic',
-  },
 });

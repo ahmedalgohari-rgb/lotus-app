@@ -1,5 +1,6 @@
 import { manipulateAsync, SaveFormat, FlipType } from 'expo-image-manipulator';
-import * as FileSystem from 'expo-file-system';
+// ✅ FIX: Use legacy FileSystem API to avoid deprecation errors
+import * as FileSystem from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from './logger';
 
@@ -455,6 +456,49 @@ export async function enhanceImageForPlantIdentification(
     return processedUri;
   } catch (error) {
     logger.error('❌ Plant image enhancement failed:', error);
+    return imageUri; // Return original on failure
+  }
+}
+
+/**
+ * Resize image to PlantNet's optimal dimensions for best identification results
+ * PlantNet recommends 1000-2000px on the longest side
+ * @param imageUri - URI of the image to resize
+ * @param targetSize - Target size for the longest dimension (default: 1500px)
+ * @returns URI of the resized image
+ */
+export async function resizeImageForPlantNet(
+  imageUri: string,
+  targetSize: number = 1000
+): Promise<string> {
+  try {
+    // FIXED: Just resize directly - manipulateAsync handles non-existent images
+    // No need to check file existence first (was causing deprecated API warning)
+    const resizedImage = await manipulateAsync(
+      imageUri,
+      [
+        {
+          resize: {
+            width: targetSize,
+            // Height will be calculated automatically to maintain aspect ratio
+          },
+        },
+      ],
+      {
+        compress: 0.75, // OPTIMIZED: 75% quality - PlantNet works excellently at 1000px with lower compression
+        format: SaveFormat.JPEG,
+      }
+    );
+
+    logger.info('✅ Image resized for PlantNet:', {
+      original: imageUri,
+      resized: resizedImage.uri,
+      targetSize
+    });
+
+    return resizedImage.uri;
+  } catch (error) {
+    logger.error('❌ Image resize failed:', error);
     return imageUri; // Return original on failure
   }
 }

@@ -13,6 +13,7 @@ import {
 } from '../constants';
 import { useStore } from '../store';
 import { dbService } from '../services/supabase';
+import PlantImage from '../components/PlantImage';
 import { Plant } from '../types';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRTL } from '../utils/rtl';
@@ -104,6 +105,31 @@ export default function PlantsScreen() {
     return `${diffDays}d`;
   };
   
+  const calculateHealthStatus = (plant: Plant): 'healthy' | 'needs_attention' | 'critical' => {
+    const placementScore = plant.placement_score || 0;
+    const hasBeenWatered = !!plant.last_watered_at; // Plant MUST have been watered before
+    const isWateringOverdue = plant.next_watering_at
+      ? new Date(plant.next_watering_at) < new Date()
+      : false;
+
+    // 🔴 CRITICAL: Poor placement (< 3 stars) - takes priority
+    if (placementScore < 3) {
+      return 'critical';
+    }
+
+    // 🟢 HEALTHY (THRIVING): Good placement (>= 3) AND has been watered AND on schedule
+    // A plant CANNOT be thriving if it's never been watered!
+    if (placementScore >= 3 && hasBeenWatered && !isWateringOverdue) {
+      return 'healthy';
+    }
+
+    // 🟡 NEEDS ATTENTION: Everything else
+    // - Never watered (even with good placement >= 3)
+    // - Good placement but overdue for watering
+    // - Any other case
+    return 'needs_attention';
+  };
+
   const getHealthColor = (status: string) => {
     switch (status) {
       case 'healthy': return COLORS.success;
@@ -142,7 +168,14 @@ export default function PlantsScreen() {
       >
         {plants.map((plant) => (
           <TouchableOpacity key={plant.id} style={styles.card} onPress={() => navigateToPlantDetail(plant)} onLongPress={() => handleDeletePlant(plant.id, plant.nickname)}>
-            <Image source={{ uri: plant.image_url }} style={styles.image} />
+            <PlantImage
+              plantId={plant.plant_id}
+              imageUrl={plant.image_url}
+              capturedImageUri={plant.captured_image_uri}
+              plantName={plant.nickname}
+              size={144}
+              style={styles.image}
+            />
             <Text style={[styles.plantName, isRTL && styles.plantNameRTL]}>{plant.nickname}</Text>
             <Text style={[styles.location, isRTL && styles.locationRTL]}>{getLocationLabel(plant.location)}</Text>
 
@@ -155,7 +188,7 @@ export default function PlantsScreen() {
                 <Ionicons name="navigate-outline" size={16} color={COLORS.textSecondary} />
                 <Text style={styles.infoText}>{plant.window_direction.charAt(0).toUpperCase()}</Text>
               </View>
-              <View style={[styles.statusDot, { backgroundColor: getHealthColor(plant.health_status) }]} />
+              <View style={[styles.statusDot, { backgroundColor: getHealthColor(calculateHealthStatus(plant)) }]} />
             </View>
           </TouchableOpacity>
         ))}

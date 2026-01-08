@@ -1,20 +1,22 @@
 import { IdentificationResult } from '../types';
 import { plantDatabaseService } from './plantDatabase';
+import { authService } from './supabase';
 import { plantNetCache, createCachedApiCall } from '../utils/apiCache';
 import {
   enhanceImageForPlantIdentification,
   assessImageQualityForPlants,
   isImageSuitableForPlantIdentification,
+  resizeImageForPlantNet,
   ImageQualityMetrics
 } from '../utils/imageUtils';
-import { plantDetectionService } from '../utils/plantDetection';
 import { logger } from '../utils/logger';
-import * as FileSystem from 'expo-file-system';
+import { readAsStringAsync, EncodingType, getInfoAsync } from 'expo-file-system/legacy';
 import CryptoJS from 'crypto-js';
 
-const PLANTNET_API_KEY = process.env.EXPO_PUBLIC_PLANTNET_API_KEY || '';
-// Changed from /weurope (Western Europe only) to /all (global plant database)
-const PLANTNET_API_URL = 'https://my-api.plantnet.org/v2/identify/all';
+// 🔒 SECURITY: PlantNet API calls now go through secure Edge Function
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1`;
 
 export interface PlantNetResponse {
   results: Array<{
@@ -62,16 +64,16 @@ export interface PlantNetResponse {
  * Generate a unique cache key based on image content and parameters
  */
 async function generateImageCacheKey(
-  imageUri: string, 
-  organ: string, 
+  imageUri: string,
+  organ: string,
   language: string
 ): Promise<string> {
   try {
     // Get image file info for a unique identifier
-    const fileInfo = await FileSystem.getInfoAsync(imageUri);
+    const fileInfo = await getInfoAsync(imageUri);
     const imageSize = (fileInfo.exists && 'size' in fileInfo) ? fileInfo.size : 0;
     const modificationTime = (fileInfo.exists && 'modificationTime' in fileInfo) ? fileInfo.modificationTime : 0;
-    
+
     // Create a hash based on image characteristics and parameters
     const keyData = `${imageUri}_${imageSize}_${modificationTime}_${organ}_${language}`;
     return CryptoJS.SHA1(keyData).toString();
@@ -100,91 +102,73 @@ async function cachedPlantNetApiCall(
 }
 
 /**
- * Direct PlantNet API call without caching
+ * 🔒 SECURE: Call PlantNet via Edge Function (API key protected server-side)
  */
 async function directPlantNetApiCall(
   imageUri: string,
   organ: string,
   language: 'en' | 'ar'
 ): Promise<PlantNetResponse | null> {
-  const formData = new FormData();
-  formData.append('images', {
-    uri: imageUri,
-    type: 'image/jpeg',
-    name: 'plant.jpg',
-  } as any);
+  // Get user session for authentication
+  const { session, error: sessionError } = await authService.getSession();
 
-  // Add organs parameter
-  formData.append('organs', organ);
+  if (sessionError || !session) {
+    logger.error('❌ User not authenticated - cannot call PlantNet API');
+    throw new Error(
+      'You must be logged in to identify plants. Please sign in and try again.'
+    );
+  }
 
-  // PHASE 3: Add 30-second timeout for slow networks
+  // ⚡ PERFORMANCE: Resize to 500px (PlantNet optimal size)
+  // 500px = 50-100KB JPEG vs 1000px = 200-400KB → 75% faster upload!
+  logger.debug('🔍 Resizing image for Edge Function...');
+  const resizedImageUri = await resizeImageForPlantNet(imageUri, 500);
+
+  // Convert RESIZED image to base64 for Edge Function
+  logger.debug('🔍 Converting resized image to base64...');
+  const imageBase64 = await readAsStringAsync(resizedImageUri, {
+    encoding: EncodingType.Base64,
+  });
+  const base64WithPrefix = `data:image/jpeg;base64,${imageBase64}`;
+
+  // Add 30-second timeout for slow networks
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-  const response = await fetch(`${PLANTNET_API_URL}?api-key=${PLANTNET_API_KEY}&lang=${language}`, {
+  logger.debug(`📤 Calling Edge Function: identify-plant (organ=${organ}, lang=${language})`);
+
+  const response = await fetch(`${EDGE_FUNCTION_URL}/identify-plant`, {
     method: 'POST',
-    body: formData,
-    signal: controller.signal
+    headers: {
+      'Authorization': `Bearer ${session.access_token}`, // ✅ Send USER token, not anon key
+      'apikey': SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      imageBase64: base64WithPrefix,
+      organ,
+      language,
+    }),
+    signal: controller.signal,
   });
 
   clearTimeout(timeoutId);
 
   if (!response.ok) {
-    throw new Error(`PlantNet API error: ${response.status} ${response.statusText}`);
+    const errorData = await response.json().catch(() => ({}));
+    logger.error(`❌ Edge Function error: ${response.status}`, errorData);
+    throw new Error(
+      errorData.message || `PlantNet service error: ${response.status} ${response.statusText}`
+    );
   }
 
-  return await response.json();
+  const plantNetData = await response.json();
+  logger.debug(`✅ Edge Function response received: ${plantNetData.results?.length || 0} results`);
+
+  return plantNetData;
 }
 
 export const plantNetService = {
-  /**
-   * Pre-capture validation for camera interface
-   * Quickly validates if image is worth sending to PlantNet API
-   */
-  validateImageForCapture: async (imageUri: string): Promise<{
-    shouldCapture: boolean;
-    confidence: number;
-    feedback: string;
-    improvements: string[];
-  }> => {
-    try {
-      // Quick plant detection check
-      const plantValidation = await plantDetectionService.detectPlantInRealTime(imageUri);
-      
-      // Quick quality assessment
-      const qualityCheck = await assessImageQualityForPlants(imageUri);
-      
-      const shouldCapture = plantValidation.isPlantDetected && 
-                           plantValidation.confidence > 0.5 && 
-                           qualityCheck.overallQuality > 0.5;
-      
-      let feedback: string;
-      if (!plantValidation.isPlantDetected) {
-        feedback = 'Point camera at a plant';
-      } else if (plantValidation.confidence < 0.5) {
-        feedback = 'Move closer or improve lighting';
-      } else if (qualityCheck.overallQuality < 0.5) {
-        feedback = 'Improve image quality';
-      } else {
-        feedback = `${plantValidation.dominantPlantColor} plant ready to capture!`;
-      }
-      
-      return {
-        shouldCapture,
-        confidence: Math.max(plantValidation.confidence, qualityCheck.overallQuality),
-        feedback,
-        improvements: qualityCheck.recommendedActions
-      };
-    } catch (error) {
-      logger.error('Pre-capture validation failed:', error);
-      return {
-        shouldCapture: false,
-        confidence: 0,
-        feedback: 'Validation failed - try again',
-        improvements: ['Ensure good lighting and plant visibility']
-      };
-    }
-  },
   /**
    * Enhanced plant identification with caching and multiple attempts
    * Updated to use centralized PlantDatabaseService and smart caching
@@ -195,44 +179,22 @@ export const plantNetService = {
     language: 'en' | 'ar' = 'en'
   ): Promise<IdentificationResult | null> => {
     try {
-      if (!PLANTNET_API_KEY) {
-        logger.warn('MOCK FALLBACK: PlantNet API key not configured');
-        return plantNetService.mockIdentify(imageUri, language);
-      }
-
       // Phase 1: Image Quality Assessment and Validation
       const qualityAssessment = await assessImageQualityForPlants(imageUri);
 
-      // PHASE 3: Check Debug Mode
-      const DEBUG_MODE = process.env.EXPO_PUBLIC_DEBUG_PLANTNET === 'true';
+      // PHASE 3: Check Debug Mode (ONLY allowed in development builds)
+      const DEBUG_MODE = __DEV__ && process.env.EXPO_PUBLIC_DEBUG_PLANTNET === 'true';
 
-      // Phase 2: Plant Detection Validation
-      const plantValidation = await plantDetectionService.validateImageForPlantAPI(imageUri);
+      // Phase 2: Plant Detection Validation - DISABLED FOR BETA
+      // All photos now go directly to PlantNet API for real AI analysis
+      // The simulated pre-filter was causing false rejections
+      // See: CLAUDE.md line 17 - "All photos now sent directly to PlantNet Edge Function"
 
-      // PHASE 3: Debug Mode - Skip validation if enabled
-      if (DEBUG_MODE && !plantValidation.isValid) {
-        logger.warn('DEBUG MODE: Validation failed but bypassing - forcing API call anyway');
-      }
-
-      if (!DEBUG_MODE && !plantValidation.isValid) {
-        logger.warn('MOCK FALLBACK: Image validation failed');
-
-        // Return early with validation feedback - don't waste API calls
-        return {
-          confidence: plantValidation.confidence * 100,
-          common_name: language === 'ar' ? 'صورة غير مناسبة للتعريف' : 'Image not suitable for identification',
-          scientific_name: 'Validation failed',
-          family: 'Unknown',
-          genus: 'Unknown',
-          plant_info: plantValidation.recommendations.join('. ') + '.',
-          plant_type: 'none',
-          watering_schedule: language === 'ar' ? 'حسن جودة الصورة أولاً' : 'Improve image quality first',
-          preferred_humidity: 'unknown',
-          preferred_orientation: language === 'ar' ? 'التقط صورة أفضل' : 'Take a better photo',
-          alternatives: [],
-          suggestions: plantValidation.recommendations
-        };
-      }
+      // REMOVED: Pre-validation that was blocking real plant photos
+      // const plantValidation = await plantDetectionService.validateImageForPlantAPI(imageUri);
+      // if (!DEBUG_MODE && !plantValidation.isValid) {
+      //   return null;
+      // }
 
       // Phase 3: Image Enhancement for Better Identification
       const enhancedImageUri = await enhanceImageForPlantIdentification(imageUri, {
@@ -258,16 +220,24 @@ export const plantNetService = {
             if (result && result.confidence > highestConfidence) {
               bestResult = result;
               highestConfidence = result.confidence;
-              
+
               // Add quality assessment feedback to result
               if (bestResult) {
                 bestResult.plant_info += ` ${language === 'ar' ? 'تم تحسين جودة الصورة لتحديد أفضل.' : 'Image quality optimized for better identification.'}`;
               }
             }
 
-            // If we get a high confidence result, no need to try other organs
-            if (result && result.confidence > 80) {
-              break;
+            // ⚡ PERFORMANCE: Stop immediately if we get a good result
+            // 1. High PlantNet confidence (>80%), OR
+            // 2. TIER 1 exact database match (no need to try more organs!)
+            if (result) {
+              const hasHighConfidence = result.confidence > 80;
+              const hasTier1Match = result.database_match?.match_type === 'exact';
+
+              if (hasHighConfidence || hasTier1Match) {
+                logger.debug(`⚡ Stopping organ search: ${hasHighConfidence ? 'High confidence' : 'TIER 1 exact match'}`);
+                break; // Stop trying other organs
+              }
             }
           } catch (error) {
             // PHASE 1: Diagnostic Logging - API Failure
@@ -278,12 +248,28 @@ export const plantNetService = {
               statusCode: error.status || 'unknown'
             });
 
-            // If API is blocked (IP restriction), use enhanced mock data immediately
-            if (error.message.includes('access denied') || error.message.includes('403')) {
-              logger.warn('MOCK FALLBACK: PlantNet API blocked by IP restrictions (403 Forbidden)');
-              logger.warn('Fix: Add your IP to PlantNet API dashboard authorization list');
-              return plantNetService.mockIdentify(imageUri, language);
+            // ❌ DON'T RETRY on authentication errors - they will always fail
+            if (error.message.includes('401') || error.message.includes('Unauthorized') || error.message.includes('logged in')) {
+              logger.error('❌ Authentication Error - cannot retry');
+              throw error; // Re-throw auth errors immediately
             }
+
+            // ❌ DON'T RETRY on 404 "Species not found" - PlantNet's way of saying "not a plant"
+            if (error.message.includes('404') || error.message.includes('Not Found') || error.message.includes('Species not found')) {
+              logger.warn('⚠️  PlantNet could not identify this image (404)');
+              // Return null to show "No Results" - don't waste time retrying
+              return null;
+            }
+
+            // If API is blocked (IP restriction), throw error
+            if (error.message.includes('access denied') || error.message.includes('403')) {
+              logger.error('❌ PlantNet API Access Denied (403 Forbidden)');
+              throw new Error(
+                'The plant identification service is currently unavailable. Please try again in a few moments. (Code: API_ACCESS_DENIED)'
+              );
+            }
+
+            // Continue to next organ only for transient errors (network, timeout, etc.)
             continue;
           }
         }
@@ -309,105 +295,24 @@ export const plantNetService = {
 
       // Final Result
       if (!bestResult) {
-        logger.warn('MOCK FALLBACK: No valid results from PlantNet API attempts');
+        logger.warn('⚠️  PlantNet returned results but none matched confidence threshold');
+        return null; // Return null, let UI handle showing "No Results" error
       }
 
-      return bestResult || plantNetService.mockIdentify(imageUri, language);
+      return bestResult;
     } catch (error) {
       // PHASE 1: Diagnostic Logging - Unexpected Error
-      logger.error('MOCK FALLBACK: Unexpected error in plant identification:', {
+      logger.error('❌ Plant Identification Failed:', {
         errorMessage: error.message,
         errorType: error.name,
         errorStack: error.stack?.substring(0, 200)
       });
-      return plantNetService.mockIdentify(imageUri, language);
+      throw new Error(
+        `Failed to identify plant: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   },
 
-  /**
-   * PHASE 3: Test PlantNet API connectivity and authorization
-   * Returns detailed diagnostic info to debug API issues
-   */
-  testPlantNetAPI: async (): Promise<{
-    apiKeyConfigured: boolean;
-    networkReachable: boolean;
-    apiAuthorized: boolean;
-    ipAddress: string | null;
-    errorDetails: string | null;
-  }> => {
-    const result = {
-      apiKeyConfigured: !!PLANTNET_API_KEY,
-      networkReachable: false,
-      apiAuthorized: false,
-      ipAddress: null,
-      errorDetails: null
-    };
-
-    if (!PLANTNET_API_KEY) {
-      result.errorDetails = 'API key not configured in .env file';
-      logger.error('No API key found');
-      return result;
-    }
-
-    try {
-      // Test 1: Check network connectivity and get current IP
-      const ipResponse = await fetch('https://api.ipify.org?format=json', {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' }
-      });
-
-      if (ipResponse.ok) {
-        const ipData = await ipResponse.json();
-        result.ipAddress = ipData.ip;
-        result.networkReachable = true;
-      } else {
-        throw new Error('Network unreachable');
-      }
-
-      // Test 2: Test PlantNet API authorization
-
-      const testUrl = `${PLANTNET_API_URL}?api-key=${PLANTNET_API_KEY}`;
-
-      // Add timeout controller (30 seconds)
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-      const apiResponse = await fetch(testUrl, {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' },
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      if (apiResponse.status === 403) {
-        result.errorDetails = `IP ${result.ipAddress} not authorized. Add this IP to your PlantNet API dashboard.`;
-        logger.error('403 Forbidden - IP not whitelisted');
-      } else if (apiResponse.status === 401) {
-        result.errorDetails = 'Invalid API key. Check your EXPO_PUBLIC_PLANTNET_API_KEY in .env';
-        logger.error('401 Unauthorized - Invalid API key');
-      } else if (apiResponse.status === 400) {
-        // 400 is expected for GET request - API expects POST with image
-        // This means API is reachable and authorized!
-        result.apiAuthorized = true;
-      } else if (apiResponse.ok) {
-        result.apiAuthorized = true;
-      } else {
-        result.errorDetails = `Unexpected status: ${apiResponse.status} ${apiResponse.statusText}`;
-        logger.error('Unexpected response:', apiResponse.status);
-      }
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        result.errorDetails = `Request timed out after 30 seconds. Possible causes:\n1. IP ${result.ipAddress} not whitelisted in PlantNet dashboard\n2. Network/firewall blocking my-api.plantnet.org\n3. PlantNet API is slow or down`;
-        logger.error('Request timeout - likely IP not whitelisted');
-      } else {
-        result.errorDetails = `Error: ${error.message}`;
-        logger.error('API test failed:', error);
-      }
-    }
-
-    return result;
-  },
 
   /**
    * Identify plant with specific organ type
@@ -444,7 +349,162 @@ export const plantNetService = {
       return null;
     }
 
+    // ⚡ PERFORMANCE: Reject very low confidence immediately (< 30%)
+    // This saves 20-30 seconds by not trying all organs for bad photos
+    const topScore = speciesResults[0]?.score || 0;
+    if (topScore < 0.3) {
+      logger.warn(`⚠️  Very low confidence (${Math.round(topScore * 100)}%) - likely poor photo quality`);
+      logger.warn('   Rejecting immediately instead of trying all organs');
+      return null; // User will see "No Results" with suggestion to retake photo
+    }
+
     return plantNetService.processBestMatch(speciesResults, language);
+  },
+
+  /**
+   * Match PlantNet result to database plant for tier classification
+   * This determines whether the plant is Tier 1 (exact), Tier 2 (genus), or Tier 3 (none)
+   *
+   * TIER 1: Exact scientific name match (no substring/partial matching)
+   * TIER 2: Same genus (e.g., species vs cultivar, or different species in same genus)
+   * TIER 3: Common name match only
+   */
+  matchPlantToDatabase: (
+    scientificName: string,
+    genus: string,
+    commonName: string,
+    family: string,
+    confidence: number
+  ): {
+    found: boolean;
+    confidence: number;
+    plant_id: string | null;
+    match_type: 'exact' | 'genus' | 'common_name' | 'none';
+    alternatives?: Array<{
+      plant_id: string;
+      confidence: number;
+      plant_name: string;
+    }>;
+  } => {
+    // Normalize for comparison (remove special chars, lowercase, trim)
+    const normalizeScientificName = (name: string) => {
+      return name
+        .toLowerCase()
+        .replace(/[^\w\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    };
+
+    const normalizedSearchName = normalizeScientificName(scientificName);
+
+    // TIER 1: EXACT scientific name match (no substring matching!)
+    // "Dracaena trifasciata" should NOT match "Dracaena trifasciata 'Golden Flame'"
+    const allPlants = plantDatabaseService.getAllPlants();
+    const exactMatches: Array<{ plant: any; matchedName: string }> = [];
+
+    for (const plant of allPlants) {
+      for (const sciName of plant.names.scientific) {
+        const normalizedDbName = normalizeScientificName(sciName);
+
+        // Exact match only - no substring!
+        if (normalizedDbName === normalizedSearchName) {
+          exactMatches.push({ plant, matchedName: sciName });
+          break; // Found exact match for this plant
+        }
+      }
+    }
+
+    if (exactMatches.length > 0) {
+      logger.debug(`✅ TIER 1: Exact scientific name match - ${exactMatches[0].plant.id}`);
+      logger.debug(`   PlantNet: "${scientificName}" = Database: "${exactMatches[0].matchedName}"`);
+
+      return {
+        found: true,
+        confidence: 95, // High confidence for exact match
+        plant_id: exactMatches[0].plant.id,
+        match_type: 'exact',
+        alternatives: exactMatches.slice(1, 3).map(m => ({
+          plant_id: m.plant.id,
+          confidence: 95,
+          plant_name: m.plant.names.common[0]
+        }))
+      };
+    }
+
+    // TIER 2: Genus match (same genus, different species/cultivar)
+    // "Dracaena trifasciata" → "Dracaena trifasciata 'Golden Flame'" = Tier 2 (genus match)
+    // "Dracaena trifasciata" → "Dracaena zeylanica" = Tier 2 (genus match)
+    const genusMatches: Array<{ plant: any; matchedName: string }> = [];
+
+    for (const plant of allPlants) {
+      for (const sciName of plant.names.scientific) {
+        const normalizedDbName = normalizeScientificName(sciName);
+
+        // Extract genus (first word) from database name
+        const dbGenus = normalizedDbName.split(' ')[0];
+        const searchGenus = normalizedSearchName.split(' ')[0];
+
+        // Same genus match
+        if (dbGenus === searchGenus && normalizedDbName !== normalizedSearchName) {
+          genusMatches.push({ plant, matchedName: sciName });
+          break; // Found genus match for this plant
+        }
+      }
+    }
+
+    if (genusMatches.length > 0) {
+      logger.debug(`✅ TIER 2: Genus match - ${genusMatches[0].plant.id}`);
+      logger.debug(`   PlantNet: "${scientificName}" ~ Database: "${genusMatches[0].matchedName}" (same genus)`);
+
+      return {
+        found: true,
+        confidence: 80, // Medium-high confidence for genus match
+        plant_id: genusMatches[0].plant.id,
+        match_type: 'genus',
+        alternatives: genusMatches.slice(1, 3).map(m => ({
+          plant_id: m.plant.id,
+          confidence: 80,
+          plant_name: m.plant.names.common[0]
+        }))
+      };
+    }
+
+    // TIER 3: Common name match (substring matching is OK here)
+    const commonNameMatch = plantDatabaseService.searchPlants({
+      text: commonName
+    });
+
+    const commonMatches = commonNameMatch.filter(m =>
+      m.matchType === 'common' && m.confidence >= 60
+    );
+
+    if (commonMatches.length > 0) {
+      logger.debug(`✅ TIER 3: Common name match - ${commonMatches[0].plant.id}`);
+      logger.debug(`   PlantNet common: "${commonName}" ~ Database: "${commonMatches[0].matchedName}"`);
+
+      return {
+        found: true,
+        confidence: commonMatches[0].confidence,
+        plant_id: commonMatches[0].plant.id,
+        match_type: 'common_name',
+        alternatives: commonMatches.slice(1, 3).map(m => ({
+          plant_id: m.plant.id,
+          confidence: m.confidence,
+          plant_name: m.plant.names.common[0]
+        }))
+      };
+    }
+
+    // No match found - return none
+    logger.debug(`❌ No database match found for "${scientificName}"`);
+    logger.debug(`   Tried: Exact match, Genus "${genus}" match, Common name "${commonName}" match`);
+
+    return {
+      found: false,
+      confidence: confidence,
+      plant_id: null,
+      match_type: 'none'
+    };
   },
 
   /**
@@ -488,6 +548,15 @@ export const plantNetService = {
       language
     );
 
+    // ✅ TIER MATCHING: Match PlantNet result to database for tier classification
+    const databaseMatch = plantNetService.matchPlantToDatabase(
+      topResult.scientificNameWithoutAuthor,
+      topResult.genus.scientificNameWithoutAuthor,
+      commonName,
+      topResult.family.scientificNameWithoutAuthor,
+      adjustedConfidence
+    );
+
     return {
       confidence: adjustedConfidence,
       common_name: careData.plant_name,
@@ -499,6 +568,7 @@ export const plantNetService = {
       watering_schedule: careData.watering_frequency,
       preferred_humidity: 'medium', // Legacy field - info now in watering_schedule
       preferred_orientation: careData.orientation,
+      database_match: databaseMatch, // ✅ TIER MATCHING: Determines Tier 1/2/3 classification
       alternatives: species.slice(1, 4).map(s => ({
         common_name: s.commonNames?.find((n: any) => n.lang === 'en')?.name || s.scientificNameWithoutAuthor,
         scientific_name: s.scientificNameWithoutAuthor,
@@ -524,55 +594,4 @@ export const plantNetService = {
     });
   },
 
-  // Fallback identification using mock data for development
-  mockIdentify: async (imageUri: string, language: 'en' | 'ar' = 'en'): Promise<IdentificationResult> => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const mockPlants = ['golden_pothos', 'snake_plant', 'monstera_deliciosa'];
-    const randomPlantId = mockPlants[Math.floor(Math.random() * mockPlants.length)];
-    const plant = plantDatabaseService.getPlantById(randomPlantId);
-    
-    if (plant) {
-      const careData = plantDatabaseService.getComprehensivePlantCare(
-        plant.names.scientific[0],
-        plant.names.common[0],
-        plant.characteristics.family,
-        language
-      );
-      
-      return {
-        confidence: 85 + Math.floor(Math.random() * 10), // 85-94% confidence
-        common_name: careData.plant_name,
-        scientific_name: plant.names.scientific[0],
-        family: plant.characteristics.family,
-        genus: plant.names.scientific[0].split(' ')[0],
-        plant_info: careData.plant_info,
-        plant_type: plant.care.plant_type,
-        watering_schedule: careData.watering_frequency,
-        preferred_humidity: plant.care.humidity,
-        preferred_orientation: careData.orientation,
-        alternatives: [],
-        suggestions: []
-      };
-    }
-    
-    // Ultimate fallback
-    return {
-      confidence: 60,
-      common_name: language === 'ar' ? 'نبات غير معروف' : 'Unknown Plant',
-      scientific_name: 'Unknown species',
-      family: 'Unknown',
-      genus: 'Unknown',
-      plant_info: language === 'ar' 
-        ? 'نبات جميل سيضيف حياة إلى مساحتك. ابحث عن احتياجات رعاية محددة للحصول على أفضل النتائج.'
-        : 'A beautiful plant that will add life to your space. Research specific care needs for best results.',
-      plant_type: 'foliage',
-      watering_schedule: language === 'ar' ? 'جفاف 60% - اسقِ عندما تجف التربة إلى حد كبير' : '60% Dry - Water when mostly dry',
-      preferred_humidity: 'medium',
-      preferred_orientation: language === 'ar' ? 'داخلي - نافذة شرقية/غربية (ضوء ساطع غير مباشر)' : 'Indoor - East/West Window (Bright Indirect)',
-      alternatives: [],
-      suggestions: []
-    };
-  },
 };

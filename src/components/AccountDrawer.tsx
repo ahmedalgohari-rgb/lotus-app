@@ -230,44 +230,6 @@ export default function AccountDrawer({ visible, onClose, userName = 'Guest' }: 
 
           {/* Menu Items - Centered */}
           <View style={styles.menuContainer}>
-            {/* Terms & Conditions */}
-            <TouchableOpacity
-              style={[styles.menuItem, isRTL && styles.menuItemRTL]}
-              onPress={() => {
-                // TODO: Navigate to Terms & Conditions
-                console.log('Terms & Conditions pressed');
-              }}
-            >
-              <Ionicons
-                name="document-text-outline"
-                size={FIBONACCI.LG}
-                color={COLORS.text}
-                style={[styles.menuIcon, isRTL && styles.menuIconRTL]}
-              />
-              <Text style={[styles.menuText, isRTL && styles.menuTextRTL]}>
-                {t('account.termsAndConditions')}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Account Management */}
-            <TouchableOpacity
-              style={[styles.menuItem, isRTL && styles.menuItemRTL]}
-              onPress={() => {
-                // TODO: Navigate to Account Management
-                console.log('Account Management pressed');
-              }}
-            >
-              <Ionicons
-                name="settings-outline"
-                size={FIBONACCI.LG}
-                color={COLORS.text}
-                style={[styles.menuIcon, isRTL && styles.menuIconRTL]}
-              />
-              <Text style={[styles.menuText, isRTL && styles.menuTextRTL]}>
-                {t('account.accountManagement')}
-              </Text>
-            </TouchableOpacity>
-
             {/* Logout */}
             <TouchableOpacity
               style={[

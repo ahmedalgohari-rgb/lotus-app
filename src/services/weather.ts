@@ -2,6 +2,11 @@ import { WeatherData } from '../types';
 import i18n from '../i18n';
 import { logger } from '../utils/logger';
 
+// 🔒 SECURITY: API key moved to secure Edge Function
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1`;
+
 const CAIRO_COORDS = {
   lat: 30.0444,
   lon: 31.2357
@@ -28,7 +33,7 @@ interface OpenWeatherResponse {
 
 export class WeatherService {
   private static readonly BASE_URL = 'https://api.openweathermap.org/data/2.5';
-  private static readonly CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
+  private static readonly CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours (updated to match forecast API cache)
   private static readonly REQUEST_TIMEOUT = 10000; // 10 seconds
   private static readonly MAX_RETRIES = 3;
   
@@ -45,14 +50,13 @@ export class WeatherService {
         return this.cachedWeather;
       }
 
-      const apiKey = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY;
-      if (!apiKey) {
-        logger.warn('OpenWeather API key not configured');
+      if (!SUPABASE_URL) {
+        logger.warn('Supabase URL not configured');
         return this.getMockWeatherData();
       }
 
-      // Attempt API call with retry logic
-      const weatherData = await this.fetchWithRetry(apiKey);
+      // 🔒 SECURE: Call weather via Edge Function (no API key exposed)
+      const weatherData = await this.fetchWithRetry();
       
       // Cache successful response
       if (weatherData) {
@@ -88,39 +92,42 @@ export class WeatherService {
   }
 
   /**
-   * Fetch weather data with timeout and retry logic
+   * 🔒 SECURE: Fetch weather via Edge Function (API key protected)
    */
-  private static async fetchWithRetry(apiKey: string): Promise<WeatherData | null> {
+  private static async fetchWithRetry(): Promise<WeatherData | null> {
     let lastError: Error | null = null;
-    
+
     for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
       try {
         // Create abort controller for timeout
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), this.REQUEST_TIMEOUT);
-        
-        // Use current app language for weather API
+
+        // Use current app language
         const currentLang = i18n.language === 'ar' ? 'ar' : 'en';
-        
+
+        // Call secure Edge Function instead of OpenWeather directly
         const response = await fetch(
-          `${this.BASE_URL}/weather?lat=${CAIRO_COORDS.lat}&lon=${CAIRO_COORDS.lon}&appid=${apiKey}&units=metric&lang=${currentLang}`,
+          `${EDGE_FUNCTION_URL}/get-weather?lang=${currentLang}`,
           {
             signal: controller.signal,
             headers: {
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+              'apikey': SUPABASE_ANON_KEY,
               'Cache-Control': 'no-cache',
             },
           }
         );
-        
+
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          throw new Error(`Weather API error: ${response.status} ${response.statusText}`);
+          throw new Error(`Weather Edge Function error: ${response.status}`);
         }
 
         const data: OpenWeatherResponse = await response.json();
         return this.transformWeatherData(data);
-        
+
       } catch (error: unknown) {
         lastError = error as Error;
 
@@ -136,7 +143,7 @@ export class WeatherService {
         }
       }
     }
-    
+
     throw lastError || new Error('Weather API failed after all retries');
   }
 

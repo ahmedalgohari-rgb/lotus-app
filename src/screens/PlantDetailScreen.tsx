@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
+import { getPlantImage } from '../assets/plantImages';
 
 import {
   COLORS,
@@ -38,6 +39,43 @@ import { logger } from '../utils/logger';
 interface RouteParams {
   plantId: string;
 }
+
+// Helper function to format watering schedule (100_dry -> 100% dry, 100%dry -> 100% dry)
+const formatWateringSchedule = (schedule: string): string => {
+  if (!schedule) return schedule;
+  // Replace underscores with spaces and ensure space after %
+  return schedule
+    .replace(/_/g, ' ')
+    .replace(/(\d+)%\s*dry/gi, '$1% dry')  // Fix 100%dry or 100% dry -> 100% dry
+    .replace(/(\d+)\s+dry/i, '$1% dry');   // Fix 100 dry -> 100% dry
+};
+
+// Helper function to format light/orientation values (bright_direct -> Bright direct)
+const formatLightValue = (value: string): string => {
+  if (!value) return value;
+  // Replace underscores with spaces and capitalize first letter
+  return value
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+// Helper function to extract maximum watering days from text like "Water every 12-16 days"
+const extractMaxWateringDays = (wateringText: string): number => {
+  if (!wateringText) return 7; // Default fallback
+
+  // Match patterns like "12-16 days" or "14 days"
+  const rangeMatch = wateringText.match(/(\d+)-(\d+)\s*days?/i);
+  if (rangeMatch) {
+    return parseInt(rangeMatch[2], 10); // Return the max value (16 from "12-16")
+  }
+
+  const singleMatch = wateringText.match(/(\d+)\s*days?/i);
+  if (singleMatch) {
+    return parseInt(singleMatch[1], 10); // Return single value (14 from "14 days")
+  }
+
+  return 7; // Fallback to 7 days if no pattern found
+};
 
 export default function PlantDetailScreen() {
   if (Platform.OS === 'android') {
@@ -73,7 +111,7 @@ export default function PlantDetailScreen() {
 
   // Load enhanced care recommendations when plant data is available
   useEffect(() => {
-    console.log('🔍 PlantDetailScreen - plant data:', {
+    logger.debug('🔍 PlantDetailScreen - plant data:', {
       hasPlant: !!plant,
       plantId: plant?.id,
       speciesId: plant?.species_id,
@@ -82,10 +120,10 @@ export default function PlantDetailScreen() {
     });
 
     if (plant && plant.species_id) {
-      console.log('✅ Calling loadEnhancedCare for species:', plant.species_id);
+      logger.debug('✅ Calling loadEnhancedCare for species:', plant.species_id);
       loadEnhancedCare();
     } else {
-      console.log('⚠️ NOT calling loadEnhancedCare - missing plant or species_id');
+      logger.debug('⚠️ NOT calling loadEnhancedCare - missing plant or species_id');
     }
   }, [plant?.id, plant?.species_id, plant?.location, plant?.window_direction]);
 
@@ -117,7 +155,7 @@ export default function PlantDetailScreen() {
       );
 
       setEnhancedCare(recommendation);
-      console.log('✅ Enhanced care SET:', {
+      logger.debug('✅ Enhanced care SET:', {
         hasRecommendation: !!recommendation,
         stars: recommendation?.score?.stars,
         score: recommendation?.score?.scoreText,
@@ -183,8 +221,12 @@ export default function PlantDetailScreen() {
       // Update plant if watering
       if (eventType === 'water') {
         const nextWatering = new Date();
-        nextWatering.setDate(nextWatering.getDate() + 7); // Default 7 days
-        
+        // Extract max watering days from adjusted care tips (e.g., "12-16 days" -> 16)
+        const wateringDays = enhancedCare?.adjusted?.watering
+          ? extractMaxWateringDays(enhancedCare.adjusted.watering)
+          : 7; // Fallback to 7 days if no care data
+        nextWatering.setDate(nextWatering.getDate() + wateringDays);
+
         const updatedPlant = {
           ...plant,
           last_watered_at: now,
@@ -219,6 +261,31 @@ export default function PlantDetailScreen() {
   const getDirectionLabel = (direction: string) => {
     const found = WINDOW_DIRECTIONS.find(d => d.value === direction);
     return found ? found.label : direction;
+  };
+
+  const calculateHealthStatus = (plant: Plant): 'healthy' | 'needs_attention' | 'critical' => {
+    const placementScore = plant.placement_score || 0;
+    const hasBeenWatered = !!plant.last_watered_at; // Plant MUST have been watered before
+    const isWateringOverdue = plant.next_watering_at
+      ? new Date(plant.next_watering_at) < new Date()
+      : false;
+
+    // 🔴 CRITICAL: Poor placement (< 3 stars) - takes priority
+    if (placementScore < 3) {
+      return 'critical';
+    }
+
+    // 🟢 HEALTHY (THRIVING): Good placement (>= 3) AND has been watered AND on schedule
+    // A plant CANNOT be thriving if it's never been watered!
+    if (placementScore >= 3 && hasBeenWatered && !isWateringOverdue) {
+      return 'healthy';
+    }
+
+    // 🟡 NEEDS ATTENTION: Everything else
+    // - Never watered (even with good placement >= 3)
+    // - Good placement but overdue for watering
+    // - Any other case
+    return 'needs_attention';
   };
 
   const getHealthColor = (status: string) => {
@@ -284,7 +351,14 @@ export default function PlantDetailScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <ImageBackground
-          source={{ uri: plant.image_url || undefined }}
+          source={
+            // Priority 1: User's captured photo
+            plant.captured_image_uri ? { uri: plant.captured_image_uri } :
+            // Priority 2: Local database image
+            getPlantImage(plant.plant_id) ||
+            // Priority 3: Remote URL
+            { uri: plant.image_url || undefined }
+          }
           style={styles.headerImage}
           resizeMode="cover"
         >
@@ -308,9 +382,9 @@ export default function PlantDetailScreen() {
                 <Ionicons name={isEditingNickname ? "checkmark" : "create-outline"} size={24} color="white" />
               </TouchableOpacity>
             </View>
-            <View style={[styles.newHealthBadge, { backgroundColor: getHealthColor(plant.health_status) }]}>
+            <View style={[styles.newHealthBadge, { backgroundColor: getHealthColor(calculateHealthStatus(plant)) }]}>
               <Text style={styles.newHealthBadgeText}>
-                {plant.health_status.replace('_', ' ')}
+                {calculateHealthStatus(plant).replace('_', ' ')}
               </Text>
             </View>
           </View>
@@ -332,7 +406,7 @@ export default function PlantDetailScreen() {
                 activeOpacity={0.7}
               >
                 <Text style={[styles.careGuideTitle, isRTL && styles.careGuideTitleRTL]}>
-                  {isRTL ? 'دليل العناية' : 'Care Guide'}
+                  {t('plantDetail.careGuide')}
                 </Text>
                 <Ionicons
                   name={isCareGuideExpanded ? "chevron-up" : "chevron-down"}
@@ -369,7 +443,7 @@ export default function PlantDetailScreen() {
                           {isRTL ? 'الري' : 'Watering'}
                         </Text>
                         <Text style={[styles.careGuideValue, isRTL && styles.careGuideValueRTL]}>
-                          {plant.watering_schedule}
+                          {formatWateringSchedule(plant.watering_schedule)}
                         </Text>
                       </View>
                     )}
@@ -393,7 +467,7 @@ export default function PlantDetailScreen() {
                           {isRTL ? 'الإضاءة' : 'Light'}
                         </Text>
                         <Text style={[styles.careGuideValue, isRTL && styles.careGuideValueRTL]}>
-                          {plant.preferred_orientation}
+                          {formatLightValue(plant.preferred_orientation)}
                         </Text>
                       </View>
                     )}
@@ -426,7 +500,7 @@ export default function PlantDetailScreen() {
                   <View style={styles.careGuideItem}>
                     <Ionicons name="water-outline" size={20} color={COLORS.primary} />
                     <Text style={[styles.careGuideValue, { flex: 1, marginLeft: FIBONACCI.MD }]}>
-                      {enhancedCare.adjusted.watering}
+                      {formatWateringSchedule(enhancedCare.adjusted.watering)}
                     </Text>
                   </View>
 

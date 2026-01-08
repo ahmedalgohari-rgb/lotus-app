@@ -52,12 +52,12 @@ export default function AddScanScreen({ navigation }: AddScanScreenProps) {
     setPopularPlants(popular);
   }, []);
 
-  // Debounced search function - minimum 1 character (strict substring matching)
+  // Debounced search function - minimum 2 characters
   useEffect(() => {
     const trimmedQuery = searchQuery.trim();
 
-    // Require minimum 1 character for search (strict substring matching prevents too many results)
-    if (trimmedQuery.length < 1) {
+    // Require minimum 2 characters for search to reduce unnecessary re-renders
+    if (trimmedQuery.length < 2) {
       setSearchResults([]);
       setIsSearching(false);
       return;
@@ -73,17 +73,17 @@ export default function AddScanScreen({ navigation }: AddScanScreenProps) {
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
 
-  const handleSearchChange = (text: string) => {
+  const handleSearchChange = useCallback((text: string) => {
     setSearchQuery(text);
-  };
+  }, []);
 
-  const handleClearSearch = () => {
+  const handleClearSearch = useCallback(() => {
     setSearchQuery('');
     setSearchResults([]);
     setIsSearching(false);
-  };
+  }, []);
 
-  const handlePlantPress = (plant: Plant) => {
+  const handlePlantPress = useCallback((plant: Plant) => {
     // Format watering schedule for display
     const wateringMap: Record<string, string> = {
       '100_dry': '100% Dry - Water when completely dry',
@@ -115,50 +115,30 @@ export default function AddScanScreen({ navigation }: AddScanScreenProps) {
         preferred_humidity: plant.care.humidity || 'Medium',
         preferred_orientation: lightMap[plant.care.light.requirement] || plant.care.light.description,
         suggestions: [],
+        // Add database_match object to indicate this is a perfect database match
+        database_match: {
+          found: true,
+          confidence: 100, // Perfect match since user selected from database
+          match_type: 'exact', // Exact match - user manually selected this plant
+          plant_id: plant.id,
+          alternatives: [], // No alternatives needed for manual selection
+        },
+        care_available: true, // This plant has full care information in our database
       },
-      capturedImage: (plant as any).image_url || null, // Use kaynuna database image
+      capturedImage: undefined, // No camera photo - this is a database plant
+      plantDatabaseId: plant.id, // Database plant ID (e.g., "euphorbia_trigona") for local WebP lookup
       fromSearch: true, // Flag to indicate this came from search
     });
-  };
+  }, [navigation]);
 
   const handleIdentifyPress = () => {
     // Navigate to camera screen (current ScanScreen)
     navigation.navigate('Camera');
   };
 
-  // Render header component (non-virtualized, always visible)
-  const renderHeader = () => (
+  // Render section title and empty state only (no search bar)
+  const renderHeader = useCallback(() => (
     <>
-      {/* Header Section */}
-      <View style={styles.header}>
-        <Text style={[styles.title, isRTL && styles.titleRTL]}>{t('addScan.title')}</Text>
-        <Text style={[styles.subtitle, isRTL && styles.subtitleRTL]}>
-          {t('addScan.subtitle')}
-        </Text>
-      </View>
-
-      {/* Search + Identify Row */}
-      <View style={[styles.searchRow, isRTL && styles.searchRowRTL]}>
-        <View style={styles.searchContainer}>
-          <SearchBar
-            value={searchQuery}
-            onChangeText={handleSearchChange}
-            onClear={handleClearSearch}
-          />
-        </View>
-
-        <Text style={[styles.orText, isRTL && styles.orTextRTL]}>{t('addScan.or')}</Text>
-
-        <TouchableOpacity
-          style={styles.identifyButton}
-          onPress={handleIdentifyPress}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="camera" size={20} color={COLORS.text} />
-          <Text style={[styles.identifyButtonText, isRTL && styles.identifyButtonTextRTL]}>{t('addScan.identify')}</Text>
-        </TouchableOpacity>
-      </View>
-
       {/* Section Title */}
       <Text style={[styles.sectionTitle, isRTL && styles.sectionTitleRTL]}>
         {isSearching ? t('addScan.searchResults') : t('addScan.popularPlants')}
@@ -171,7 +151,7 @@ export default function AddScanScreen({ navigation }: AddScanScreenProps) {
         </View>
       )}
     </>
-  );
+  ), [isSearching, searchQuery, searchResults.length, isRTL, t]);
 
   // Render individual plant card (virtualized)
   const renderPlantCard = useCallback(({ item }: { item: Plant }) => (
@@ -188,6 +168,36 @@ export default function AddScanScreen({ navigation }: AddScanScreenProps) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header Section - Outside FlatList */}
+      <View style={styles.staticHeader}>
+        <Text style={[styles.title, isRTL && styles.titleRTL]}>{t('addScan.title')}</Text>
+        <Text style={[styles.subtitle, isRTL && styles.subtitleRTL]}>
+          {t('addScan.subtitle')}
+        </Text>
+      </View>
+
+      {/* Search + Identify Row - Outside FlatList */}
+      <View style={[styles.searchRow, isRTL && styles.searchRowRTL]}>
+        <View style={styles.searchContainer}>
+          <SearchBar
+            value={searchQuery}
+            onChangeText={handleSearchChange}
+            onClear={handleClearSearch}
+          />
+        </View>
+
+        <Text style={[styles.orText, isRTL && styles.orTextRTL]}>{t('addScan.or')}</Text>
+
+        <TouchableOpacity
+          style={styles.identifyButton}
+          onPress={handleIdentifyPress}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="camera" size={24} color={COLORS.text} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Plant List - Only section title and results */}
       <FlatList
         data={plantsToDisplay}
         renderItem={renderPlantCard}
@@ -202,8 +212,11 @@ export default function AddScanScreen({ navigation }: AddScanScreenProps) {
         }
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        // Keyboard behavior - keep keyboard open while typing
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
         // Performance optimizations
-        removeClippedSubviews={true}
+        removeClippedSubviews={false}
         maxToRenderPerBatch={5}
         updateCellsBatchingPeriod={50}
         initialNumToRender={7}
@@ -217,6 +230,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  staticHeader: {
+    paddingHorizontal: FIBONACCI.LG,
+    marginTop: FIBONACCI.LG,
+    marginBottom: FIBONACCI.MD,
   },
   scrollContent: {
     paddingHorizontal: FIBONACCI.LG,
@@ -246,13 +264,14 @@ const styles = StyleSheet.create({
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: FIBONACCI.XL,
+    paddingHorizontal: FIBONACCI.LG,
+    marginBottom: FIBONACCI.LG,
   },
   searchRowRTL: {
     flexDirection: 'row-reverse',
   },
   searchContainer: {
-    flex: 1,
+    flex: 1, // Takes remaining space after fixed-width identify button
   },
   orText: {
     fontSize: TYPOGRAPHY.BASE,
@@ -264,14 +283,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   identifyButton: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F4D03F', // Yellow color from reference design
-    paddingHorizontal: FIBONACCI.LG,
-    paddingVertical: FIBONACCI.MD,
-    borderRadius: ELEMENT_SIZES.RADIUS_MD,
+    width: ELEMENT_SIZES.BUTTON_MD, // 55px - make it square
     height: ELEMENT_SIZES.BUTTON_MD, // 55px - match search bar height
+    borderRadius: ELEMENT_SIZES.RADIUS_MD,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,

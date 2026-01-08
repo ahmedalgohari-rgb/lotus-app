@@ -28,9 +28,16 @@ import {
 import { useStore } from '../store';
 import type { IdentificationResult } from '../types';
 import { authService, dbService } from '../services/supabase';
+import { createPlantIdService } from '../services/plant-identification';
 import NameCollectionModal from '../components/NameCollectionModal';
+import MatchBadge from '../components/MatchBadge';
+import PartialMatchCard from '../components/PartialMatchCard';
+import GenericCareCard from '../components/GenericCareCard';
+import PlantRequestButton from '../components/PlantRequestButton';
+import { getPlantImage } from '../assets/plantImages';
 import { logger, timer } from '../utils/logger';
 import { useRTL } from '../utils/rtl';
+import { processCapturedPhoto } from '../utils/imageProcessor';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -38,7 +45,9 @@ interface PlantResultScreenProps {
   route: {
     params: {
       identificationResult: IdentificationResult;
-      capturedImage: string;
+      capturedImage?: string;  // Camera photo URI (optional)
+      plantDatabaseId?: string;  // Database plant ID (optional, e.g., "euphorbia_trigona")
+      fromSearch?: boolean;  // Flag indicating navigation from search
     };
   };
 }
@@ -49,7 +58,7 @@ export default function PlantResultScreen() {
   const { t } = useTranslation();
   const isRTL = useRTL();
 
-  const { identificationResult, capturedImage } = route.params as PlantResultScreenProps['route']['params'];
+  const { identificationResult, capturedImage, plantDatabaseId } = route.params as PlantResultScreenProps['route']['params'];
 
   const { user, isAuthenticated, isGuest, setUser, setAuthenticated, updateUserName } = useStore();
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
@@ -60,6 +69,48 @@ export default function PlantResultScreen() {
   const [isVerifyingOTP, setIsVerifyingOTP] = useState(false);
   const [showNameCollection, setShowNameCollection] = useState(false);
   const [pendingUser, setPendingUser] = useState<any>(null);
+
+  // ⚡ NEW: Background image processing & upload state
+  const [imageProcessing, setImageProcessing] = useState<{
+    processedUri: string | null;
+    cloudUrl: string | null;
+    status: 'idle' | 'processing' | 'uploading' | 'complete' | 'failed';
+    error: Error | null;
+  }>({
+    processedUri: null,
+    cloudUrl: null,
+    status: 'idle',
+    error: null
+  });
+
+  // Determine match scenario based on database_match object
+  const getMatchScenario = (): 'full' | 'genus' | 'family' | 'none' => {
+    if (!identificationResult?.database_match?.found) {
+      return 'none';
+    }
+
+    const { confidence, match_type } = identificationResult.database_match;
+
+    // FULL_MATCH: Exact or high-confidence genus match
+    if (confidence >= 85) {
+      return 'full';
+    }
+
+    // GENUS_MATCH: Medium-confidence genus match with alternatives
+    if (match_type === 'genus' && confidence >= 70 && confidence < 85) {
+      return 'genus';
+    }
+
+    // FAMILY_MATCH: Common name match or low-confidence genus
+    if (match_type === 'common_name' || (confidence >= 60 && confidence < 70)) {
+      return 'family';
+    }
+
+    return 'none';
+  };
+
+  const matchScenario = identificationResult ? getMatchScenario() : 'none';
+  const dbMatch = identificationResult?.database_match;
 
   // Animation for phone modal slide-up and fade-in
   const phoneModalSlideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
@@ -99,6 +150,75 @@ export default function PlantResultScreen() {
     }
   }, [showPhoneAuth]);
 
+  // ⚡ OPTIMIZATION: Process & upload image in background immediately on mount
+  useEffect(() => {
+    if (capturedImage && user && imageProcessing.status === 'idle') {
+      processAndUploadImage();
+    }
+  }, [capturedImage, user]);
+
+  // ⚡ Background image processing & upload
+  const processAndUploadImage = async () => {
+    if (!capturedImage || !user) return;
+
+    try {
+      // Step 1: Process to WebP (2-3s in background)
+      setImageProcessing(prev => ({ ...prev, status: 'processing' }));
+      logger.info('⚡ Starting background image processing...');
+
+      const processedUri = await processCapturedPhoto(capturedImage, user.id);
+
+      logger.info('✅ Image processed to WebP', { processedUri });
+
+      // Step 2: Upload to cloud (2-5s in background)
+      setImageProcessing(prev => ({
+        ...prev,
+        processedUri,
+        status: 'uploading'
+      }));
+      logger.info('⚡ Starting background cloud upload...');
+
+      const cloudUrl = await dbService.uploadImage({
+        uri: processedUri,
+        type: 'image/webp',
+        name: `plant_${user.id}_${Date.now()}.webp`
+      }, 'plant-images');
+
+      // Step 3: Complete!
+      setImageProcessing({
+        processedUri,
+        cloudUrl,
+        status: 'complete',
+        error: null
+      });
+
+      logger.info('✅ Background processing & upload complete!', {
+        processedUri,
+        cloudUrl
+      });
+    } catch (error) {
+      logger.error('❌ Background processing/upload failed:', error);
+      setImageProcessing(prev => ({
+        ...prev,
+        status: 'failed',
+        error: error as Error
+      }));
+    }
+  };
+
+  // ⚡ CLEANUP: Delete uploaded image if user goes back without saving
+  useEffect(() => {
+    return () => {
+      // User navigated away - if image was uploaded but not saved, clean up
+      if (imageProcessing.cloudUrl && imageProcessing.status === 'complete') {
+        logger.info('🗑️ User left screen - deleting unused upload');
+        dbService.deleteUploadedImage(imageProcessing.cloudUrl).catch(err => {
+          logger.warn('Failed to delete uploaded image:', err);
+        });
+      }
+    };
+  }, [imageProcessing.cloudUrl, imageProcessing.status]);
+
   const handlePostAuthSuccess = () => {
     // Close all modals
     setShowAuthPrompt(false);
@@ -110,7 +230,95 @@ export default function PlantResultScreen() {
       navigation.navigate('AddPlant', {
         identificationResult,
         capturedImage,
+        plantDatabaseId,
+        // ⚡ NEW: Pass pre-processed URIs (already done in background!)
+        processedImageUri: imageProcessing.processedUri,
+        cloudImageUrl: imageProcessing.cloudUrl,
       });
+    }
+  };
+
+  const handleFacebookSignIn = async () => {
+    setIsLoading(true);
+    logger.group('🔐 Facebook Sign-In Flow (Modal)');
+    timer.start('facebook-signin-modal');
+
+    try {
+      logger.debug('Initiating Facebook OAuth from modal...');
+      const { data, error } = await authService.signInWithFacebook();
+      if (error) throw error;
+
+      if (data && 'user' in data && data.user) {
+        logger.debug('Facebook OAuth successful', { userId: data.user.id, email: data.user.email });
+
+        const { data: profileData } = await dbService.getProfile(data.user.id);
+        const hasFirstName = profileData?.first_name && profileData.first_name.trim().length > 0;
+
+        const facebookFullName = data.user.user_metadata?.name || data.user.user_metadata?.full_name;
+        const facebookFirstName = facebookFullName?.split(' ')[0]?.trim();
+
+        const userData = {
+          id: data.user.id,
+          email: data.user.email,
+          name: profileData?.first_name || facebookFullName || data.user.email,
+          first_name: profileData?.first_name || facebookFirstName,
+          avatar_url: data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture?.data?.url,
+          created_at: data.user.created_at,
+        };
+
+        if (!hasFirstName && facebookFirstName) {
+          // Auto-save Facebook-provided name
+          logger.info('Auto-saving Facebook-provided name', { firstName: facebookFirstName });
+          try {
+            await dbService.updateUserProfile(data.user.id, facebookFirstName);
+            setUser({
+              ...userData,
+              first_name: facebookFirstName,
+              name: facebookFirstName,
+            });
+            updateUserName(facebookFirstName);
+            setAuthenticated(true);
+            logger.success('User authenticated with auto-saved name');
+            timer.end('facebook-signin-modal');
+            logger.groupEnd();
+            setIsLoading(false);
+            handlePostAuthSuccess();
+          } catch (saveError) {
+            logger.error('Error auto-saving Facebook name:', saveError);
+            setPendingUser(userData);
+            setShowNameCollection(true);
+            logger.groupEnd();
+            setIsLoading(false);
+          }
+        } else if (!hasFirstName && !facebookFirstName) {
+          // Show name collection modal
+          logger.info('Showing name collection modal');
+          setPendingUser(userData);
+          setShowNameCollection(true);
+          timer.end('facebook-signin-modal');
+          logger.groupEnd();
+          setIsLoading(false);
+        } else {
+          // Existing user with first_name
+          logger.success('Returning user authenticated', { firstName: userData.first_name });
+          setUser(userData);
+          setAuthenticated(true);
+          timer.end('facebook-signin-modal');
+          logger.groupEnd();
+          setIsLoading(false);
+          handlePostAuthSuccess();
+        }
+      }
+    } catch (error: any) {
+      logger.error('Facebook sign in error:', error);
+      logger.groupEnd();
+
+      // Don't show error alert if user intentionally cancelled
+      if (error?.name !== 'UserCancelled' && error?.message !== 'User cancelled OAuth') {
+        Alert.alert('Sign In Failed', 'Please try again.');
+      }
+
+      setIsLoading(false);
     }
   };
 
@@ -185,10 +393,15 @@ export default function PlantResultScreen() {
           handlePostAuthSuccess();
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Google sign in error:', error);
       logger.groupEnd();
-      Alert.alert('Sign In Failed', 'Please try again.');
+
+      // Don't show error alert if user intentionally cancelled
+      if (error?.name !== 'UserCancelled' && error?.message !== 'User cancelled OAuth') {
+        Alert.alert('Sign In Failed', 'Please try again.');
+      }
+
       setIsLoading(false);
     }
   };
@@ -306,6 +519,10 @@ export default function PlantResultScreen() {
       navigation.navigate('AddPlant', {
         identificationResult,
         capturedImage,
+        plantDatabaseId,
+        // ⚡ NEW: Pass pre-processed URIs (already done in background!)
+        processedImageUri: imageProcessing.processedUri,
+        cloudImageUrl: imageProcessing.cloudUrl,
       });
     }
   };
@@ -315,7 +532,16 @@ export default function PlantResultScreen() {
     navigation.navigate('Auth');
   };
 
-  const retryCapture = () => {
+  const retryCapture = async () => {
+    // ⚡ CLEANUP: Delete uploaded image before going back
+    if (imageProcessing.cloudUrl) {
+      logger.info('🗑️ User clicked "Take Another" - deleting upload');
+      try {
+        await dbService.deleteUploadedImage(imageProcessing.cloudUrl);
+      } catch (error) {
+        logger.warn('Failed to delete uploaded image:', error);
+      }
+    }
     navigation.goBack();
   };
 
@@ -353,20 +579,7 @@ export default function PlantResultScreen() {
               {/* Auth Buttons */}
               <View style={styles.authButtons}>
                 <TouchableOpacity
-                  style={styles.phoneButton}
-                  onPress={() => {
-                    console.log('📱 Phone button pressed!');
-                    logger.debug('Opening phone auth modal');
-                    setShowPhoneAuth(true);
-                  }}
-                  disabled={isLoading}
-                >
-                  <Ionicons name="call" size={FIBONACCI.LG} color={COLORS.primary} />
-                  <Text style={styles.phoneButtonText}>{t('auth.continueWithPhone')}</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.googleButton}
+                  style={[styles.googleButton, isLoading && styles.buttonDisabled]}
                   onPress={handleGoogleSignIn}
                   disabled={isLoading}
                 >
@@ -374,10 +587,24 @@ export default function PlantResultScreen() {
                   <Text style={styles.googleButtonText}>{t('auth.continueWithGoogle')}</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.appleButton} disabled={true}>
+                <TouchableOpacity
+                  style={[styles.facebookButton, isLoading && styles.buttonDisabled]}
+                  onPress={handleFacebookSignIn}
+                  disabled={isLoading}
+                >
+                  <Ionicons name="logo-facebook" size={FIBONACCI.LG} color={COLORS.primary} />
+                  <Text style={styles.facebookButtonText}>{t('auth.continueWithFacebook')}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.appleButton, styles.buttonDisabled]}
+                  disabled={true}
+                >
                   <View style={styles.appleButtonContent}>
-                    <Ionicons name="logo-apple" size={FIBONACCI.LG} color={COLORS.primary} />
-                    <Text style={styles.appleButtonText}>{t('auth.continueWithApple')}</Text>
+                    <Ionicons name="logo-apple" size={FIBONACCI.LG} color="#999" />
+                    <Text style={[styles.appleButtonText, styles.buttonTextDisabled]}>
+                      {t('auth.continueWithApple')}
+                    </Text>
                     <View style={styles.comingSoonBadge}>
                       <Text style={styles.comingSoonText}>{t('auth.comingSoon')}</Text>
                     </View>
@@ -510,7 +737,10 @@ export default function PlantResultScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="close" size={24} color={COLORS.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, isRTL && styles.headerTitleRTL]}>{t('plantResult.title')}</Text>
+        {/* Dynamic title based on source: scanned vs database-selected */}
+        <Text style={[styles.headerTitle, isRTL && styles.headerTitleRTL]}>
+          {capturedImage ? t('plantResult.title') : t('plantResult.titleDatabase')}
+        </Text>
         <View style={styles.headerButton} />
       </View>
 
@@ -524,12 +754,52 @@ export default function PlantResultScreen() {
           scrollEnabled={true}
         >
           <View style={styles.imageContainer}>
-            {capturedImage && <Image source={{ uri: capturedImage }} style={styles.resultImage} />}
-            <View style={styles.confidenceBadge}>
-              <Text style={styles.confidenceText}>
-                {identificationResult.confidence}% confidence
-              </Text>
-            </View>
+            <Image
+              source={
+                // PRIORITY FIX: When user scans a plant, ONLY show their photo!
+                // Stock database images only for plants selected from search (no scan)
+                capturedImage ? { uri: capturedImage } :
+                plantDatabaseId && !capturedImage ? getPlantImage(plantDatabaseId) :
+                { uri: 'https://i.imgur.com/2n3nS2Y.png' }
+              }
+              style={styles.resultImage}
+              resizeMode="cover"
+            />
+            {/* Only show confidence badge for scanned plants (when capturedImage exists) */}
+            {capturedImage && (
+              <MatchBadge
+                matchType={matchScenario}
+                confidence={dbMatch?.confidence || identificationResult.confidence}
+              />
+            )}
+            {/* Provider Attribution Watermark (Dynamic based on active provider) */}
+            {/* Required by some providers' Terms of Service (e.g., PlantNet) */}
+            {capturedImage && (() => {
+              const plantIdService = createPlantIdService();
+              const attribution = plantIdService.getAttribution();
+
+              // Only render if attribution is required by provider
+              if (!attribution.required) return null;
+
+              return (
+                <View style={[
+                  styles.providerAttribution,
+                  attribution.position === 'top-right' && styles.topRight,
+                  attribution.position === 'top-left' && styles.topLeft,
+                  attribution.position === 'bottom-right' && styles.bottomRight,
+                  attribution.position === 'bottom-left' && styles.bottomLeft,
+                ]}>
+                  <Image
+                    source={attribution.logo}
+                    style={[
+                      styles.providerLogo,
+                      { width: attribution.dimensions.width, height: attribution.dimensions.height }
+                    ]}
+                    resizeMode="contain"
+                  />
+                </View>
+              );
+            })()}
           </View>
 
           <View style={styles.plantInfo}>
@@ -542,6 +812,64 @@ export default function PlantResultScreen() {
             )}
           </View>
 
+          {/* Match Scenario: FULL_MATCH (≥85% confidence) - No message shown, users don't need to know about our database */}
+
+          {/* Match Scenario: GENUS_MATCH (70-84% confidence) */}
+          {matchScenario === 'genus' && (
+            <>
+              <View style={styles.careSection}>
+                <Text style={[styles.careTitle, isRTL && styles.careTitleRTL]}>
+                  ℹ️ {t('plantResult.matchTypes.genus')}
+                </Text>
+                <Text style={[styles.careDescription, isRTL && styles.careDescriptionRTL]}>
+                  {t('plantResult.matchMessages.genusMatch')}
+                </Text>
+              </View>
+
+              {dbMatch?.alternatives && dbMatch.alternatives.length > 0 && (
+                <PartialMatchCard
+                  genusName={identificationResult.genus || ''}
+                  alternatives={dbMatch.alternatives}
+                  onAlternativePress={(plantId) => {
+                    // Navigate to AddPlant with selected database plant
+                    navigation.navigate('AddPlant', { plantDatabaseId: plantId });
+                  }}
+                />
+              )}
+            </>
+          )}
+
+          {/* Match Scenario: FAMILY_MATCH (<70% confidence or common_name) */}
+          {matchScenario === 'family' && (
+            <View style={styles.careSection}>
+              <Text style={[styles.careTitle, isRTL && styles.careTitleRTL]}>
+                ⚠️ {t('plantResult.matchTypes.family')}
+              </Text>
+              <Text style={[styles.careDescription, isRTL && styles.careDescriptionRTL]}>
+                {t('plantResult.matchMessages.familyMatch')}
+              </Text>
+            </View>
+          )}
+
+          {/* Match Scenario: NO_MATCH (not in database) */}
+          {matchScenario === 'none' && (
+            <>
+              <View style={styles.careSection}>
+                <Text style={[styles.careTitle, isRTL && styles.careTitleRTL]}>
+                  🔍 {t('plantResult.matchTypes.none')}
+                </Text>
+                <Text style={[styles.careDescription, isRTL && styles.careDescriptionRTL]}>
+                  {t('plantResult.matchMessages.noMatch')}
+                </Text>
+              </View>
+
+              <GenericCareCard
+                plantFamily={identificationResult.family}
+                scientificName={identificationResult.scientific_name}
+              />
+            </>
+          )}
+
           {/* Plant Description */}
           {identificationResult.plant_info && (
             <View style={styles.careSection}>
@@ -552,36 +880,38 @@ export default function PlantResultScreen() {
             </View>
           )}
 
-          {/* Unlock Plant's Full Potential */}
-          <View style={styles.careSection}>
-            <Text style={styles.careTitle}>{t('plantResult.unlockPotential')}</Text>
-            
-            <View style={styles.careDetails}>
-              <View style={styles.unlockItem}>
-                <Ionicons name="heart-outline" size={20} color={COLORS.primary} style={styles.unlockIcon} />
-                <Text style={styles.unlockLabel}>{t('plantResult.features.saveToGarden')}</Text>
-                {isGuest && <Ionicons name="lock-closed" size={16} color={COLORS.textSecondary} />}
-              </View>
+          {/* Unlock Plant's Full Potential - Only show for guest users */}
+          {isGuest && (
+            <View style={styles.careSection}>
+              <Text style={styles.careTitle}>{t('plantResult.unlockPotential')}</Text>
 
-              <View style={styles.unlockItem}>
-                <Ionicons name="water-outline" size={20} color={COLORS.primary} style={styles.unlockIcon} />
-                <Text style={styles.unlockLabel}>{t('plantResult.features.smartWatering')}</Text>
-                {isGuest && <Ionicons name="lock-closed" size={16} color={COLORS.textSecondary} />}
-              </View>
+              <View style={styles.careDetails}>
+                <View style={styles.unlockItem}>
+                  <Ionicons name="heart-outline" size={20} color={COLORS.primary} style={styles.unlockIcon} />
+                  <Text style={styles.unlockLabel}>{t('plantResult.features.saveToGarden')}</Text>
+                  <Ionicons name="lock-closed" size={16} color={COLORS.textSecondary} />
+                </View>
 
-              <View style={styles.unlockItem}>
-                <Ionicons name="compass-outline" size={20} color={COLORS.primary} style={styles.unlockIcon} />
-                <Text style={styles.unlockLabel}>{t('plantResult.features.placementTips')}</Text>
-                {isGuest && <Ionicons name="lock-closed" size={16} color={COLORS.textSecondary} />}
-              </View>
+                <View style={styles.unlockItem}>
+                  <Ionicons name="water-outline" size={20} color={COLORS.primary} style={styles.unlockIcon} />
+                  <Text style={styles.unlockLabel}>{t('plantResult.features.smartWatering')}</Text>
+                  <Ionicons name="lock-closed" size={16} color={COLORS.textSecondary} />
+                </View>
 
-              <View style={styles.unlockItem}>
-                <Ionicons name="book-outline" size={20} color={COLORS.primary} style={styles.unlockIcon} />
-                <Text style={styles.unlockLabel}>{t('plantResult.features.careGuides')}</Text>
-                {isGuest && <Ionicons name="lock-closed" size={16} color={COLORS.textSecondary} />}
+                <View style={styles.unlockItem}>
+                  <Ionicons name="compass-outline" size={20} color={COLORS.primary} style={styles.unlockIcon} />
+                  <Text style={styles.unlockLabel}>{t('plantResult.features.placementTips')}</Text>
+                  <Ionicons name="lock-closed" size={16} color={COLORS.textSecondary} />
+                </View>
+
+                <View style={styles.unlockItem}>
+                  <Ionicons name="book-outline" size={20} color={COLORS.primary} style={styles.unlockIcon} />
+                  <Text style={styles.unlockLabel}>{t('plantResult.features.careGuides')}</Text>
+                  <Ionicons name="lock-closed" size={16} color={COLORS.textSecondary} />
+                </View>
               </View>
             </View>
-          </View>
+          )}
 
           <View style={styles.actionButtons}>
             <TouchableOpacity
@@ -594,17 +924,36 @@ export default function PlantResultScreen() {
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.retryButton} onPress={retryCapture}>
-              <Ionicons name="camera-outline" size={24} color={COLORS.primary} />
-              <Text style={styles.retryButtonText}>{t('plantResult.buttons.tryAnother')}</Text>
-            </TouchableOpacity>
+            {/* Only show "Try Another" button if user came from camera scan (not from search) */}
+            {capturedImage && (
+              <TouchableOpacity style={styles.retryButton} onPress={retryCapture}>
+                <Ionicons name="camera-outline" size={24} color={COLORS.primary} />
+                <Text style={styles.retryButtonText}>{t('plantResult.buttons.tryAnother')}</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Show request button for partial/no matches */}
+            {(matchScenario === 'genus' || matchScenario === 'family' || matchScenario === 'none') && (
+              <PlantRequestButton
+                plantName={identificationResult.common_name}
+                scientificName={identificationResult.scientific_name}
+                buttonText={
+                  matchScenario === 'genus'
+                    ? t('plantRequest.requestSpecific')
+                    : t('plantRequest.requestCare')
+                }
+                variant={matchScenario === 'none' ? 'primary' : 'secondary'}
+              />
+            )}
           </View>
 
-          {/* Footer */}
-          <View style={styles.footer}>
-            <Ionicons name="information-circle" size={FIBONACCI.MD} color={COLORS.textSecondary} />
-            <Text style={styles.footerText}>{t('plantResult.imageProcessingNote')}</Text>
-          </View>
+          {/* Footer - Only show image processing note for scanned plants (when capturedImage exists) */}
+          {capturedImage && (
+            <View style={styles.footer}>
+              <Ionicons name="information-circle" size={FIBONACCI.MD} color={COLORS.textSecondary} />
+              <Text style={styles.footerText}>{t('plantResult.imageProcessingNote')}</Text>
+            </View>
+          )}
         </ScrollView>
       )}
     </SafeAreaView>
@@ -717,6 +1066,14 @@ const styles = StyleSheet.create({
   plantDescriptionRTL: {
     textAlign: 'right',
   },
+  careDescription: {
+    fontSize: TYPOGRAPHY.BASE, // 16px
+    color: COLORS.textSecondary,
+    lineHeight: TYPOGRAPHY.BASE * 1.5, // 24px
+  },
+  careDescriptionRTL: {
+    textAlign: 'right',
+  },
   careDetails: {
     gap: FIBONACCI.SM, // 8px - Reduced spacing for compactness
   },
@@ -819,25 +1176,6 @@ const styles = StyleSheet.create({
     gap: FIBONACCI.LG, // 21px - Fibonacci button gaps
     marginBottom: FIBONACCI.XL, // 34px - Fibonacci section spacing
   },
-  phoneButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.white,
-    height: ELEMENT_SIZES.BUTTON_MD, // 55px - Fibonacci button height
-    borderRadius: FIBONACCI.XL, // 34px - Pill shape
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: FIBONACCI.SM,
-    elevation: 4,
-    gap: FIBONACCI.SM, // 8px - Icon spacing
-  },
-  phoneButtonText: {
-    color: COLORS.primary,
-    fontSize: TYPOGRAPHY.BASE, // 16px - Golden ratio typography
-    fontWeight: '600',
-  },
   googleButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -852,6 +1190,25 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   googleButtonText: {
+    color: COLORS.primary,
+    fontSize: TYPOGRAPHY.BASE, // 16px - Golden ratio typography
+    fontWeight: '600',
+    marginLeft: FIBONACCI.MD,
+  },
+  facebookButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.white,
+    height: ELEMENT_SIZES.BUTTON_MD, // 55px - Fibonacci button height
+    borderRadius: FIBONACCI.XL, // 34px - Pill shape
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: FIBONACCI.SM,
+    elevation: 4,
+  },
+  facebookButtonText: {
     color: COLORS.primary,
     fontSize: TYPOGRAPHY.BASE, // 16px - Golden ratio typography
     fontWeight: '600',
@@ -1038,5 +1395,50 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: TYPOGRAPHY.BASE, // 16px - Golden ratio typography
     fontWeight: '600',
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+  buttonTextDisabled: {
+    color: '#999',
+  },
+
+  // Dynamic Provider Attribution Watermark (adapts to active provider)
+  // Positioned based on provider preferences (PlantNet, Plant.id, Google Vision, etc.)
+  // Only displayed if provider requires attribution
+  providerAttribution: {
+    position: 'absolute',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)', // Semi-transparent white for readability
+    paddingHorizontal: FIBONACCI.SM, // 8px - Compact padding
+    paddingVertical: FIBONACCI.XXS + 2, // 5px - Minimal vertical padding
+    borderRadius: FIBONACCI.XS, // 5px - Subtle rounded corners
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3, // Android shadow
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  // Positioning styles for different corners
+  topRight: {
+    top: FIBONACCI.SM, // 8px from top
+    right: FIBONACCI.SM, // 8px from right
+  },
+  topLeft: {
+    top: FIBONACCI.SM, // 8px from top
+    left: FIBONACCI.SM, // 8px from left
+  },
+  bottomRight: {
+    bottom: FIBONACCI.SM, // 8px from bottom
+    right: FIBONACCI.SM, // 8px from right
+  },
+  bottomLeft: {
+    bottom: FIBONACCI.SM, // 8px from bottom
+    left: FIBONACCI.SM, // 8px from left
+  },
+  providerLogo: {
+    opacity: 1, // Full opacity for clear attribution
+    // Width and height set dynamically by attribution.dimensions
   },
 });

@@ -15,10 +15,13 @@ export interface Plant {
   id: string;
   user_id: string;
   species_id?: string;
+  plant_id?: string;  // Database plant ID (for local image lookup)
   nickname: string;
   location: 'living_room' | 'bedroom' | 'kitchen' | 'bathroom' | 'balcony';
   window_direction: 'north' | 'east' | 'south' | 'west';
+  placement_score?: number;  // Location rating: 1-5 stars (from placement analysis)
   image_url?: string;
+  captured_image_uri?: string;  // User's captured photo (local file URI)
   health_status: 'healthy' | 'needs_attention' | 'critical';
   last_watered_at?: string;
   next_watering_at?: string;
@@ -80,7 +83,7 @@ export interface IdentificationResult {
   plant_info: string;
   plant_type: string; // Allow any plant type string
   watering_schedule: string; // Display-ready string like "60% Dry - Water when mostly dry"
-  preferred_humidity: string; // Display-ready string like "Medium" 
+  preferred_humidity: string; // Display-ready string like "Medium"
   preferred_orientation: string; // Display-ready string like "Indoor - East Window"
   alternatives?: Array<{
     common_name: string;
@@ -88,6 +91,20 @@ export interface IdentificationResult {
     confidence: number;
   }>;
   suggestions: string[];
+
+  // NEW: Database matching fields for curated plant tracking
+  database_match?: {
+    found: boolean;              // true if matched to database plant
+    confidence: number;          // matching confidence (0-100)
+    plant_id: string | null;     // Database plant ID (e.g., "golden_pothos")
+    match_type: 'exact' | 'genus' | 'common_name' | 'none';
+    alternatives?: Array<{       // Other possible matches (if genus match)
+      plant_id: string;
+      confidence: number;
+      plant_name: string;
+    }>;
+  };
+  care_available?: boolean;      // false if plant not in curated database
 }
 
 // Enum types for internal plant data validation
@@ -100,7 +117,17 @@ export type NavigationParamList = {
   Scan: undefined;
   Plants: undefined;
   PlantDetail: { plantId: string };
-  AddPlant: { identificationResult?: IdentificationResult; capturedImage?: string };
+  AddPlant: {
+    identificationResult?: IdentificationResult;
+    capturedImage?: string;  // Camera photo URI (only for scanned plants)
+    plantDatabaseId?: string;  // Database plant ID (only for selected plants, e.g., "euphorbia_trigona")
+  };
+  PlantResult: {
+    identificationResult: IdentificationResult;
+    capturedImage?: string;  // Camera photo URI (only for scanned plants)
+    plantDatabaseId?: string;  // Database plant ID (only for selected plants)
+    fromSearch?: boolean;
+  };
   Settings: undefined;
   Auth: undefined;
   EmailAuth: undefined;

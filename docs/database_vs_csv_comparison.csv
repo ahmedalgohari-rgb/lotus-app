@@ -1,0 +1,137 @@
+database_vs_csv_comparison
+Plant ID,Common Name (DB),Common Name (CSV),Match,Scientific Name (DB),Scientific Name (CSV),Match,Arabic Name (DB),Arabic Name (CSV),Match,Difficulty (DB),Difficulty (CSV),Match,Type (DB),Type (CSV),Match,Pet Safe (DB),Pet Safe (CSV),Match,Has Image (DB),Has Image (CSV),Match,Overall Status
+african_lily,African lily,African lily,✓,Agapanthus,Agapanthus,✓,زنبق أفريقيا,زنبق أفريقيا,✓,intermediate,intermediate,✓,flowering,flowering,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+aglaonema,Chinese Evergreen,Chinese Evergreen,✓,Aglaonema commutatum,Aglaonema commutatum,✓,الخضرة الصينية,الخضرة الصينية,✓,beginner,beginner,✓,foliage,foliage,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+aglaonema_brilliant,Aglaonema Brilliant,Aglaonema Brilliant,✓,Aglaonema 'Brilliant',Aglaonema 'Brilliant',✓,أجلونيما بريليانت,أجلونيما بريليانت,✓,beginner,beginner,✓,foliage,foliage,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+aglaonema_pink_dalmatian,Aglaonema Pink Dalmatian,Aglaonema Pink Dalmatian,✓,Aglaonema 'Pink Dalmatian',Aglaonema 'Pink Dalmatian',✓,أجلونيما بينك دالماتيان,أجلونيما بينك دالماتيان,✓,beginner,beginner,✓,foliage,foliage,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+aglaonema_pink_valentine,Aglaonema 'Pink Valentine',Aglaonema 'Pink Valentine',✓,Aglaonema 'Pink Valentine',Aglaonema 'Pink Valentine',✓,أجلونيما فالنتاين الوردي,أجلونيما فالنتاين الوردي,✓,beginner,beginner,✓,foliage,foliage,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+aglaonema_snow_white,Aglaonema Snow White,Aglaonema Snow White,✓,Aglaonema 'Snow White',Aglaonema 'Snow White',✓,أجلونيما سنو وايت,أجلونيما سنو وايت,✓,beginner,beginner,✓,foliage,foliage,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+aglaonema_snowflake,Aglaonema 'Snowflake',Aglaonema 'Snowflake',✓,Aglaonema 'Snowflake',Aglaonema 'Snowflake',✓,أجلونيما ندفة الثلج,أجلونيما ندفة الثلج,✓,beginner,beginner,✓,foliage,foliage,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+aglaonema_super_red,Aglaonema Super Red,Aglaonema Super Red,✓,Aglaonema 'Super Red',Aglaonema 'Super Red',✓,أجلونيما سوبر ريد,أجلونيما سوبر ريد,✓,beginner,beginner,✓,foliage,foliage,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+aglaonema_super_white,Aglaonema Super White,Aglaonema Super White,✓,Aglaonema 'Super White',Aglaonema 'Super White',✓,أجلونيما سوبر وايت,أجلونيما سوبر وايت,✓,beginner,beginner,✓,foliage,foliage,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+alocasia_amazonica,Alocasia Amazonica,Alocasia Amazonica,✓,Alocasia × amazonica,Alocasia × amazonica,✓,ألوكاسيا أمازونيكا,ألوكاسيا أمازونيكا,✓,advanced,advanced,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+alocasia_polly,Alocasia Polly,Alocasia Polly,✓,Alocasia amazonica 'Polly',Alocasia amazonica 'Polly',✓,ألوكاسيا بولي,ألوكاسيا بولي,✓,advanced,advanced,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+alocasia_silver_dragon,Alocasia Silver Dragon,Alocasia Silver Dragon,✓,Alocasia baginda 'Silver Dragon',Alocasia baginda 'Silver Dragon',✓,ألوكاسيا التنين الفضي,ألوكاسيا التنين الفضي,✓,advanced,advanced,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+aloe_black_gem,Aloe Black Gem,Aloe Black Gem,✓,Aloe 'Black Gem',Aloe 'Black Gem',✓,صبار الجوهرة السوداء,صبار الجوهرة السوداء,✓,beginner,beginner,✓,succulent,succulent,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+aloe_brevifolia,Aloe Brevifolia,Aloe Brevifolia,✓,Aloe brevifolia,Aloe brevifolia,✓,صبار بريفيفوليا,صبار بريفيفوليا,✓,beginner,beginner,✓,succulent,succulent,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+aloe_humilis,Aloe humilis,Aloe humilis,✓,Aloe humilis,Aloe humilis,✓,صبار هوميليس,صبار هوميليس,✓,beginner,beginner,✓,succulent,succulent,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+alpinia_variegated,Alpinia Variegated,Alpinia Variegated,✓,Ginger family,Ginger family,✓,ألبينيا مبرقشة,ألبينيا مبرقشة,✓,intermediate,intermediate,✓,foliage,foliage,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+american_aloe,American Aloe,American Aloe,✓,Agave americana,Agave americana,✓,الصبار الأمريكي,الصبار الأمريكي,✓,beginner,beginner,✓,succulent,succulent,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+areca_palm,Areca Palm,Areca Palm,✓,Dypsis lutescens,Dypsis lutescens,✓,نخلة أريكا,نخلة أريكا,✓,intermediate,intermediate,✓,palm,palm,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+arrowhead_vine,Arrowhead Vine,Arrowhead Vine,✓,Syngonium podophyllum,Syngonium podophyllum,✓,نبات رأس السهم,نبات رأس السهم,✓,beginner,beginner,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+bamboo_palm,Bamboo Palm,Bamboo Palm,✓,Chamaedorea seifrizii,Chamaedorea seifrizii,✓,نخلة الخيزران,نخلة الخيزران,✓,beginner,beginner,✓,palm,palm,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+birds_nest_fern,Bird's Nest Fern,Bird's Nest Fern,✓,Asplenium nidus,Asplenium nidus,✓,سرخس عش الطائر,سرخس عش الطائر,✓,intermediate,intermediate,✓,fern,fern,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+birds_of_paradise,Bird of Paradise,Bird of Paradise,✓,Strelitzia reginae,Strelitzia reginae,✓,طائر الجنة,طائر الجنة,✓,intermediate,intermediate,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+bromeliad,Bromeliad,Bromeliad,✓,Bromeliaceae family,Bromeliaceae family,✓,بروميليا,بروميليا,✓,intermediate,intermediate,✓,tropical,tropical,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+bunny_ear_cactus,Bunny Ear Cactus,Bunny Ear Cactus,✓,Opuntia,Opuntia,✓,صبار آذان الأرنب,صبار آذان الأرنب,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+burgundy_flamingo_flower,Burgundy Flamingo Flower,Burgundy Flamingo Flower,✓,Anthurium andraeanum 'Burgundy',Anthurium andraeanum 'Burgundy',✓,أنثوريوم برغندي,أنثوريوم برغندي,✓,intermediate,intermediate,✓,flowering,flowering,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+bushveld_kalanchoe,Bushveld Kalanchoe,Bushveld Kalanchoe,✓,Kalanchoe thyrsiflora,Kalanchoe thyrsiflora,✓,كالانشو بوشفيلد,كالانشو بوشفيلد,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+cactus_ball_gymnocalycium,Cactus ball Gymnocalycium,Cactus ball Gymnocalycium,✓,Grafted Moon Cactus,Grafted Moon Cactus,✓,صبار الكرة المطعّم,صبار الكرة المطعّم,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+calathea,Calathea Peacock,Calathea Peacock,✓,Calathea makoyana,Calathea makoyana,✓,كلاثيا الطاؤوس,كلاثيا الطاؤوس,✓,advanced,advanced,✓,tropical,tropical,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+cambodian_dragon_tree,Cambodian Dragon Tree,Cambodian Dragon Tree,✓,Dracaena cambodiana,Dracaena cambodiana,✓,دراسينا كمبودية,دراسينا كمبودية,✓,beginner,beginner,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+canary_dragon_tree,Canary Dragon Tree,Canary Dragon Tree,✓,Dracaena draco,Dracaena draco,✓,دراسينا جزر الكناري,دراسينا جزر الكناري,✓,intermediate,intermediate,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+chamaedorea_palm,Chamaedorea Palm,Chamaedorea Palm,✓,Chamaedorea elegans,Chamaedorea elegans,✓,نخيل الصالون,نخيل الصالون,✓,intermediate,intermediate,✓,palm,palm,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+christmas_cactus,Christmas Cactus,Christmas Cactus,✓,Schlumbergera truncata,Schlumbergera truncata,✓,صبار الكريسماس,صبار الكريسماس,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+christmas_poinsettia,Christmas Poinsettia,Christmas Poinsettia,✓,Euphorbia pulcherrima,Euphorbia pulcherrima,✓,بنت القنصل,بنت القنصل,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+coppertone_sedum,Coppertone Sedum,Coppertone Sedum,✓,Sedum nussbaumerianum,Sedum nussbaumerianum,✓,سيدوم النحاس,سيدوم النحاس,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+corsican_stonecrop,Corsican Stonecrop,Corsican Stonecrop,✓,Sedum dasyphyllum,Sedum dasyphyllum,✓,سيدوم كورسيكي,سيدوم كورسيكي,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+crassula_perforata,Crassula Perforata,Crassula Perforata,✓,String of Buttons,String of Buttons,✓,كراسولا المخرّمة,كراسولا المخرّمة,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+crassula_tetragona,Crassula Tetragona,Crassula Tetragona,✓,Mini Pine Tree,Mini Pine Tree,✓,كراسولا الصنوبر المصغّر,كراسولا الصنوبر المصغّر,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+croton,Croton,Croton,✓,Codiaeum variegatum,Codiaeum variegatum,✓,كروتون,كروتون,✓,intermediate,intermediate,✓,foliage,foliage,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+desert_cabbage,Desert Cabbage,Desert Cabbage,✓,Paddle Plant,Paddle Plant,✓,كرنب الصحراء,كرنب الصحراء,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+dieffenbachia_camille,Dieffenbachia Camille,Dieffenbachia Camille,✓,Dieffenbachia seguine 'Camille',Dieffenbachia seguine 'Camille',✓,ديفنباخيا كاميل,ديفنباخيا كاميل,✓,intermediate,intermediate,✓,foliage,foliage,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+dracaena_compacta,Dracaena Compacta,Dracaena Compacta,✓,Dracaena deremensis 'Compacta',Dracaena deremensis 'Compacta',✓,دراسينا مدمجة,دراسينا مدمجة,✓,beginner,beginner,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+dracaena_glauca,Dracaena Glauca,Dracaena Glauca,✓,Dracaena glauca,Dracaena glauca,✓,دراسينا الأزرق المخضر,دراسينا الأزرق المخضر,✓,beginner,beginner,✓,foliage,foliage,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+dracaena_jamaica,Dracaena Jamaica,Dracaena Jamaica,✓,Song of Jamaica,Song of Jamaica,✓,دراسينا جامايكا,دراسينا جامايكا,✓,beginner,beginner,✓,foliage,foliage,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+dracaena_lemon_lime,Dracaena Lemon Lime,Dracaena Lemon Lime,✓,Dracaena fragrans 'Lemon Lime',Dracaena fragrans 'Lemon Lime',✓,دراسينا الليمون والليم,دراسينا الليمون والليم,✓,beginner,beginner,✓,foliage,foliage,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+echeveria,Echeveria,Echeveria,✓,Echeveria spp.,Echeveria spp.,✓,إيكيفيريا,إيكيفيريا,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+elephant_bush,Elephant Bush,Elephant Bush,✓,Portulacaria afra,Portulacaria afra,✓,شجرة الفيل المصغّرة,شجرة الفيل المصغّرة,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+english_ivy,English Ivy,English Ivy,✓,Hedera helix,Hedera helix,✓,لبلاب إنجليزي,لبلاب إنجليزي,✓,beginner,beginner,✓,vine,vine,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+euphorbia,Euphorbia,Euphorbia,✓,General Genus,General Genus,✓,يوفوربيا,يوفوربيا,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+euphorbia_trigona,Euphorbia trigona,Euphorbia trigona,✓,African Milk Tree,African Milk Tree,✓,يوفوربيا الثلاثية,يوفوربيا الثلاثية,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+euphorbia_trigona_rubra,Euphorbia Trigona Rubra,Euphorbia Trigona Rubra,✓,Red African Milk Tree,Red African Milk Tree,✓,يوفوربيا الحمراء,يوفوربيا الحمراء,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+ficus_bonsai,Ficus Bonsai,Ficus Bonsai,✓,Ficus retusa,Ficus retusa,✓,فيكس بونساي,فيكس بونساي,✓,intermediate,intermediate,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+ficus_bonsai_s_shaped,Ficus Bonsai S Shaped,Ficus Bonsai S Shaped,✓,Ficus microcarpa 'S-Shape',Ficus microcarpa 'S-Shape',✓,فيكس بونساي حرف S,فيكس بونساي حرف S,✓,intermediate,intermediate,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+ficus_elastica,Rubber Tree,Rubber Tree,✓,Ficus elastica,Ficus elastica,✓,شجرة المطاط,شجرة المطاط,✓,beginner,beginner,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+ficus_rubber_tree_variegated,Ficus Rubber Tree Variegated,Ficus Rubber Tree Variegated,✓,Ficus elastica 'Tineke',Ficus elastica 'Tineke',✓,شجرة المطاط المبرقشة,شجرة المطاط المبرقشة,✓,intermediate,intermediate,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+fishbone_plant,Fishbone Plant,Fishbone Plant,✓,Dischidia ovata,Dischidia ovata,✓,نبات عظم السمك,نبات عظم السمك,✓,intermediate,intermediate,✓,vine,vine,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+fittonia,Fittonia,Fittonia,✓,Fittonia albivenis,Fittonia albivenis,✓,فيتونيا,فيتونيا,✓,intermediate,intermediate,✓,foliage,foliage,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+florist_kalanchoe,Florist Kalanchoe,Florist Kalanchoe,✓,Kalanchoe blossfeldiana,Kalanchoe blossfeldiana,✓,كالانشو,كالانشو,✓,beginner,beginner,✓,succulent,succulent,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+foxtail_fern,Foxtail Fern,Foxtail Fern,✓,Asparagus densiflorus 'Myersii',Asparagus densiflorus 'Myersii',✓,سرخس ذيل الثعلب,سرخس ذيل الثعلب,✓,intermediate,intermediate,✓,fern,fern,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+fuzzy_trails,Fuzzy Trails,Fuzzy Trails,✓,Rhipsalis pilocarpa,Rhipsalis pilocarpa,✓,ريبساليس الزغبي,ريبساليس الزغبي,✓,intermediate,intermediate,✓,cactus,cactus,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+ghost_plant,Ghost Plant,Ghost Plant,✓,Graptopetalum paraguayense,Graptopetalum paraguayense,✓,نبات الشبح,نبات الشبح,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+golden_pothos,Golden Pothos,Golden Pothos,✓,Epipremnum aureum,Epipremnum aureum,✓,بوتوس ذهبي,بوتوس ذهبي,✓,beginner,beginner,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+grape_ivy,Grape Ivy,Grape Ivy,✓,Cissus rhombifolia,Cissus rhombifolia,✓,لبلاب العنب,لبلاب العنب,✓,beginner,beginner,✓,vine,vine,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+green_castle_cactus,Green Castle Cactus,Green Castle Cactus,✓,Cereus 'Green Castle',Cereus 'Green Castle',✓,صبار القلعة الخضراء,صبار القلعة الخضراء,✓,beginner,beginner,✓,cactus,cactus,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+grey_ghost_cactus,Grey Ghost Cactus,Grey Ghost Cactus,✓,Opuntia microdasys var. albispina,Opuntia microdasys var. albispina,✓,صبار الشبح الرمادي,صبار الشبح الرمادي,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+guzmania,Scarlet Star,Scarlet Star,✓,Guzmania lingulata,Guzmania lingulata,✓,نجمة قرمزية,نجمة قرمزية,✓,intermediate,intermediate,✓,bromeliad,bromeliad,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+haworthia_limifolia,Haworthia Limifolia,Haworthia Limifolia,✓,Haworthia limifolia,Haworthia limifolia,✓,هاوورثيا ليميفوليا,هاوورثيا ليميفوليا,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+haworthia_mucronata,Haworthia Mucronata,Haworthia Mucronata,✓,Haworthia mucronata,Haworthia mucronata,✓,هاوورثيا موكروناتا,هاوورثيا موكروناتا,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+haworthia_zebra,Zebra Haworthia,Zebra Haworthia,✓,Haworthiopsis attenuata,Haworthiopsis attenuata,✓,هاوورثيا الزيبرا,هاوورثيا الزيبرا,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+imperial_red_philodendron,Imperial Red Philodendron,Imperial Red Philodendron,✓,Philodendron 'Imperial Red',Philodendron 'Imperial Red',✓,فيلودندرون إمبريال أحمر,فيلودندرون إمبريال أحمر,✓,beginner,beginner,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+jade_plant,Jade Plant,Jade Plant,✓,Crassula ovata,Crassula ovata,✓,نبات اليشم,نبات اليشم,✓,beginner,beginner,✓,succulent,succulent,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+kentia_palm,Kentia Palm,Kentia Palm,✓,Howea forsteriana,Howea forsteriana,✓,نخيل كينتيا,نخيل كينتيا,✓,intermediate,intermediate,✓,palm,palm,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+lithops,Living Stones,Living Stones,✓,Lithops spp.,Lithops spp.,✓,حجارة حية,حجارة حية,✓,intermediate,intermediate,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+lucky_bamboo,Lucky Bamboo,Lucky Bamboo,✓,Dracaena sanderiana,Dracaena sanderiana,✓,خيزران الحظ,خيزران الحظ,✓,beginner,beginner,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+madagascar_dragon_tree,Madagascar Dragon Tree,Madagascar Dragon Tree,✓,Dracaena marginata,Dracaena marginata,✓,شجرة التنين,شجرة التنين,✓,beginner,beginner,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+madagascar_palm,Madagascar Palm,Madagascar Palm,✓,Pachypodium (Not a true palm),Pachypodium (Not a true palm),✓,نخلة مدغشقر,نخلة مدغشقر,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+maranta,Prayer Plant,Prayer Plant,✓,Maranta leuconeura,Maranta leuconeura,✓,نبات الصلاة,نبات الصلاة,✓,intermediate,intermediate,✓,tropical,tropical,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+monstera_deliciosa,Monstera Deliciosa,Monstera Deliciosa,✓,Monstera deliciosa,Monstera deliciosa,✓,مونستيرا ديليسيوزا,مونستيرا ديليسيوزا,✓,intermediate,intermediate,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+moon_cactus,Moon Cactus,Moon Cactus,✓,Gymnocalycium mihanovichii,Gymnocalycium mihanovichii,✓,صبار القمر,صبار القمر,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+moonlight_cactus,Moonlight cactus,Moonlight cactus,✓,Selenicereus,Selenicereus,✓,صبار ضوء القمر,صبار ضوء القمر,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+orchid,Orchid,Orchid,✓,Phalaenopsis hybrid,Phalaenopsis hybrid,✓,أوركيد,أوركيد,✓,advanced,advanced,✓,flowering,flowering,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+peace_lily,Peace Lily,Peace Lily,✓,Spathiphyllum wallisii,Spathiphyllum wallisii,✓,زنبق السلام,زنبق السلام,✓,intermediate,intermediate,✓,flowering,flowering,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+peperomia_obtusifolia,Peperomia obtusifolia,Peperomia obtusifolia,✓,Peperomia obtusifolia,Peperomia obtusifolia,✓,نبات المطاط الصغير,نبات المطاط الصغير,✓,beginner,beginner,✓,tropical,tropical,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+peperomia_obtusifolia_variegated,Peperomia obtusifolia variegated,Peperomia obtusifolia variegated,✓,Peperomia obtusifolia 'Variegata',Peperomia obtusifolia 'Variegata',✓,نبات المطاط الصغير المتنوع,نبات المطاط الصغير المتنوع,✓,beginner,beginner,✓,tropical,tropical,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+peperomia_rosso,Peperomia Rosso,Peperomia Rosso,✓,Peperomia caperata 'Rosso',Peperomia caperata 'Rosso',✓,بيبروميا روسو,بيبروميا روسو,✓,beginner,beginner,✓,tropical,tropical,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+philodendron,Heart-leaf Philodendron,Heart-leaf Philodendron,✓,Philodendron hederaceum,Philodendron hederaceum,✓,فيلودندرون,فيلودندرون,✓,beginner,beginner,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+philodendron_birkin,Philodendron Birkin,Philodendron Birkin,✓,Philodendron 'Birkin',Philodendron 'Birkin',✓,فيلودندرون بيركن,فيلودندرون بيركن,✓,beginner,beginner,✓,foliage,foliage,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+philodendron_imperial_lemon,Philodendron Imperial Lemon,Philodendron Imperial Lemon,✓,Philodendron 'Imperial Lemon',Philodendron 'Imperial Lemon',✓,فيلودندرون إمبريال ليمون,فيلودندرون إمبريال ليمون,✓,beginner,beginner,✓,foliage,foliage,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+philodendron_imperial_orange,Philodendron Imperial Orange,Philodendron Imperial Orange,✓,Philodendron 'Imperial Orange',Philodendron 'Imperial Orange',✓,فيلودندرون إمبريال برتقالي,فيلودندرون إمبريال برتقالي,✓,beginner,beginner,✓,foliage,foliage,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+philodendron_tree,Philodendron Tree,Philodendron Tree,✓,Self-heading type,Self-heading type,✓,فيلودندرون شجري,فيلودندرون شجري,✓,beginner,beginner,✓,foliage,foliage,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+philodendron_xanadu,Philodendron Xanadu,Philodendron Xanadu,✓,Philodendron xanadu,Philodendron xanadu,✓,فيلودندرون زانادو,فيلودندرون زانادو,✓,beginner,beginner,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+pink_nerve_plant,Pink Nerve Plant,Pink Nerve Plant,✓,Fittonia albivenis 'Pink',Fittonia albivenis 'Pink',✓,فيتونيا وردية,فيتونيا وردية,✓,intermediate,intermediate,✓,foliage,foliage,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+pink_poinsettia,Pink Poinsettia,Pink Poinsettia,✓,Euphorbia pulcherrima 'Pink',Euphorbia pulcherrima 'Pink',✓,بنت القنصل الوردية,بنت القنصل الوردية,✓,intermediate,intermediate,✓,flowering,flowering,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+pink_syngonium,Pink Syngonium,Pink Syngonium,✓,Syngonium podophyllum 'Pink',Syngonium podophyllum 'Pink',✓,سينجونيوم وردي,سينجونيوم وردي,✓,beginner,beginner,✓,vine,vine,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+pittosporum,Pittosporum,Pittosporum,✓,shrub,shrub,✓,بيتوسبوروم,بيتوسبوروم,✓,intermediate,intermediate,✓,foliage,foliage,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+polka_dot_begonia,Polka Dot Begonia,Polka Dot Begonia,✓,Begonia maculata,Begonia maculata,✓,بيغونيا البولكا دوت,بيغونيا البولكا دوت,✓,intermediate,intermediate,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+red_anthurium,Red Anthurium,Red Anthurium,✓,Anthurium andraeanum,Anthurium andraeanum,✓,أنثوريوم أحمر,أنثوريوم أحمر,✓,intermediate,intermediate,✓,flowering,flowering,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+red_foxtail_cactus,Red Foxtail Cactus,Red Foxtail Cactus,✓,Cleistocactus winteri,Cleistocactus winteri,✓,صبار ذيل الثعلب الأحمر,صبار ذيل الثعلب الأحمر,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+red_star,Red Star,Red Star,✓,Cordyline fruticosa 'Red Star',Cordyline fruticosa 'Red Star',✓,كوردلاين أحمر,كوردلاين أحمر,✓,beginner,beginner,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+ruby_peperomia,Ruby Peperomia,Ruby Peperomia,✓,Peperomia graveolens,Peperomia graveolens,✓,بيبروميا الياقوت,بيبروميا الياقوت,✓,beginner,beginner,✓,tropical,tropical,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+sansevieria_eilensis,Sansevieria Eilensis,Sansevieria Eilensis,✓,Sansevieria eilensis,Sansevieria eilensis,✓,سانسيفيريا إيلينسيس,سانسيفيريا إيلينسيس,✓,beginner,beginner,✓,succulent,succulent,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+satin_pothos,Satin Pothos,Satin Pothos,✓,Scindapsus pictus,Scindapsus pictus,✓,بوتوس ساتان,بوتوس ساتان,✓,beginner,beginner,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+schefflera,Umbrella Tree,Umbrella Tree,✓,Schefflera actinophylla,Schefflera actinophylla,✓,شجرة المظلة,شجرة المظلة,✓,beginner,beginner,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+senecio_barbertonicus,Senecio barbertonicus,Senecio barbertonicus,✓,Himalaya,Himalaya,✓,سينيسيو بارباتونيكوس,سينيسيو بارباتونيكوس,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+silver_queen,Silver Queen,Silver Queen,✓,Aglaonema 'Silver Queen',Aglaonema 'Silver Queen',✓,أجلونيما الملكة الفضية,أجلونيما الملكة الفضية,✓,beginner,beginner,✓,foliage,foliage,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+silver_ruffles_succulent,Silver Ruffles Succulent,Silver Ruffles Succulent,✓,Cotyledon undulata,Cotyledon undulata,✓,كوتيليدون المتموج,كوتيليدون المتموج,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+snake_plant_golden_flame,Snake Plant Golden Flame,Snake Plant Golden Flame,✓,Sansevieria trifasciata 'Golden Flame',Sansevieria trifasciata 'Golden Flame',✓,سيف سنسفيريا اللهب الذهبي,سيف سنسفيريا اللهب الذهبي,✓,beginner,beginner,✓,succulent,succulent,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+snake_plant_laurentii,Snake Plant Laurentii,Snake Plant Laurentii,✓,Sansevieria trifasciata 'Laurentii',Sansevieria trifasciata 'Laurentii',✓,سانسيفيريا لورانتي,سانسيفيريا لورانتي,✓,beginner,beginner,✓,succulent,succulent,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+snake_plant_moonshine,Snake Plant Moonshine,Snake Plant Moonshine,✓,Sansevieria trifasciata 'Moonshine',Sansevieria trifasciata 'Moonshine',✓,سانسيفيريا ضوء القمر,سانسيفيريا ضوء القمر,✓,beginner,beginner,✓,succulent,succulent,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+snake_plant_zeylanica,Snake Plant Zeylanica,Snake Plant Zeylanica,✓,Sansevieria zeylanica,Sansevieria zeylanica,✓,سانسيفيريا زيلانيكا,سانسيفيريا زيلانيكا,✓,beginner,beginner,✓,succulent,succulent,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+soft_blush_philodendron,Soft Blush Philodendron,Soft Blush Philodendron,✓,Philodendron 'Soft Blush',Philodendron 'Soft Blush',✓,فيلودندرون الخوخ الناعم,فيلودندرون الخوخ الناعم,✓,beginner,beginner,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+soft_spears,Soft Spears,Soft Spears,✓,Sansevieria cylindrica,Sansevieria cylindrica,✓,سانسيفيريا الأسطوانية,سانسيفيريا الأسطوانية,✓,beginner,beginner,✓,succulent,succulent,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+song_of_india,Song of India,Song of India,✓,Dracaena reflexa,Dracaena reflexa,✓,أغنية الهند,أغنية الهند,✓,beginner,beginner,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+spider_plant,Spider Plant,Spider Plant,✓,Chlorophytum comosum,Chlorophytum comosum,✓,نبات العنكبوت,نبات العنكبوت,✓,beginner,beginner,✓,foliage,foliage,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+stapelia,Stapelia,Stapelia,✓,Starfish Flower,Starfish Flower,✓,ستابيليا,ستابيليا,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+stenocereus_griseus_cactus_large,Stenocereus Griseus Cactus Large,Stenocereus Griseus Cactus Large,✓,Stenocereus griseus,Stenocereus griseus,✓,صبار ستينوسيريوس الرمادي,صبار ستينوسيريوس الرمادي,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+string_of_bananas,String of Bananas,String of Bananas,✓,Senecio radicans,Senecio radicans,✓,سلسلة الموز,سلسلة الموز,✓,beginner,beginner,✓,succulent,succulent,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+string_of_hearts,String of Hearts,String of Hearts,✓,Ceropegia woodii,Ceropegia woodii,✓,سلسلة القلوب,سلسلة القلوب,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+string_of_pearls,String of Pearls,String of Pearls,✓,Senecio rowleyanus,Senecio rowleyanus,✓,سلسلة اللؤلؤ,سلسلة اللؤلؤ,✓,intermediate,intermediate,✓,succulent,succulent,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+sunshine_fig,Sunshine Fig,Sunshine Fig,✓,Ficus benjamina 'Starlight',Ficus benjamina 'Starlight',✓,فيكس الشمس المشرقة,فيكس الشمس المشرقة,✓,intermediate,intermediate,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+sunstriped_agave,Sun-Striped Agave,Sun-Striped Agave,✓,Agave desmettiana 'Variegata',Agave desmettiana 'Variegata',✓,صبار الأغاف المخطط,صبار الأغاف المخطط,✓,beginner,beginner,✓,succulent,succulent,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+sword_fern,Sword Fern,Sword Fern,✓,Nephrolepis exaltata,Nephrolepis exaltata,✓,سرخس السيف,سرخس السيف,✓,intermediate,intermediate,✓,fern,fern,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+syngonium_confetti,Syngonium Confetti,Syngonium Confetti,✓,Syngonium podophyllum 'Confetti',Syngonium podophyllum 'Confetti',✓,سينجونيوم كونفيتي,سينجونيوم كونفيتي,✓,beginner,beginner,✓,vine,vine,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+syngonium_mix,Syngonium Mix,Syngonium Mix,✓,Syngonium podophyllum,Syngonium podophyllum,✓,سينجونيوم متنوع,سينجونيوم متنوع,✓,beginner,beginner,✓,vine,vine,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+syngonium_yellow,Syngonium Yellow,Syngonium Yellow,✓,Syngonium podophyllum 'Neon Robusta',Syngonium podophyllum 'Neon Robusta',✓,سينجونيوم أصفر,سينجونيوم أصفر,✓,beginner,beginner,✓,vine,vine,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+tigers_jaw,Tiger's Jaw,Tiger's Jaw,✓,Faucaria tigrina,Faucaria tigrina,✓,فك النمر,فك النمر,✓,beginner,beginner,✓,succulent,succulent,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+tradescantia,Tradescantia,Tradescantia,✓,Wandering Dude,Wandering Dude,✓,تراديسكانتيا,تراديسكانتيا,✓,beginner,beginner,✓,vine,vine,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+velvet_calathea,Velvet Calathea,Velvet Calathea,✓,Calathea warscewiczii,Calathea warscewiczii,✓,كلاثيا المخملية,كلاثيا المخملية,✓,advanced,advanced,✓,tropical,tropical,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+venus_flytrap,Venus Flytrap,Venus Flytrap,✓,Dionaea muscipula,Dionaea muscipula,✓,مصيدة ذبابة الزهرة,مصيدة ذبابة الزهرة,✓,advanced,advanced,✓,carnivorous,carnivorous,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+watermelon_pellionia,Watermelon Pellionia,Watermelon Pellionia,✓,Pellionia repens,Pellionia repens,✓,بيليونيا البطيخ,بيليونيا البطيخ,✓,intermediate,intermediate,✓,foliage,foliage,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+white_flamingo_flower,White Flamingo Flower,White Flamingo Flower,✓,Anthurium andraeanum 'White',Anthurium andraeanum 'White',✓,أنثوريوم أبيض,أنثوريوم أبيض,✓,intermediate,intermediate,✓,flowering,flowering,✓,no,no,✓,✓,✓,✓,✓ PERFECT
+white_nerve,White Nerve,White Nerve,✓,Fittonia albivenis 'White',Fittonia albivenis 'White',✓,فيتونيا بيضاء,فيتونيا بيضاء,✓,intermediate,intermediate,✓,foliage,foliage,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+white_pothos,White Pothos,White Pothos,✓,Epipremnum,Epipremnum,✓,البوتس الأبيض,البوتس الأبيض,✓,beginner,beginner,✓,vine,vine,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+yucca_ananas,Yucca Ananas,Yucca Ananas,✓,Pineapple Yucca,Pineapple Yucca,✓,يوكا الأناناس,يوكا الأناناس,✓,intermediate,intermediate,✓,foliage,foliage,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+yucca_elephantipes,Yucca Elephantipes,Yucca Elephantipes,✓,Spineless Yucca,Spineless Yucca,✓,يوكا إليفانتيبس,يوكا إليفانتيبس,✓,intermediate,intermediate,✓,foliage,foliage,✓,yes,yes,✓,✓,✓,✓,✓ PERFECT
+zz_plant,ZZ Plant,ZZ Plant,✓,Zamioculcas zamiifolia,Zamioculcas zamiifolia,✓,نبات زي زي,نبات زي زي,✓,beginner,beginner,✓,tropical,tropical,✓,no,no,✓,✓,✓,✓,✓ PERFECT
