@@ -12,7 +12,9 @@
     "test:coverage": "jest --coverage",
     "test:e2e": "detox test -c ios.sim.eas",
     "test:e2e:build": "detox build -c ios.sim.eas",
-    "test:e2e:clean": "detox clean-framework-cache && detox build-framework-cache"
+    "test:e2e:clean": "detox clean-framework-cache && detox build-framework-cache",
+    "sync-db": "node scripts/sync-csv-to-json.js",
+    "validate-db": "node scripts/validate-database.js"
   },
   "dependencies": {
     "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",

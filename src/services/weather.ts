@@ -15,6 +15,8 @@ const CAIRO_COORDS = {
 interface OpenWeatherResponse {
   main: {
     temp: number;
+    temp_min: number;      // Minimum temperature for the day
+    temp_max: number;      // Maximum temperature for the day
     humidity: number;
     feels_like: number;
     pressure: number;
@@ -33,9 +35,9 @@ interface OpenWeatherResponse {
 
 export class WeatherService {
   private static readonly BASE_URL = 'https://api.openweathermap.org/data/2.5';
-  private static readonly CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours (updated to match forecast API cache)
-  private static readonly REQUEST_TIMEOUT = 10000; // 10 seconds
-  private static readonly MAX_RETRIES = 3;
+  private static readonly CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours - refreshes at midnight
+  private static readonly REQUEST_TIMEOUT = 30000; // 30 seconds (Edge Function + API call)
+  private static readonly MAX_RETRIES = 2; // Reduce retries (timeout is longer now)
   
   private static cachedWeather: WeatherData | null = null;
   private static lastFetch: Date | null = null;
@@ -149,21 +151,33 @@ export class WeatherService {
 
   /**
    * Transform OpenWeather API response to our WeatherData type
+   * Uses (high + low) / 2 for daily average temperature
    */
   private static transformWeatherData(data: OpenWeatherResponse): WeatherData {
-    const temp = Math.round(data.main.temp);
+    // Calculate daily average temperature: (high + low) / 2
+    const tempHigh = data.main.temp_max;
+    const tempLow = data.main.temp_min;
+    const tempAverage = Math.round((tempHigh + tempLow) / 2);
+
     const humidity = data.main.humidity;
     const condition = data.weather[0]?.main.toLowerCase() || 'clear';
 
+    logger.debug('Weather calculation', {
+      high: tempHigh,
+      low: tempLow,
+      average: tempAverage,
+      current: Math.round(data.main.temp)
+    });
+
     return {
-      temperature: temp,
+      temperature: tempAverage,  // Use calculated daily average
       humidity: humidity,
       condition: this.mapWeatherCondition(condition),
       description: data.weather[0]?.description || (i18n.language === 'ar' ? 'صافي' : 'Clear'),
       windSpeed: data.wind.speed,
       lastUpdated: new Date(),
       location: i18n.language === 'ar' ? 'القاهرة' : 'Cairo',
-      careRecommendation: this.generateCareRecommendation(temp, humidity, condition)
+      careRecommendation: this.generateCareRecommendation(tempAverage, humidity, condition)
     };
   }
 
@@ -238,11 +252,28 @@ export class WeatherService {
 
   /**
    * Get mock weather data for development/fallback
+   * Uses seasonal temperatures for Cairo
    */
   private static getMockWeatherData(): WeatherData {
-    // Simulate typical Cairo weather
-    const temp = 28; // Typical Cairo temperature
-    const humidity = 45; // Typical Cairo humidity
+    // Use seasonal temperature for Cairo
+    const month = new Date().getMonth(); // 0-11
+    let temp: number;
+    let humidity: number;
+
+    if (month >= 5 && month <= 9) {
+      // Summer (June-October): Hot
+      temp = 35;
+      humidity = 35;
+    } else if (month >= 11 || month <= 2) {
+      // Winter (December-March): Mild/Cool
+      temp = 18; // Realistic winter average
+      humidity = 60;
+    } else {
+      // Spring/Fall: Pleasant
+      temp = 25;
+      humidity = 45;
+    }
+
     const isArabic = i18n.language === 'ar';
     
     return {

@@ -34,6 +34,7 @@ import MatchBadge from '../components/MatchBadge';
 import PartialMatchCard from '../components/PartialMatchCard';
 import GenericCareCard from '../components/GenericCareCard';
 import PlantRequestButton from '../components/PlantRequestButton';
+import CultivarPicker from '../components/CultivarPicker';
 import { getPlantImage } from '../assets/plantImages';
 import { logger, timer } from '../utils/logger';
 import { useRTL } from '../utils/rtl';
@@ -69,6 +70,9 @@ export default function PlantResultScreen() {
   const [isVerifyingOTP, setIsVerifyingOTP] = useState(false);
   const [showNameCollection, setShowNameCollection] = useState(false);
   const [pendingUser, setPendingUser] = useState<any>(null);
+
+  // 🌿 CULTIVAR REFINER: Optional refinement for species with multiple varieties
+  const [showCultivarRefiner, setShowCultivarRefiner] = useState(false);
 
   // ⚡ NEW: Background image processing & upload state
   const [imageProcessing, setImageProcessing] = useState<{
@@ -111,6 +115,28 @@ export default function PlantResultScreen() {
 
   const matchScenario = identificationResult ? getMatchScenario() : 'none';
   const dbMatch = identificationResult?.database_match;
+
+  // 🌿 CULTIVAR OVERRIDE: When user refines to a specific cultivar, use its data
+  const [displayedPlantInfo, setDisplayedPlantInfo] = useState(identificationResult?.plant_info);
+  const [displayedPlantName, setDisplayedPlantName] = useState(identificationResult?.common_name);
+
+  useEffect(() => {
+    if (plantDatabaseId && dbMatch?.all_cultivars) {
+      // User selected a specific cultivar - update the displayed info
+      const selectedCultivar = dbMatch.all_cultivars.find(c => c.plant_id === plantDatabaseId);
+      if (selectedCultivar) {
+        // Fetch the full plant data from database
+        const plantData = require('../data/plantCareDatabase.json');
+        const fullPlantData = plantData.plants.find((p: any) => p.id === plantDatabaseId);
+
+        if (fullPlantData) {
+          setDisplayedPlantName(fullPlantData.names.common[0]);
+          setDisplayedPlantInfo(fullPlantData.care?.plant_info || identificationResult.plant_info);
+          logger.debug('🌿 Updated display to cultivar:', plantDatabaseId);
+        }
+      }
+    }
+  }, [plantDatabaseId]);
 
   // Animation for phone modal slide-up and fade-in
   const phoneModalSlideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
@@ -206,18 +232,40 @@ export default function PlantResultScreen() {
     }
   };
 
-  // ⚡ CLEANUP: Delete uploaded image if user goes back without saving
+  // ⚡ CLEANUP: Track if user is proceeding to save (don't delete in that case)
+  const isProceedingToSave = useRef(false);
+
+  // ⚡ CLEANUP: Delete uploaded image ONLY if user goes back without saving
   useEffect(() => {
     return () => {
-      // User navigated away - if image was uploaded but not saved, clean up
-      if (imageProcessing.cloudUrl && imageProcessing.status === 'complete') {
-        logger.info('🗑️ User left screen - deleting unused upload');
+      // User navigated away - only delete if they DIDN'T proceed to AddPlant
+      if (imageProcessing.cloudUrl && imageProcessing.status === 'complete' && !isProceedingToSave.current) {
+        logger.info('🗑️ User left screen without saving - deleting unused upload');
         dbService.deleteUploadedImage(imageProcessing.cloudUrl).catch(err => {
           logger.warn('Failed to delete uploaded image:', err);
         });
       }
     };
   }, [imageProcessing.cloudUrl, imageProcessing.status]);
+
+  // 🌿 CULTIVAR REFINER: User manually refines to a specific variety
+  const handleCultivarRefine = (plantId: string) => {
+    logger.info('🌿 User refined to cultivar:', plantId);
+
+    // Navigate to PlantResult with the specific cultivar selected
+    // This reloads the screen with the refined plant data
+    const selectedCultivar = identificationResult?.database_match?.all_cultivars?.find(
+      c => c.plant_id === plantId
+    );
+
+    if (selectedCultivar) {
+      navigation.replace('PlantResult', {
+        identificationResult,
+        capturedImage,
+        plantDatabaseId: plantId, // This will override the default selection
+      });
+    }
+  };
 
   const handlePostAuthSuccess = () => {
     // Close all modals
@@ -227,6 +275,7 @@ export default function PlantResultScreen() {
 
     // Navigate to AddPlant screen with the identification result
     if (identificationResult) {
+      isProceedingToSave.current = true; // Don't delete cloud image - user is saving!
       navigation.navigate('AddPlant', {
         identificationResult,
         capturedImage,
@@ -516,6 +565,7 @@ export default function PlantResultScreen() {
     }
 
     if (identificationResult) {
+      isProceedingToSave.current = true; // Don't delete cloud image - user is saving!
       navigation.navigate('AddPlant', {
         identificationResult,
         capturedImage,
@@ -552,6 +602,8 @@ export default function PlantResultScreen() {
         visible={showNameCollection}
         onSubmit={handleNameSubmit}
       />
+
+      {/* Cultivar picker removed - now using inline refiner card */}
 
       {/* Inline Authentication Modal */}
       <Modal
@@ -803,7 +855,7 @@ export default function PlantResultScreen() {
           </View>
 
           <View style={styles.plantInfo}>
-            <Text style={[styles.plantName, isRTL && styles.plantNameRTL]}>{identificationResult.common_name}</Text>
+            <Text style={[styles.plantName, isRTL && styles.plantNameRTL]}>{displayedPlantName}</Text>
             <Text style={[styles.scientificName, isRTL && styles.scientificNameRTL]}>
               {identificationResult.scientific_name}
             </Text>
@@ -811,6 +863,76 @@ export default function PlantResultScreen() {
               <Text style={[styles.familyName, isRTL && styles.familyNameRTL]}>Family: {identificationResult.family}</Text>
             )}
           </View>
+
+          {/* 🌿 OPTIONAL CULTIVAR REFINER: Show when multiple varieties exist */}
+          {dbMatch?.multiple_cultivars && dbMatch.all_cultivars && dbMatch.all_cultivars.length > 1 && (
+            <View style={styles.refinerCard}>
+              <TouchableOpacity
+                style={styles.refinerHeader}
+                onPress={() => setShowCultivarRefiner(!showCultivarRefiner)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.refinerTitleContainer}>
+                  <Ionicons name="leaf-outline" size={20} color={COLORS.primary} />
+                  <Text style={styles.refinerTitle}>Refine Your Match</Text>
+                </View>
+                <Ionicons
+                  name={showCultivarRefiner ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color={COLORS.textSecondary}
+                />
+              </TouchableOpacity>
+
+              {showCultivarRefiner && (
+                <View style={styles.refinerContent}>
+                  <Text style={styles.refinerSubtitle}>
+                    We detected a {identificationResult.common_name}.{'\n'}
+                    Which picture matches yours?
+                  </Text>
+
+                  <View style={styles.cultivarGrid}>
+                    {dbMatch.all_cultivars.map((cultivar) => (
+                      <TouchableOpacity
+                        key={cultivar.plant_id}
+                        style={[
+                          styles.cultivarOption,
+                          cultivar.is_selected && styles.cultivarOptionSelected
+                        ]}
+                        onPress={() => handleCultivarRefine(cultivar.plant_id)}
+                        activeOpacity={0.7}
+                      >
+                        <Image
+                          source={getPlantImage(cultivar.plant_id)}
+                          style={styles.cultivarImage}
+                          resizeMode="cover"
+                        />
+                        <View style={styles.cultivarInfo}>
+                          <Text style={styles.cultivarName} numberOfLines={2}>
+                            {cultivar.plant_name}
+                          </Text>
+                          {cultivar.is_selected && (
+                            <Ionicons name="checkmark-circle" size={16} color={COLORS.primary} />
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Low Confidence Warning (15-40%) - Encourage users to retake for better results */}
+          {dbMatch && dbMatch.confidence < 40 && dbMatch.confidence >= 15 && capturedImage && (
+            <View style={styles.lowConfidenceWarning}>
+              <Ionicons name="camera-outline" size={20} color={COLORS.warning} />
+              <Text style={[styles.lowConfidenceText, isRTL && styles.lowConfidenceTextRTL]}>
+                {isRTL
+                  ? `التعرف التلقائي منخفض الثقة (${dbMatch.confidence}%). حاول التقاط صورة أوضح للنبات في إضاءة جيدة للحصول على نتائج أفضل.`
+                  : `Low confidence identification (${dbMatch.confidence}%). Try taking a clearer photo in good lighting for better results.`}
+              </Text>
+            </View>
+          )}
 
           {/* Match Scenario: FULL_MATCH (≥85% confidence) - No message shown, users don't need to know about our database */}
 
@@ -831,6 +953,7 @@ export default function PlantResultScreen() {
                   genusName={identificationResult.genus || ''}
                   alternatives={dbMatch.alternatives}
                   onAlternativePress={(plantId) => {
+                    isProceedingToSave.current = true; // Don't delete cloud image - user is saving!
                     // Navigate to AddPlant with selected database plant
                     navigation.navigate('AddPlant', { plantDatabaseId: plantId });
                   }}
@@ -871,11 +994,11 @@ export default function PlantResultScreen() {
           )}
 
           {/* Plant Description */}
-          {identificationResult.plant_info && (
+          {displayedPlantInfo && (
             <View style={styles.careSection}>
               <Text style={[styles.careTitle, isRTL && styles.careTitleRTL]}>{t('plantResult.plantStory')}</Text>
               <Text style={[styles.plantDescription, isRTL && styles.plantDescriptionRTL]}>
-                {identificationResult.plant_info}
+                {displayedPlantInfo}
               </Text>
             </View>
           )}
@@ -993,7 +1116,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingHorizontal: FIBONACCI.MD, // 13px - Golden ratio
     paddingVertical: FIBONACCI.SM, // 8px - Reduced vertical padding
-    flexGrow: 1,
+    paddingBottom: FIBONACCI.XL, // 34px - Moderate bottom spacing for thumb zone optimization
   },
   imageContainer: {
     marginBottom: FIBONACCI.SM, // 8px
@@ -1019,10 +1142,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   plantInfo: {
-    marginBottom: FIBONACCI.MD, // 13px - Reduced spacing
+    marginBottom: FIBONACCI.LG, // 21px (was 13px - better spacing for large screens)
   },
   plantName: {
-    fontSize: TYPOGRAPHY.XXL, // 34px
+    fontSize: TYPOGRAPHY.XL, // 26px (was 34px XXL - too large for 6.9" screens)
     fontWeight: 'bold',
     color: COLORS.text,
     marginBottom: FIBONACCI.XXS, // 3px
@@ -1046,8 +1169,29 @@ const styles = StyleSheet.create({
   familyNameRTL: {
     textAlign: 'right',
   },
+  lowConfidenceWarning: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(250, 173, 20, 0.1)', // Light amber background (COLORS.warning with opacity)
+    padding: FIBONACCI.MD, // 13px
+    borderRadius: ELEMENT_SIZES.RADIUS_MD, // 13px
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.warning, // Amber accent
+    marginTop: FIBONACCI.SM, // 8px
+    marginBottom: FIBONACCI.MD, // 13px
+    gap: FIBONACCI.SM, // 8px spacing between icon and text
+  },
+  lowConfidenceText: {
+    flex: 1,
+    fontSize: TYPOGRAPHY.SM, // 14px
+    color: COLORS.text,
+    lineHeight: TYPOGRAPHY.BASE * 1.5, // 24px line height for readability
+  },
+  lowConfidenceTextRTL: {
+    textAlign: 'right',
+  },
   careSection: {
-    marginBottom: FIBONACCI.MD, // 13px - Reduced spacing
+    marginBottom: FIBONACCI.LG, // 21px (was 13px - better section separation)
   },
   careTitle: {
     fontSize: TYPOGRAPHY.LG, // 21px
@@ -1091,7 +1235,7 @@ const styles = StyleSheet.create({
   },
   actionButtons: {
     gap: FIBONACCI.SM, // 8px - Reduced spacing
-    marginTop: FIBONACCI.SM, // 8px - Small top margin
+    marginTop: FIBONACCI.XXL, // 55px - Ergonomic thumb-zone spacing after content
   },
   saveButton: {
     flexDirection: 'row',
@@ -1440,5 +1584,76 @@ const styles = StyleSheet.create({
   providerLogo: {
     opacity: 1, // Full opacity for clear attribution
     // Width and height set dynamically by attribution.dimensions
+  },
+
+  // 🌿 CULTIVAR REFINER CARD: Optional inline refiner (not blocking)
+  refinerCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: ELEMENT_SIZES.RADIUS_MD, // 13px
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: FIBONACCI.MD, // 13px
+    overflow: 'hidden',
+  },
+  refinerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: FIBONACCI.MD, // 13px
+    backgroundColor: COLORS.background,
+  },
+  refinerTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: FIBONACCI.SM, // 8px
+  },
+  refinerTitle: {
+    fontSize: TYPOGRAPHY.BASE, // 16px
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  refinerContent: {
+    padding: FIBONACCI.MD, // 13px
+    paddingTop: FIBONACCI.SM, // 8px
+  },
+  refinerSubtitle: {
+    fontSize: TYPOGRAPHY.SM, // 14px
+    color: COLORS.textSecondary,
+    marginBottom: FIBONACCI.MD, // 13px
+    lineHeight: TYPOGRAPHY.SM * 1.5, // 21px
+  },
+  cultivarGrid: {
+    gap: FIBONACCI.SM, // 8px
+  },
+  cultivarOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: FIBONACCI.SM, // 8px
+    backgroundColor: COLORS.background,
+    borderRadius: ELEMENT_SIZES.RADIUS_SM, // 8px
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  cultivarOptionSelected: {
+    borderColor: COLORS.primary,
+    backgroundColor: `${COLORS.primary}10`, // 10% opacity
+  },
+  cultivarImage: {
+    width: FIBONACCI.XXL, // 55px
+    height: FIBONACCI.XXL, // 55px
+    borderRadius: FIBONACCI.SM, // 8px
+    marginRight: FIBONACCI.MD, // 13px
+  },
+  cultivarInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  cultivarName: {
+    flex: 1,
+    fontSize: TYPOGRAPHY.SM, // 14px
+    fontWeight: '500',
+    color: COLORS.text,
   },
 });

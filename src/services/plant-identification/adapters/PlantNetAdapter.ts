@@ -21,6 +21,9 @@ import type {
   RateLimitConfig,
 } from '../IPlantIdentificationService';
 
+// Import supabaseUrl only where needed (health check)
+import { supabaseUrl } from '../../supabase';
+
 export class PlantNetAdapter implements IPlantIdentificationService {
   /**
    * Identify a plant using PlantNet API
@@ -51,7 +54,7 @@ export class PlantNetAdapter implements IPlantIdentificationService {
    */
   getAttribution(): ProviderAttribution {
     return {
-      logo: require('../../../assets/logos/powered-by-plantnet.png'),
+      logo: require('../../../../assets/logos/powered-by-plantnet.png'),
       required: true, // PlantNet Terms require attribution
       position: 'bottom-right',
       dimensions: {
@@ -94,8 +97,7 @@ export class PlantNetAdapter implements IPlantIdentificationService {
   async checkHealth(): Promise<boolean> {
     try {
       // Simple health check: PlantNet Edge Function should respond
-      const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/identify-plant`, {
+      const response = await fetch(`${supabaseUrl}/functions/v1/identify-plant`, {
         method: 'HEAD', // HEAD request doesn't count against rate limit
       });
       return response.ok || response.status === 405; // 405 = Method Not Allowed (function exists)

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -160,35 +160,48 @@ export default function PlantsScreen() {
       </View>
 
       {/* Plant Grid */}
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.grid}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
+        contentInset={{ bottom: 0 }}
+        contentInsetAdjustmentBehavior="never"
       >
         {plants.map((plant) => (
           <TouchableOpacity key={plant.id} style={styles.card} onPress={() => navigateToPlantDetail(plant)} onLongPress={() => handleDeletePlant(plant.id, plant.nickname)}>
-            <PlantImage
-              plantId={plant.plant_id}
-              imageUrl={plant.image_url}
-              capturedImageUri={plant.captured_image_uri}
-              plantName={plant.nickname}
-              size={144}
-              style={styles.image}
-            />
-            <Text style={[styles.plantName, isRTL && styles.plantNameRTL]}>{plant.nickname}</Text>
-            <Text style={[styles.location, isRTL && styles.locationRTL]}>{getLocationLabel(plant.location)}</Text>
+            <View style={styles.imageWrapper}>
+              <PlantImage
+                plantId={plant.plant_id}
+                imageUrl={plant.image_url}
+                capturedImageUri={plant.captured_image_uri}
+                plantName={plant.nickname}
+                size={FIBONACCI.HUGE}
+                style={styles.image}
+              />
+            </View>
+            <View style={styles.textBlock}>
+              <Text style={[styles.plantName, isRTL && styles.plantNameRTL]}>{plant.nickname}</Text>
+              <Text style={[styles.location, isRTL && styles.locationRTL]}>{getLocationLabel(plant.location)}</Text>
+            </View>
 
-            <View style={styles.infoRow}>
-              <View style={styles.infoItem}>
-                <Ionicons name="water-outline" size={16} color="#3B82F6" />
-                <Text style={styles.infoText}>{getDaysUntilWatering(plant.next_watering_at)}</Text>
+            <View style={styles.infoRowWrapper}>
+              <View style={styles.infoRow}>
+                {/* Left: Watering */}
+                <View style={styles.infoItem}>
+                  <Ionicons name="water-outline" size={16} color="#3B82F6" />
+                  <Text style={styles.infoText}>{getDaysUntilWatering(plant.next_watering_at)}</Text>
+                </View>
+
+                {/* Center: Orientation */}
+                <View style={styles.infoItem}>
+                  <Ionicons name="navigate-outline" size={16} color={COLORS.textSecondary} />
+                  <Text style={styles.infoText}>{plant.window_direction.charAt(0).toUpperCase()}</Text>
+                </View>
+
+                {/* Right: Health Indicator */}
+                <View style={[styles.statusDot, { backgroundColor: getHealthColor(calculateHealthStatus(plant)) }]} />
               </View>
-              <View style={styles.infoItem}>
-                <Ionicons name="navigate-outline" size={16} color={COLORS.textSecondary} />
-                <Text style={styles.infoText}>{plant.window_direction.charAt(0).toUpperCase()}</Text>
-              </View>
-              <View style={[styles.statusDot, { backgroundColor: getHealthColor(calculateHealthStatus(plant)) }]} />
             </View>
           </TouchableOpacity>
         ))}
@@ -230,45 +243,62 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    padding: 8,
+    justifyContent: 'space-between', // Distribute cards evenly (automatic gap)
+    paddingHorizontal: FIBONACCI.SM, // 8px - Fibonacci side margins
+    paddingTop: FIBONACCI.SM, // 8px - Fibonacci top margin
+    paddingBottom: FIBONACCI.SM, // 8px - Minimal bottom padding
   },
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: 16,
+    borderRadius: FIBONACCI.MD, // 13px - Fibonacci border radius
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    padding: 12,
-    width: '48%',
-    marginBottom: 12,
+    padding: FIBONACCI.SM, // 8px - Fibonacci padding (tighter cards, more photo-focused)
+    width: '48%', // 48% width with space-between = automatic balanced gaps
+    marginBottom: FIBONACCI.MD, // 13px - Fibonacci vertical spacing
+    alignItems: 'center', // Center all content horizontally for balanced composition
+  },
+  imageWrapper: {
+    width: '100%',
+    alignItems: 'center', // Center image within wrapper for balanced card layout
   },
   image: {
-    width: '100%',
-    height: FIBONACCI.HUGE,
-    borderRadius: 8,
+    // size prop handles dimensions (144×144 via FIBONACCI.HUGE)
+    borderRadius: FIBONACCI.SM, // 8px
+  },
+  textBlock: {
+    width: FIBONACCI.HUGE, // 144px - same as photo width
+    alignSelf: 'center', // Center the text block within card
+    marginTop: FIBONACCI.MD, // 13px gap between image and text
   },
   plantName: {
     fontSize: 16,
     fontWeight: '600',
-    marginTop: 8,
     color: COLORS.text,
+    textAlign: 'left', // Left-align for better readability
   },
   plantNameRTL: {
-    textAlign: 'right',
+    textAlign: 'right', // Right-align for RTL languages
   },
   location: {
     fontSize: 13,
     color: COLORS.textSecondary,
+    textAlign: 'left', // Left-align for consistency
   },
   locationRTL: {
-    textAlign: 'right',
+    textAlign: 'right', // Right-align for RTL languages
+  },
+  infoRowWrapper: {
+    width: '100%',
+    alignItems: 'center', // Center the infoRow horizontally within card
+    marginTop: 6,
   },
   infoRow: {
+    width: FIBONACCI.HUGE, // 144px - same as photo width for visual alignment
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-between', // Distribute: Left (water) | Center (orientation) | Right (health)
     alignItems: 'center',
-    marginTop: 6,
   },
   infoItem: {
     flexDirection: 'row',
@@ -289,11 +319,11 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     borderColor: COLORS.primary,
     borderWidth: 2,
-    borderRadius: 16,
+    borderRadius: FIBONACCI.MD, // 13px - Fibonacci border radius (matches plant cards)
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 24,
-    width: '48%',
+    paddingVertical: FIBONACCI.LG, // 21px - Fibonacci vertical padding
+    width: '48%', // Match plant card width
   },
   addCircle: {
     width: 64,

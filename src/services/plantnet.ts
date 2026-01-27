@@ -1,13 +1,11 @@
 import { IdentificationResult } from '../types';
 import { plantDatabaseService } from './plantDatabase';
 import { authService } from './supabase';
-import { plantNetCache, createCachedApiCall } from '../utils/apiCache';
+import { plantNetCache } from '../utils/apiCache';
 import {
   enhanceImageForPlantIdentification,
   assessImageQualityForPlants,
-  isImageSuitableForPlantIdentification,
-  resizeImageForPlantNet,
-  ImageQualityMetrics
+  resizeImageForPlantNet
 } from '../utils/imageUtils';
 import { logger } from '../utils/logger';
 import { readAsStringAsync, EncodingType, getInfoAsync } from 'expo-file-system/legacy';
@@ -168,6 +166,34 @@ async function directPlantNetApiCall(
   return plantNetData;
 }
 
+// 🌿 DEFAULT CULTIVARS: Auto-select most common variety for species with multiple cultivars
+// This prevents overwhelming beginners with choices when care is nearly identical
+const DEFAULT_CULTIVARS: Record<string, string> = {
+  'Dracaena trifasciata': 'snake_plant_laurentii',           // Classic Snake Plant
+  'Syngonium podophyllum': 'arrowhead_vine',                 // Basic Arrowhead Vine
+  'Anthurium andraeanum': 'red_anthurium',                   // Red is most popular
+  'Fittonia albivenis': 'fittonia',                          // Generic Nerve Plant
+  'Opuntia microdasys': 'bunny_ear_cactus',                  // Classic yellow variety
+  'Gymnocalycium mihanovichii': 'moon_cactus',               // More popular than ball
+  'Euphorbia pulcherrima': 'christmas_poinsettia',           // Red is classic
+  'Dracaena reflexa': 'song_of_india',                       // More common than Jamaica
+  'Peperomia obtusifolia': 'peperomia_obtusifolia',          // Plain green is common
+};
+
+// 🌿 GENERIC SPECIES NAMES: Show simple names instead of cultivar names for better UX
+// "Snake Plant" is friendlier than "Snake Plant Laurentii" for beginners
+const GENERIC_SPECIES_NAMES: Record<string, string> = {
+  'Dracaena trifasciata': 'Snake Plant',
+  'Syngonium podophyllum': 'Arrowhead Vine',
+  'Anthurium andraeanum': 'Flamingo Flower',
+  'Fittonia albivenis': 'Nerve Plant',
+  'Opuntia microdasys': 'Bunny Ear Cactus',
+  'Gymnocalycium mihanovichii': 'Moon Cactus',
+  'Euphorbia pulcherrima': 'Poinsettia',
+  'Dracaena reflexa': 'Song of India',
+  'Peperomia obtusifolia': 'Baby Rubber Plant',
+};
+
 export const plantNetService = {
   /**
    * Enhanced plant identification with caching and multiple attempts
@@ -182,21 +208,7 @@ export const plantNetService = {
       // Phase 1: Image Quality Assessment and Validation
       const qualityAssessment = await assessImageQualityForPlants(imageUri);
 
-      // PHASE 3: Check Debug Mode (ONLY allowed in development builds)
-      const DEBUG_MODE = __DEV__ && process.env.EXPO_PUBLIC_DEBUG_PLANTNET === 'true';
-
-      // Phase 2: Plant Detection Validation - DISABLED FOR BETA
-      // All photos now go directly to PlantNet API for real AI analysis
-      // The simulated pre-filter was causing false rejections
-      // See: CLAUDE.md line 17 - "All photos now sent directly to PlantNet Edge Function"
-
-      // REMOVED: Pre-validation that was blocking real plant photos
-      // const plantValidation = await plantDetectionService.validateImageForPlantAPI(imageUri);
-      // if (!DEBUG_MODE && !plantValidation.isValid) {
-      //   return null;
-      // }
-
-      // Phase 3: Image Enhancement for Better Identification
+      // Phase 2: Image Enhancement for Better Identification
       const enhancedImageUri = await enhanceImageForPlantIdentification(imageUri, {
         autoEnhance: true,
         enhanceContrast: qualityAssessment.contrast < 0.6,
@@ -204,7 +216,7 @@ export const plantNetService = {
         sharpen: qualityAssessment.sharpness < 0.7
       });
 
-      // Phase 4: Enhanced Plant Identification with Multiple Organ Types
+      // Phase 3: Enhanced Plant Identification with Multiple Organ Types
       const organs = [organ, 'leaf', 'flower', 'fruit'];
       let bestResult: IdentificationResult | null = null;
       let highestConfidence = 0;
@@ -239,31 +251,31 @@ export const plantNetService = {
                 break; // Stop trying other organs
               }
             }
-          } catch (error) {
-            // PHASE 1: Diagnostic Logging - API Failure
+          } catch (err) {
+            const error = err instanceof Error ? err : new Error(String(err));
+
+            // Diagnostic Logging - API Failure
             logger.error('PlantNet API Failed:', {
               organ: currentOrgan,
               errorMessage: error.message,
-              errorType: error.name,
-              statusCode: error.status || 'unknown'
+              errorType: error.name
             });
 
-            // ❌ DON'T RETRY on authentication errors - they will always fail
+            // Don't retry on authentication errors - they will always fail
             if (error.message.includes('401') || error.message.includes('Unauthorized') || error.message.includes('logged in')) {
-              logger.error('❌ Authentication Error - cannot retry');
-              throw error; // Re-throw auth errors immediately
+              logger.error('Authentication Error - cannot retry');
+              throw error;
             }
 
-            // ❌ DON'T RETRY on 404 "Species not found" - PlantNet's way of saying "not a plant"
+            // Don't retry on 404 "Species not found" - PlantNet's way of saying "not a plant"
             if (error.message.includes('404') || error.message.includes('Not Found') || error.message.includes('Species not found')) {
-              logger.warn('⚠️  PlantNet could not identify this image (404)');
-              // Return null to show "No Results" - don't waste time retrying
+              logger.warn('PlantNet could not identify this image (404)');
               return null;
             }
 
             // If API is blocked (IP restriction), throw error
             if (error.message.includes('access denied') || error.message.includes('403')) {
-              logger.error('❌ PlantNet API Access Denied (403 Forbidden)');
+              logger.error('PlantNet API Access Denied (403 Forbidden)');
               throw new Error(
                 'The plant identification service is currently unavailable. Please try again in a few moments. (Code: API_ACCESS_DENIED)'
               );
@@ -280,17 +292,12 @@ export const plantNetService = {
         }
       }
 
-      // Phase 5: Post-Processing and Recommendations
+      // Phase 4: Post-Processing and Recommendations
       if (bestResult && bestResult.confidence < 70) {
         bestResult.suggestions = plantNetService.getCommonEgyptianPlants(language);
-        
-        // Add plant color information if detected
-        if (qualityAssessment.hasPlantColors) {
-          const colorInfo = language === 'ar' 
-            ? `اللون المسيطر: ${qualityAssessment.plantColorAnalysis.dominantPlantColor}`
-            : `Dominant color: ${qualityAssessment.plantColorAnalysis.dominantPlantColor}`;
-          bestResult.plant_info += ` ${colorInfo}.`;
-        }
+
+        // NOTE: Color detection removed - was incorrectly appending temporary image
+        // analysis ("Dominant color: purple") to permanent plant database stories
       }
 
       // Final Result
@@ -300,16 +307,14 @@ export const plantNetService = {
       }
 
       return bestResult;
-    } catch (error) {
-      // PHASE 1: Diagnostic Logging - Unexpected Error
-      logger.error('❌ Plant Identification Failed:', {
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      logger.error('Plant Identification Failed:', {
         errorMessage: error.message,
         errorType: error.name,
         errorStack: error.stack?.substring(0, 200)
       });
-      throw new Error(
-        `Failed to identify plant: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
+      throw new Error(`Failed to identify plant: ${error.message}`);
     }
   },
 
@@ -349,13 +354,19 @@ export const plantNetService = {
       return null;
     }
 
-    // ⚡ PERFORMANCE: Reject very low confidence immediately (< 30%)
-    // This saves 20-30 seconds by not trying all organs for bad photos
+    // ⚡ PERFORMANCE: Reject very low confidence immediately (< 15%)
+    // Industry standard: 15-20% minimum for valid plant identification
+    // Lower threshold = better user experience, catches more valid plants
     const topScore = speciesResults[0]?.score || 0;
-    if (topScore < 0.3) {
-      logger.warn(`⚠️  Very low confidence (${Math.round(topScore * 100)}%) - likely poor photo quality`);
-      logger.warn('   Rejecting immediately instead of trying all organs');
+    if (topScore < 0.15) {
+      logger.warn(`⚠️  Very low confidence (${Math.round(topScore * 100)}%) - likely not a plant or extremely poor photo`);
+      logger.warn('   Rejecting immediately (below 15% threshold)');
       return null; // User will see "No Results" with suggestion to retake photo
+    }
+
+    // Log confidence level for monitoring
+    if (topScore < 0.30) {
+      logger.info(`✅ Accepting result with ${Math.round(topScore * 100)}% confidence (above 15% threshold)`);
     }
 
     return plantNetService.processBestMatch(speciesResults, language);
@@ -368,6 +379,10 @@ export const plantNetService = {
    * TIER 1: Exact scientific name match (no substring/partial matching)
    * TIER 2: Same genus (e.g., species vs cultivar, or different species in same genus)
    * TIER 3: Common name match only
+   *
+   * NEW: When multiple cultivars match the same species (e.g., "Song of India" and "Song of Jamaica"
+   * both being Dracaena reflexa), we return `multiple_cultivars: true` with ALL options in
+   * `all_cultivars` array so the UI can show a picker.
    */
   matchPlantToDatabase: (
     scientificName: string,
@@ -380,6 +395,15 @@ export const plantNetService = {
     confidence: number;
     plant_id: string | null;
     match_type: 'exact' | 'genus' | 'common_name' | 'none';
+    primary_plant_name?: string; // Name from database to display instead of PlantNet
+    primary_plant_info?: string; // Plant info from database
+    // NEW: For cultivar picker feature
+    multiple_cultivars?: boolean; // True when >1 exact matches exist
+    all_cultivars?: Array<{
+      plant_id: string;
+      plant_name: string;
+      scientific_name: string;
+    }>;
     alternatives?: Array<{
       plant_id: string;
       confidence: number;
@@ -415,14 +439,54 @@ export const plantNetService = {
     }
 
     if (exactMatches.length > 0) {
-      logger.debug(`✅ TIER 1: Exact scientific name match - ${exactMatches[0].plant.id}`);
-      logger.debug(`   PlantNet: "${scientificName}" = Database: "${exactMatches[0].matchedName}"`);
+      const hasMultipleCultivars = exactMatches.length > 1;
+
+      // 🌿 AUTO-SELECT: For species with multiple cultivars, pick the most common/default one
+      let selectedPlant = exactMatches[0]; // Fallback to first
+      let selectedIndex = 0;
+
+      if (hasMultipleCultivars) {
+        // Check if we have a predefined default for this species
+        const normalizedScientificName = normalizeScientificName(scientificName);
+        const defaultCultivarId = DEFAULT_CULTIVARS[scientificName] || DEFAULT_CULTIVARS[normalizedScientificName];
+
+        if (defaultCultivarId) {
+          const defaultMatch = exactMatches.find(m => m.plant.id === defaultCultivarId);
+          if (defaultMatch) {
+            selectedPlant = defaultMatch;
+            selectedIndex = exactMatches.indexOf(defaultMatch);
+            logger.debug(`🌿 AUTO-SELECTED default cultivar: ${defaultCultivarId}`);
+          }
+        }
+
+        logger.debug(`✅ TIER 1: Exact scientific name match - MULTIPLE CULTIVARS (${exactMatches.length})`);
+        logger.debug(`   PlantNet: "${scientificName}" matches ${exactMatches.length} cultivars:`);
+        exactMatches.forEach(m => logger.debug(`     - ${m.plant.id}: ${m.plant.names.common[0]}`));
+      } else {
+        logger.debug(`✅ TIER 1: Exact scientific name match - ${exactMatches[0].plant.id}`);
+        logger.debug(`   PlantNet: "${scientificName}" = Database: "${exactMatches[0].matchedName}"`);
+      }
+
+      // Use generic species name for better UX (e.g., "Snake Plant" instead of "Snake Plant Laurentii")
+      const genericName = GENERIC_SPECIES_NAMES[scientificName] || GENERIC_SPECIES_NAMES[normalizeScientificName(scientificName)];
 
       return {
         found: true,
         confidence: 95, // High confidence for exact match
-        plant_id: exactMatches[0].plant.id,
+        plant_id: selectedPlant.plant.id,
         match_type: 'exact',
+        primary_plant_name: genericName || selectedPlant.plant.names.common[0],
+        primary_plant_info: selectedPlant.plant.care?.plant_info,
+        // NEW: Include all cultivars for optional refiner when multiple exist
+        multiple_cultivars: hasMultipleCultivars,
+        all_cultivars: hasMultipleCultivars
+          ? exactMatches.map(m => ({
+              plant_id: m.plant.id,
+              plant_name: m.plant.names.common[0],
+              scientific_name: m.matchedName,
+              is_selected: m.plant.id === selectedPlant.plant.id, // Mark the auto-selected one
+            }))
+          : undefined,
         alternatives: exactMatches.slice(1, 3).map(m => ({
           plant_id: m.plant.id,
           confidence: 95,
@@ -461,6 +525,8 @@ export const plantNetService = {
         confidence: 80, // Medium-high confidence for genus match
         plant_id: genusMatches[0].plant.id,
         match_type: 'genus',
+        primary_plant_name: genusMatches[0].plant.names.common[0],
+        primary_plant_info: genusMatches[0].plant.care?.plant_info,
         alternatives: genusMatches.slice(1, 3).map(m => ({
           plant_id: m.plant.id,
           confidence: 80,
@@ -487,6 +553,8 @@ export const plantNetService = {
         confidence: commonMatches[0].confidence,
         plant_id: commonMatches[0].plant.id,
         match_type: 'common_name',
+        primary_plant_name: commonMatches[0].plant.names.common[0],
+        primary_plant_info: commonMatches[0].plant.care?.plant_info,
         alternatives: commonMatches.slice(1, 3).map(m => ({
           plant_id: m.plant.id,
           confidence: m.confidence,
@@ -512,11 +580,20 @@ export const plantNetService = {
    */
   processBestMatch: (species: any[], language: 'en' | 'ar' = 'en'): IdentificationResult => {
     const topResult = species[0];
-    
+
     // Get common name in English or Arabic
     const commonNameEn = topResult.commonNames?.find((name: any) => name.lang === 'en')?.name;
     const commonNameAr = topResult.commonNames?.find((name: any) => name.lang === 'ar')?.name;
     const commonName = commonNameEn || commonNameAr || topResult.scientificNameWithoutAuthor;
+
+    // 🔍 DEBUG: Log what PlantNet gave us (helps understand cultivar detection)
+    logger.debug('🌿 PlantNet returned:', {
+      scientificName: topResult.scientificNameWithoutAuthor,
+      commonNameEn,
+      commonNameAr,
+      allCommonNames: topResult.commonNames,
+      score: topResult.score
+    });
 
     // Calculate adjusted confidence based on multiple factors
     let adjustedConfidence = Math.round(topResult.score * 100);
@@ -557,13 +634,18 @@ export const plantNetService = {
       adjustedConfidence
     );
 
+    // ✅ USE DATABASE NAME: When we have a database match, prefer its name over PlantNet's
+    // This ensures "Song of Jamaica" shows instead of "Corn plant" for genus matches
+    const displayName = databaseMatch.primary_plant_name || careData.plant_name;
+    const displayInfo = databaseMatch.primary_plant_info || careData.plant_info;
+
     return {
       confidence: adjustedConfidence,
-      common_name: careData.plant_name,
+      common_name: displayName,
       scientific_name: topResult.scientificNameWithoutAuthor,
       family: topResult.family.scientificNameWithoutAuthor,
       genus: topResult.genus.scientificNameWithoutAuthor,
-      plant_info: careData.plant_info,
+      plant_info: displayInfo,
       plant_type: careData.plant_type,
       watering_schedule: careData.watering_frequency,
       preferred_humidity: 'medium', // Legacy field - info now in watering_schedule

@@ -6,9 +6,7 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
-  Image,
   LayoutAnimation,
-  Linking,
   Platform,
   Animated,
   ActivityIndicator,
@@ -93,6 +91,7 @@ export default function AddPlantScreen() {
   const [enhancedCareRec, setEnhancedCareRec] = useState<EnhancedCareRecommendation | null>(null);
   const [careLoading, setCareLoading] = useState(false);
   const [isKeyboardVisible, setKeyboardVisible] = useState(false); // 🔧 Track keyboard state
+  const [isNicknameFocused, setNicknameFocused] = useState(false); // 🎨 Track nickname input focus for color change
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const scrollViewRef = useRef<ScrollView>(null); // 🔧 Ref for programmatic scroll control
 
@@ -532,17 +531,22 @@ export default function AddPlantScreen() {
             <View style={{ marginTop: FIBONACCI.SM }}>
               <Text style={styles.label}>{t('addPlant.plantNickname')}</Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  isNicknameFocused && styles.inputFocused, // 🎨 Dark black text when focused/editing
+                ]}
                 value={nickname}
                 onChangeText={setNickname}
                 placeholder={dbPlant ? (isRTL ? `مثلاً: ${dbPlant.names.arabic?.[0] || dbPlant.names.common[0]} بتاعتي` : `e.g. My ${dbPlant.names.common[0]}`) : (isRTL ? 'مثلاً: زرعة الصالة' : 'e.g. Living Room Plant')}
                 placeholderTextColor={COLORS.textSecondary}
                 onFocus={() => {
+                  setNicknameFocused(true); // 🎨 Change color to dark black when user taps/focuses
                   // 🔧 FIX: Auto-scroll nickname into view when keyboard opens
                   setTimeout(() => {
                     scrollViewRef.current?.scrollToEnd({ animated: true });
                   }, 100);
                 }}
+                onBlur={() => setNicknameFocused(false)} // 🎨 Revert to light grey when user exits
               />
             </View>
           </View>
@@ -576,7 +580,7 @@ export default function AddPlantScreen() {
                           style={styles.headerImage}
                       />
                       <View style={styles.headerTextContainer}>
-                          <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+                          <Text style={styles.headerTitle} numberOfLines={2} ellipsizeMode="tail">
                             ✓ {isRTL && dbPlant?.names.arabic ? dbPlant.names.arabic[0] : (dbPlant?.names.common[0] || 'Snake Plant')}
                           </Text>
                           <Text style={styles.headerSubtitle} numberOfLines={1} ellipsizeMode="tail">
@@ -966,6 +970,9 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.BASE,
     color: '#9CA3AF', // Light grey (Instagram comment placeholder style) - signals it's editable
     backgroundColor: COLORS.white,
+  },
+  inputFocused: {
+    color: COLORS.text, // Dark black (#2C2C2C) - strong contrast when user is actively editing
   },
   fixedFooter: {
     borderTopWidth: 1,

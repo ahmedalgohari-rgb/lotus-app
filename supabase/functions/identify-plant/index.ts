@@ -54,7 +54,10 @@ serve(async (req) => {
 
     console.log(`PlantNet request from user: ${user.id}`)
 
-    // RATE LIMITING: Check API usage (10 requests per hour per user)
+    // RATE LIMITING: Check API usage per user
+    // NOTE: Each scan tries up to 3 organs (leaf, flower, fruit), so multiply scans × 3
+    // TESTING: 30 requests/hour (~10 scans). PRODUCTION: reduce to 15 (~5 scans)
+    const RATE_LIMIT = 30 // TODO: Reduce to 15 for production launch
     const oneHourAgo = new Date(Date.now() - 3600000).toISOString()
 
     const { count, error: countError } = await supabase
@@ -67,12 +70,12 @@ serve(async (req) => {
     if (countError) {
       console.error('Rate limit check failed:', countError)
       // Don't block on rate limit check failure - continue
-    } else if (count && count >= 10) {
-      console.warn(`Rate limit exceeded for user ${user.id}: ${count} requests in last hour`)
+    } else if (count && count >= RATE_LIMIT) {
+      console.warn(`Rate limit exceeded for user ${user.id}: ${count} requests in last hour (limit: ${RATE_LIMIT})`)
       return new Response(
         JSON.stringify({
           error: 'Rate limit exceeded',
-          message: 'Maximum 10 plant identifications per hour. Please try again later.',
+          message: `Maximum ${Math.floor(RATE_LIMIT / 3)} plant scans per hour. Please try again later.`,
           retryAfter: 3600 - Math.floor((Date.now() - new Date(oneHourAgo).getTime()) / 1000)
         }),
         { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

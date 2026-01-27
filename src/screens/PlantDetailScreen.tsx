@@ -6,13 +6,12 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  Image,
-  ImageBackground,
   TextInput,
   LayoutAnimation,
   UIManager,
   Platform,
 } from 'react-native';
+import { Image } from 'expo-image'; // ⚡ UPGRADE: expo-image for WebP support & faster loading
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -126,6 +125,14 @@ export default function PlantDetailScreen() {
       logger.debug('⚠️ NOT calling loadEnhancedCare - missing plant or species_id');
     }
   }, [plant?.id, plant?.species_id, plant?.location, plant?.window_direction]);
+
+  // Load care history when component mounts
+  useEffect(() => {
+    if (plantId) {
+      loadCareHistory();
+      logger.debug('📋 Loading care history for plant:', plantId);
+    }
+  }, [plantId]);
 
   const loadCareHistory = async () => {
     try {
@@ -350,18 +357,21 @@ export default function PlantDetailScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <ImageBackground
-          source={
-            // Priority 1: User's captured photo
-            plant.captured_image_uri ? { uri: plant.captured_image_uri } :
-            // Priority 2: Local database image
-            getPlantImage(plant.plant_id) ||
-            // Priority 3: Remote URL
-            { uri: plant.image_url || undefined }
-          }
-          style={styles.headerImage}
-          resizeMode="cover"
-        >
+        <View style={styles.headerImageContainer}>
+          <Image
+            source={
+              // Priority 1: User's captured photo (WebP)
+              plant.captured_image_uri ? { uri: plant.captured_image_uri } :
+              // Priority 2: Local database image
+              getPlantImage(plant.plant_id) ||
+              // Priority 3: Remote URL
+              { uri: plant.image_url || undefined }
+            }
+            style={styles.headerImage}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={200}
+          />
           <View style={styles.headerOverlay}>
             <View style={styles.headerTop}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButton}>
@@ -388,7 +398,7 @@ export default function PlantDetailScreen() {
               </Text>
             </View>
           </View>
-        </ImageBackground>
+        </View>
 
         {/* Plant Info */}
         <View style={styles.content}>
@@ -680,9 +690,13 @@ export default function PlantDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
+  headerImageContainer: {
     height: 256,
-    justifyContent: 'flex-end',
+    position: 'relative',
+  },
+  headerImage: {
+    width: '100%',
+    height: 256,
   },
   headerOverlay: {
     ...StyleSheet.absoluteFillObject,

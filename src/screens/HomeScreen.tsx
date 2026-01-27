@@ -6,16 +6,16 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { useNavigation } from '@react-navigation/native';
 import { COLORS, FIBONACCI, TYPOGRAPHY, ELEMENT_SIZES } from '../constants';
 import { useStore } from '../store';
-import { useRTL, useRTLStyles } from '../utils/rtl';
+import { useRTL } from '../utils/rtl';
 import { WeatherService } from '../services/weather';
-import { WeatherData, Plant } from '../types';
+import { Plant } from '../types';
 import { changeLanguage, getCurrentLanguage } from '../i18n';
 import { logger } from '../utils/logger';
 import AccountDrawer from '../components/AccountDrawer';
@@ -128,50 +128,10 @@ const translateCareValue = (value: string, type: 'placement' | 'watering' | 'mis
   return translations[type][value] || value;
 };
 
-const careCards = [
-  {
-    id: 'watering',
-    icon: 'water-outline',
-    title: 'Watering',
-    titleAr: 'السقي',
-    description: 'Most plants need water every 5-7 days',
-    tip: 'Tip: Check soil moisture first',
-    cairoTip: 'Cairo Tip: More water needed in summer heat',
-  },
-  {
-    id: 'light',
-    icon: 'sunny-outline',
-    title: 'Light',
-    titleAr: 'الإضاءة',
-    description: 'Bright indirect light is best for most plants',
-    tip: 'Tip: Rotate plants weekly for even growth',
-    cairoTip: 'Cairo Tip: North windows are ideal',
-  },
-  {
-    id: 'position',
-    icon: 'navigate-outline',
-    title: 'Position',
-    titleAr: 'الموقع',
-    description: 'Window direction matters for plant health',
-    tip: 'Tip: East & North are best for most plants',
-    cairoTip: 'Cairo Tip: Avoid south-facing windows in summer',
-  },
-  {
-    id: 'humidity',
-    icon: 'leaf-outline',
-    title: 'Humidity',
-    titleAr: 'الرطوبة',
-    description: 'Most houseplants prefer 40-60% humidity',
-    tip: 'Tip: Group plants together to increase humidity',
-    cairoTip: 'Cairo Tip: Use humidifier in winter',
-  },
-];
-
 export default function HomeScreen() {
-  const { user, isGuest, weather, setWeather, setIsRTL, setUser, setAuthenticated, clearStorage, isFirstVisit, markAsReturningUser } = useStore();
+  const { user, isGuest, weather, setWeather, setIsRTL, isFirstVisit, markAsReturningUser, checkSeasonChange } = useStore();
   const [weatherLoading, setWeatherLoading] = useState(false);
-  const { t, i18n } = useTranslation();
-  const navigation = useNavigation();
+  const { t } = useTranslation();
   const isRTL = useRTL();
   const [currentLanguage, setCurrentLanguage] = useState(getCurrentLanguage());
   const [isAccountDrawerVisible, setIsAccountDrawerVisible] = useState(false);
@@ -187,6 +147,7 @@ export default function HomeScreen() {
   useEffect(() => {
     loadWeatherData();
     loadPlants();
+    checkForSeasonChange();
 
     // Mark user as returning after they visit home screen
     if (isFirstVisit) {
@@ -196,6 +157,50 @@ export default function HomeScreen() {
       }, 2000); // Wait 2 seconds before marking as returning user
     }
   }, []);
+
+  // Check if season has changed and notify user
+  const checkForSeasonChange = async () => {
+    try {
+      const seasonChanged = await checkSeasonChange();
+
+      if (seasonChanged) {
+        // Get the current season name for the notification
+        const month = new Date().getMonth();
+        let seasonName = '';
+        let seasonNameAr = '';
+
+        if (month >= 5 && month <= 8) {
+          seasonName = 'summer';
+          seasonNameAr = 'الصيف';
+        } else if (month >= 11 || month <= 2) {
+          seasonName = 'winter';
+          seasonNameAr = 'الشتاء';
+        } else if (month >= 3 && month <= 4) {
+          seasonName = 'spring';
+          seasonNameAr = 'الربيع';
+        } else {
+          seasonName = 'fall';
+          seasonNameAr = 'الخريف';
+        }
+
+        // Show notification about season change
+        const message = isRTL
+          ? `تم تحديث نصائح العناية بالنباتات لفصل ${seasonNameAr} 🌿`
+          : `Care tips updated for ${seasonName} 🌿`;
+
+        const title = isRTL ? 'تغير الموسم' : 'Season Changed';
+
+        // Show alert after a brief delay so it doesn't interfere with app loading
+        setTimeout(() => {
+          Alert.alert(title, message);
+        }, 1500);
+
+        logger.info('Season change notification shown', { season: seasonName });
+      }
+    } catch (error) {
+      logger.error('Error checking season change:', error);
+    }
+  };
 
   const loadPlants = async () => {
     if (isGuest || !user?.id) {
@@ -271,13 +276,6 @@ export default function HomeScreen() {
     }
   };
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return t('home.goodMorning');
-    if (hour < 18) return t('home.goodAfternoon');
-    return t('home.goodEvening');
-  };
-
   const toggleLanguage = async () => {
     const newLanguage = currentLanguage === 'en' ? 'ar' : 'en';
     try {
@@ -294,17 +292,6 @@ export default function HomeScreen() {
       logger.error('Error changing language:', error);
     }
   };
-
-  const handleLogout = async () => {
-    try {
-      await clearStorage();
-      setUser(null);
-      setAuthenticated(false);
-    } catch (error) {
-      logger.error('Error logging out:', error);
-    }
-  };
-
 
   return (
     <SafeAreaView style={styles.container}>

@@ -69,9 +69,9 @@ serve(async (req) => {
 
     // Calculate daily temperature statistics for accurate plant care
     const temps = todayForecasts.map((item: any) => item.main.temp)
-    const minTemp = Math.min(...temps)
-    const maxTemp = Math.max(...temps)
-    const avgTemp = (minTemp + maxTemp) / 2 // Representative daily average
+    const minTemp = Math.round(Math.min(...temps))
+    const maxTemp = Math.round(Math.max(...temps))
+    const avgTemp = Math.round((minTemp + maxTemp) / 2) // Always integer, never decimals
 
     // Get current conditions from first forecast entry
     const current = todayForecasts[0] || forecastData.list[0]

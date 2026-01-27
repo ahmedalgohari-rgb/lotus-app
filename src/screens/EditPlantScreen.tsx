@@ -7,7 +7,6 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
-  Image,
   LayoutAnimation,
   Platform,
   KeyboardAvoidingView,
@@ -549,7 +548,7 @@ const styles = StyleSheet.create({
   headerImage: {
     width: FIBONACCI.XXL,
     height: FIBONACCI.XXL,
-    borderRadius: 30,
+    borderRadius: FIBONACCI.XXL / 2, // 27.5px (was 30 hardcoded - circular image)
     marginRight: FIBONACCI.LG, // Increased from MD (13) to LG (21) for more space
     flexShrink: 0, // Prevent image from shrinking
   },
@@ -593,7 +592,7 @@ const styles = StyleSheet.create({
   layoutContentContainer: {
     justifyContent: 'center',
     paddingVertical: FIBONACCI.MD,
-    paddingBottom: 100,
+    paddingBottom: FIBONACCI.XXL, // 55px (was 100px hardcoded - now uses Fibonacci for proper scaling)
   },
   stepContentContainer: {
     justifyContent: 'center',
@@ -648,10 +647,10 @@ const styles = StyleSheet.create({
   },
   compassDirection: {
     position: 'absolute',
-    width: 63,
-    height: 63,
+    width: FIBONACCI.XXL, // 55px (was 63 hardcoded - Fibonacci-compliant)
+    height: FIBONACCI.XXL, // 55px
     backgroundColor: COLORS.white,
-    borderRadius: 31.5,
+    borderRadius: FIBONACCI.XXL / 2, // 27.5px (was 31.5 hardcoded - circular button)
     borderWidth: 1,
     borderColor: COLORS.border,
     justifyContent: 'center',
@@ -660,7 +659,7 @@ const styles = StyleSheet.create({
   compassDirectionNS: {
     width: FIBONACCI.XXXL,
     height: FIBONACCI.XXL,
-    borderRadius: 35,
+    borderRadius: FIBONACCI.XL, // 34px (was 35 hardcoded - Fibonacci-compliant)
   },
   compassDirectionSelected: {
     backgroundColor: COLORS.primary,
@@ -793,7 +792,7 @@ const styles = StyleSheet.create({
     marginBottom: FIBONACCI.XXS,
   },
   heroStars: {
-    fontSize: 20,
+    fontSize: TYPOGRAPHY.LG, // 21px (was 20 hardcoded - Fibonacci typography scale)
     color: '#F59E0B',
     letterSpacing: 2,
   },
@@ -832,7 +831,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: FIBONACCI.MD,
     borderRadius: ELEMENT_SIZES.RADIUS_LG,
     gap: FIBONACCI.SM,
-    height: 55,
+    height: ELEMENT_SIZES.BUTTON_MD, // 55px (was hardcoded - uses standard button height)
   },
   footerButtonPrimary: {
     backgroundColor: COLORS.primary,

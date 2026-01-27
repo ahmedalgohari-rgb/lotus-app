@@ -6,10 +6,26 @@ import { readAsStringAsync, EncodingType } from 'expo-file-system/legacy';
 import { Plant, PlantSpecies, CareEvent, User } from '../types';
 import { logger } from '../utils/logger';
 
+// OAuth error type for better type safety
+interface OAuthError {
+  message: string;
+  name: string;
+  status: number;
+}
+
+// Session polling configuration constants
+const SESSION_POLL_INTERVAL_MS = 500;
+const SESSION_POLL_MAX_ATTEMPTS = 20; // 10 second timeout (20 × 500ms)
+
+// Helper function to create OAuth error responses
+function createOAuthError(message: string, name: string, status: number) {
+  return { data: null, error: { message, name, status } as OAuthError };
+}
+
 // Complete the browser session on Android
 WebBrowser.maybeCompleteAuthSession();
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+export const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
 if (!supabaseUrl || !supabaseAnonKey) {
@@ -26,13 +42,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     storage: AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false, // This should be false for React Native
+    detectSessionInUrl: false, // React Native uses deep links, not browser URL params
   },
-});
-
-// Listen for auth state changes
-supabase.auth.onAuthStateChange(async (event, session) => {
-  // Auth state monitoring
 });
 
 // Auth helpers
@@ -63,7 +74,7 @@ export const authService = {
 
       if (!data?.url) {
         logger.error('No OAuth URL returned from Supabase');
-        return { data: null, error: { message: 'No OAuth URL returned', name: 'OAuthError', status: 500 } as any };
+        return createOAuthError('No OAuth URL returned', 'OAuthError', 500);
       }
 
       // Open the OAuth URL in the browser
@@ -76,24 +87,28 @@ export const authService = {
         // Different session handling for different providers
         if (options?.useSessionPolling) {
           // Apple uses session polling (10 second timeout)
-          logger.debug('Polling for session (max 10 seconds)...');
-          const maxAttempts = 20; // 20 * 500ms = 10 seconds
+          logger.debug(`Polling for session (max ${SESSION_POLL_MAX_ATTEMPTS * SESSION_POLL_INTERVAL_MS / 1000} seconds)...`);
           let sessionData = null;
 
-          for (let i = 0; i < maxAttempts; i++) {
-            await new Promise(resolve => setTimeout(resolve, 500));
+          for (let i = 0; i < SESSION_POLL_MAX_ATTEMPTS; i++) {
+            await new Promise(resolve => setTimeout(resolve, SESSION_POLL_INTERVAL_MS));
             const result = await supabase.auth.getSession();
 
             if (result.data.session) {
               sessionData = result;
-              logger.debug(`Session found after ${(i + 1) * 500}ms`);
+              logger.debug(`Session found after ${(i + 1) * SESSION_POLL_INTERVAL_MS}ms`);
               break;
             }
           }
 
           if (!sessionData?.data?.session) {
-            logger.error('No session found after OAuth completion (timeout after 10 seconds)');
-            return { data: null, error: { message: 'OAuth timeout - session not created within 10 seconds', name: 'TimeoutError', status: 408 } as any };
+            const timeoutSeconds = (SESSION_POLL_MAX_ATTEMPTS * SESSION_POLL_INTERVAL_MS) / 1000;
+            logger.error(`No session found after OAuth completion (timeout after ${timeoutSeconds} seconds)`);
+            return createOAuthError(
+              `OAuth timeout - session not created within ${timeoutSeconds} seconds`,
+              'TimeoutError',
+              408
+            );
           }
 
           if (sessionData.error) {
@@ -153,15 +168,15 @@ export const authService = {
             };
           } else {
             logger.error('No tokens found in redirect URL');
-            return { data: null, error: { message: 'No tokens in redirect URL', name: 'OAuthError', status: 500 } as any };
+            return createOAuthError('No tokens in redirect URL', 'OAuthError', 500);
           }
         }
       } else if (result.type === 'cancel') {
         logger.info(`User cancelled ${provider} OAuth`);
-        return { data: null, error: { message: 'User cancelled OAuth', name: 'UserCancelled', status: 400 } as any };
+        return createOAuthError('User cancelled OAuth', 'UserCancelled', 400);
       } else {
         logger.error(`${provider} OAuth failed with type:`, result.type);
-        return { data: null, error: { message: 'OAuth browser session failed', name: 'BrowserError', status: 500 } as any };
+        return createOAuthError('OAuth browser session failed', 'BrowserError', 500);
       }
     } catch (err) {
       logger.error(`${provider} OAuth error:`, err);
@@ -192,6 +207,24 @@ export const authService = {
       },
       useSessionPolling: false, // Facebook uses URL token extraction
     });
+  },
+
+  /**
+   * Sign in anonymously for guest users
+   * Creates a temporary Supabase session that allows PlantNet API calls
+   * while maintaining rate limiting and security
+   */
+  signInAnonymously: async () => {
+    logger.info('Creating anonymous guest session...');
+    const { data, error } = await supabase.auth.signInAnonymously();
+
+    if (error) {
+      logger.error('Anonymous sign-in failed:', error);
+      return { data: null, error };
+    }
+
+    logger.success('Guest session created', { userId: data?.user?.id });
+    return { data, error: null };
   },
 
   signOut: async () => {

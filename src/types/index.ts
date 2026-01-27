@@ -98,6 +98,16 @@ export interface IdentificationResult {
     confidence: number;          // matching confidence (0-100)
     plant_id: string | null;     // Database plant ID (e.g., "golden_pothos")
     match_type: 'exact' | 'genus' | 'common_name' | 'none';
+    primary_plant_name?: string; // Name from database to display instead of PlantNet
+    primary_plant_info?: string; // Plant info from database
+    // CULTIVAR PICKER: When >1 exact matches exist (same species, different varieties)
+    multiple_cultivars?: boolean; // True when multiple varieties share same scientific name
+    all_cultivars?: Array<{      // All matching cultivars for optional refiner UI
+      plant_id: string;
+      plant_name: string;
+      scientific_name: string;
+      is_selected?: boolean;     // True for the auto-selected default cultivar
+    }>;
     alternatives?: Array<{       // Other possible matches (if genus match)
       plant_id: string;
       confidence: number;
@@ -121,6 +131,9 @@ export type NavigationParamList = {
     identificationResult?: IdentificationResult;
     capturedImage?: string;  // Camera photo URI (only for scanned plants)
     plantDatabaseId?: string;  // Database plant ID (only for selected plants, e.g., "euphorbia_trigona")
+    // Pre-processed image URIs (background processing optimization)
+    processedImageUri?: string | null;  // WebP processed image
+    cloudImageUrl?: string | null;  // Uploaded cloud URL
   };
   PlantResult: {
     identificationResult: IdentificationResult;

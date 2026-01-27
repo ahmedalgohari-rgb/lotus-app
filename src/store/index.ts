@@ -5,6 +5,8 @@ import { CACHE_KEYS } from '../constants';
 import { changeLanguage } from '../i18n';
 import { logger } from '../utils/logger';
 
+type Season = 'summer' | 'winter' | 'spring' | 'fall';
+
 interface AppStore extends AppState {
   // Actions
   setUser: (user: User | null) => void;
@@ -36,11 +38,25 @@ interface AppStore extends AppState {
   setCareRecommendations: (recommendations: CareRecommendation[]) => void;
   addCareRecommendation: (recommendation: CareRecommendation) => void;
 
+  // Seasonal care recalculation
+  lastKnownSeason: Season | null;
+  setLastKnownSeason: (season: Season) => void;
+  checkSeasonChange: () => Promise<boolean>;  // Returns true if season changed
+
   // Persistence
   loadFromStorage: () => Promise<void>;
   saveToStorage: () => Promise<void>;
   clearStorage: () => Promise<void>;
 }
+
+// Helper function to detect current season based on Cairo's climate
+const getCurrentSeason = (): Season => {
+  const month = new Date().getMonth(); // 0-11
+  if (month >= 5 && month <= 8) return 'summer';      // June-September
+  if (month >= 11 || month <= 2) return 'winter';     // December-February
+  if (month >= 3 && month <= 4) return 'spring';      // March-April
+  return 'fall';                                        // October-November
+};
 
 export const useStore = create<AppStore>((set, get) => ({
   // Initial state
@@ -55,6 +71,7 @@ export const useStore = create<AppStore>((set, get) => ({
   weather: null,
   careRecommendations: [],
   isFirstVisit: true, // Default to true for new users
+  lastKnownSeason: null,  // Will be set on first app open
 
   // User actions
   setUser: (user) => {
@@ -188,6 +205,37 @@ export const useStore = create<AppStore>((set, get) => ({
     set({ careRecommendations: [...careRecommendations, recommendation] });
   },
 
+  // Seasonal care recalculation
+  setLastKnownSeason: (season) => {
+    set({ lastKnownSeason: season });
+    AsyncStorage.setItem('last_known_season', season);
+    logger.debug('Season saved', { season });
+  },
+
+  checkSeasonChange: async () => {
+    const { lastKnownSeason } = get();
+    const currentSeason = getCurrentSeason();
+
+    // First time app opened - store current season
+    if (!lastKnownSeason) {
+      get().setLastKnownSeason(currentSeason);
+      logger.info('First season detection', { season: currentSeason });
+      return false;  // No change (first time)
+    }
+
+    // Season changed - return true to trigger recalculation
+    if (currentSeason !== lastKnownSeason) {
+      logger.info('Season changed!', {
+        from: lastKnownSeason,
+        to: currentSeason
+      });
+      get().setLastKnownSeason(currentSeason);
+      return true;  // Season changed
+    }
+
+    return false;  // No change
+  },
+
   // Persistence
   loadFromStorage: async () => {
     try {
@@ -208,12 +256,13 @@ export const useStore = create<AppStore>((set, get) => ({
         return;
       }
 
-      const [userPlantsData, userProfileData, speciesData, languageData, hasVisitedBefore] = await Promise.all([
+      const [userPlantsData, userProfileData, speciesData, languageData, hasVisitedBefore, lastSeasonData] = await Promise.all([
         AsyncStorage.getItem(CACHE_KEYS.USER_PLANTS),
         AsyncStorage.getItem(CACHE_KEYS.USER_PROFILE),
         AsyncStorage.getItem(CACHE_KEYS.PLANT_SPECIES),
         AsyncStorage.getItem('user-language'),
         AsyncStorage.getItem('has_visited_before'),
+        AsyncStorage.getItem('last_known_season'),
       ]);
 
       if (userPlantsData) {
@@ -243,6 +292,11 @@ export const useStore = create<AppStore>((set, get) => ({
       // Check if user has visited before
       if (hasVisitedBefore === 'true') {
         set({ isFirstVisit: false });
+      }
+
+      // Load last known season
+      if (lastSeasonData) {
+        set({ lastKnownSeason: lastSeasonData as Season });
       }
     } catch (error) {
       logger.error('Error loading from storage:', error);
@@ -275,6 +329,7 @@ export const useStore = create<AppStore>((set, get) => ({
         AsyncStorage.removeItem(CACHE_KEYS.PLANT_SPECIES),
         AsyncStorage.removeItem('user-language'),
         AsyncStorage.removeItem('has_visited_before'),
+        AsyncStorage.removeItem('last_known_season'),
       ]);
 
       set({
@@ -288,6 +343,7 @@ export const useStore = create<AppStore>((set, get) => ({
         weather: null,
         careRecommendations: [],
         isFirstVisit: true, // Reset to first visit on logout
+        lastKnownSeason: null,  // Reset season on logout
       });
     } catch (error) {
       logger.error('Error clearing storage:', error);
