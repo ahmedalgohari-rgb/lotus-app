@@ -57,3 +57,26 @@ test-app/
 # Claude Code settings (contains API keys)
 .claude/settings.local.json
 .claude/*.local.json
+
+# iOS Build & Dependencies (should never be in git)
+ios/Pods/
+ios/build/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Build artifacts
+dist/
+.expo/
+.expo-shared/
+
+# Xcode
+DerivedData/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
