@@ -121,16 +121,16 @@ export function getPlantCareData(plantId: string): SimplifiedPlantCare | null {
  * Main function: Get comprehensive plant care data with language support
  * This is the main entry point that uses the centralized database service
  */
-export function getComprehensivePlantCare(
-  scientificName: string, 
-  commonName?: string, 
+export async function getComprehensivePlantCare(
+  scientificName: string,
+  commonName?: string,
   family?: string,
   language: 'en' | 'ar' = 'en'
-): SimplifiedPlantCare & { matchInfo?: any } {
-  return plantDatabaseService.getComprehensivePlantCare(
-    scientificName, 
-    commonName, 
-    family, 
+): Promise<SimplifiedPlantCare & { matchInfo?: any }> {
+  return await plantDatabaseService.getComprehensivePlantCare(
+    scientificName,
+    commonName,
+    family,
     language
   );
 }

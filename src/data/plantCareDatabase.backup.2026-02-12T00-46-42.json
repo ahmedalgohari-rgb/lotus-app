@@ -1,84 +1,6 @@
 {
   "plants": [
     {
-      "id": "african_lily",
-      "names": {
-        "scientific": [
-          "Agapanthus"
-        ],
-        "common": [
-          "African lily"
-        ],
-        "arabic": [
-          "زنبق أفريقيا"
-        ],
-        "aliases": []
-      },
-      "care": {
-        "plant_info": "A beautiful perennial flowering plant characterized by magnificent blue or white flowers appearing in spherical clusters on long stems. Its long green leaves resemble ribbons. A medium-difficulty plant that needs strong light for good flowering.",
-        "plant_info_arabic": "نبات معمر مزهر جميل يتميز بأزهاره الزرقاء أو البيضاء الرائعة التي تظهر في مجموعات كروية على سيقان طويلة. أوراقه الخضراء الطويلة تشبه الشريط. نبات متوسط الصعوبة يحتاج ضوء قوي للإزهار الجيد.",
-        "plant_type": "flowering",
-        "difficulty": "intermediate",
-        "watering": {
-          "frequency": "weekly",
-          "schedule": "60_dry",
-          "description": "Water when top 2 inches are dry",
-          "arabic_description": {
-            "description": "Water when top 2 inches are dry",
-            "arabic_description": "اسقِ النبات عندما تجف الطبقة العليا من التربة. يحتاج ري منتظم خلال موسم النمو والإزهار. قلل الري بعد انتهاء فترة الإزهار."
-          }
-        },
-        "light": {
-          "requirement": "bright_direct",
-          "tolerance": [
-            "bright_indirect"
-          ],
-          "description": "Needs bright light to flower",
-          "arabic_description": {
-            "description": "Needs bright light to flower",
-            "arabic_description": "يحتاج إلى ضوء ساطع أو شمس مباشرة للإزهار الجيد. يمكن وضعه في الشمس الكاملة أو الضوء الساطع جداً. الإضاءة الضعيفة تمنع الإزهار."
-          }
-        },
-        "humidity": "medium",
-        "temperature": {
-          "min": 15,
-          "max": 30,
-          "optimal": 22
-        },
-        "soil": "well_draining_potting",
-        "fertilizer": "monthly"
-      },
-      "characteristics": {
-        "family": "Amaryllidaceae",
-        "genus": "Agapanthus",
-        "origin": "Various",
-        "mature_size": {
-          "height": "varies",
-          "spread": "varies"
-        },
-        "growth_rate": "medium",
-        "air_purifying": false,
-        "pet_safe": true,
-        "flowering": false,
-        "propagation": "cuttings"
-      },
-      "egyptian_specific": {
-        "cairo_suitability": "good",
-        "indoor_outdoor": "indoor",
-        "seasonal_care": {
-          "summer": "Water regularly during hot Cairo summers. Protect from harsh afternoon sun.",
-          "winter": "Reduce watering in cooler months. Maintain in bright location.",
-          "summer_arabic": "اسقي بانتظام خلال صيف القاهرة الحار. احمي من شمس الظهيرة القاسية.",
-          "winter_arabic": "قلل الري في الأشهر الباردة. احتفظ به في مكان مضيء."
-        },
-        "local_availability": {
-          "source": "Plant Cult Cairo",
-          "url": "https://plantcultcairo.com/products/outdoor-lilly?_pos=2&_sid=0fab9bb89&_ss=r"
-        }
-      },
-      "image_url": "local://african_lily.webp"
-    },
-    {
       "id": "aglaonema",
       "names": {
         "scientific": [
@@ -7881,7 +7803,7 @@
       "id": "snake_plant_golden_flame",
       "names": {
         "scientific": [
-          "Sansevieria trifasciata"
+          "Dracaena trifasciata"
         ],
         "common": [
           "Snake Plant Golden Flame"
@@ -7959,7 +7881,7 @@
       "id": "snake_plant_laurentii",
       "names": {
         "scientific": [
-          "Sansevieria trifasciata"
+          "Dracaena trifasciata"
         ],
         "common": [
           "Snake Plant Laurentii"
@@ -8037,7 +7959,7 @@
       "id": "snake_plant_moonshine",
       "names": {
         "scientific": [
-          "Sansevieria trifasciata"
+          "Dracaena trifasciata"
         ],
         "common": [
           "Snake Plant Moonshine"

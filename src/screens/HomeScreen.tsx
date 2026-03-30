@@ -23,34 +23,33 @@ import { dbService } from '../services/supabase';
 
 
 
-// Helper function to determine season by calendar month for fallback
-const getSeasonByMonth = () => {
-  const month = new Date().getMonth(); // 0-11
-  // Spring: March-May (2-4), Autumn: September-November (8-10)
-  if (month >= 2 && month <= 4) return 'Spring';
-  if (month >= 8 && month <= 10) return 'Autumn';
-  // Default to Spring for ambiguous months
-  return 'Spring';
+// Helper function to determine season using official astronomical dates
+const getOfficialSeason = (): 'Winter' | 'Spring' | 'Summer' | 'Autumn' => {
+  const now = new Date();
+  const month = now.getMonth(); // 0-11
+  const day = now.getDate();
+
+  // Official astronomical season dates (Egypt/Northern Hemisphere)
+  // Winter: Dec 21 - Mar 20
+  // Spring: Mar 21 - Jun 20
+  // Summer: Jun 21 - Sep 22
+  // Autumn: Sep 23 - Dec 20
+
+  if ((month === 11 && day >= 21) || month === 0 || month === 1 || (month === 2 && day <= 20)) {
+    return 'Winter';
+  }
+  if ((month === 2 && day >= 21) || month === 3 || month === 4 || (month === 5 && day <= 20)) {
+    return 'Spring';
+  }
+  if ((month === 5 && day >= 21) || month === 6 || month === 7 || (month === 8 && day <= 22)) {
+    return 'Summer';
+  }
+  return 'Autumn';
 };
 
 const getSeason = (temperature: number): string => {
-  const month = new Date().getMonth(); // 0-11
-
-  // Time-based season with 5-degree tolerance
-  if (month >= 2 && month <= 4) { // Spring: Mar-May
-    if (temperature >= 15 && temperature <= 35) return 'Spring';
-  } else if (month >= 5 && month <= 7) { // Summer: Jun-Aug
-    if (temperature > 25) return 'Summer';
-  } else if (month >= 8 && month <= 10) { // Autumn: Sep-Nov
-    if (temperature >= 15 && temperature <= 35) return 'Autumn';
-  } else { // Winter: Dec-Feb
-    if (temperature < 25) return 'Winter';
-  }
-
-  // Fallback to temperature-based season
-  if (temperature < 20) return 'Winter';
-  if (temperature > 30) return 'Summer';
-  return getSeasonByMonth(); // Spring or Autumn for 20-30
+  // Use official astronomical dates for season determination
+  return getOfficialSeason();
 }
 
 // Comprehensive Cairo Plant Care Matrix based on season, temperature, UV, and sky conditions
@@ -164,24 +163,16 @@ export default function HomeScreen() {
       const seasonChanged = await checkSeasonChange();
 
       if (seasonChanged) {
-        // Get the current season name for the notification
-        const month = new Date().getMonth();
-        let seasonName = '';
-        let seasonNameAr = '';
-
-        if (month >= 5 && month <= 8) {
-          seasonName = 'summer';
-          seasonNameAr = 'الصيف';
-        } else if (month >= 11 || month <= 2) {
-          seasonName = 'winter';
-          seasonNameAr = 'الشتاء';
-        } else if (month >= 3 && month <= 4) {
-          seasonName = 'spring';
-          seasonNameAr = 'الربيع';
-        } else {
-          seasonName = 'fall';
-          seasonNameAr = 'الخريف';
-        }
+        // Get the current season name for the notification using official dates
+        const currentSeason = getOfficialSeason();
+        const seasonNames: Record<string, { en: string; ar: string }> = {
+          'Winter': { en: 'winter', ar: 'الشتاء' },
+          'Spring': { en: 'spring', ar: 'الربيع' },
+          'Summer': { en: 'summer', ar: 'الصيف' },
+          'Autumn': { en: 'fall', ar: 'الخريف' }
+        };
+        const seasonName = seasonNames[currentSeason]?.en || 'spring';
+        const seasonNameAr = seasonNames[currentSeason]?.ar || 'الربيع';
 
         // Show notification about season change
         const message = isRTL
@@ -391,7 +382,12 @@ export default function HomeScreen() {
                 {/* Weather text as anchor point with icons positioned closer */}
                 <View style={[styles.weatherMain, isRTL && styles.weatherMainRTL]}>
                   <View style={[styles.weatherTempRow, isRTL && styles.weatherTempRowRTL]}>
-                    <Text style={[styles.weatherTemp, isRTL && styles.weatherTempRTL]}>{weather.temperature}°C</Text>
+                    <View style={styles.weatherTempContainer}>
+                      <Text style={[styles.weatherTemp, isRTL && styles.weatherTempRTL]}>{weather.temperature}°C</Text>
+                      <Text style={[styles.weatherAvgLabel, isRTL && styles.weatherAvgLabelRTL]}>
+                        {isRTL ? 'متوسط اليوم' : "Today's Avg"}
+                      </Text>
+                    </View>
                     {/* Weather icon positioned close to temp text */}
                     <View style={[styles.weatherIconSection, isRTL && styles.weatherIconSectionRTL]}>
                       <Text style={styles.weatherIcon}>
@@ -431,149 +427,74 @@ export default function HomeScreen() {
 
               
 
-              {/* Cairo Weather Care Grid - 5 Essential Elements */}
-
+              {/* Cairo Weather Care Grid */}
               <View style={styles.plantCareGrid}>
-
-
-
-                
-
                 <View style={styles.plantCareRow}>
-
                   <View style={styles.plantCareItem}>
-
                     <View style={styles.plantCareIconContainer}>
-
                       <Ionicons name="location-outline" size={18} color={COLORS.primary} />
-
                     </View>
-
                     <Text style={[styles.plantCareLabel, { textAlign: 'center' }]}>
-
                       {isRTL ? t('careMatrix.labels.placement') : 'Placement'}
-
                     </Text>
-
                     <Text style={[styles.plantCareValue, { textAlign: 'center' }]}>
-
                       {translateCareValue(
-
                         getPlantCareRecommendation(weather.temperature, weather.condition).placement,
-
                         'placement',
-
                         isRTL
-
                       )}
-
                     </Text>
-
                   </View>
-
-                  
 
                   <View style={styles.plantCareItem}>
-
                     <View style={styles.plantCareIconContainer}>
-
                       <Ionicons name="water-outline" size={18} color={COLORS.primary} />
-
                     </View>
-
                     <Text style={[styles.plantCareLabel, { textAlign: 'center' }]}>
-
                       {isRTL ? t('careMatrix.labels.watering') : 'Watering'}
-
                     </Text>
-
                     <Text style={[styles.plantCareValue, { textAlign: 'center' }]}>
-
                       {translateCareValue(
-
                         getPlantCareRecommendation(weather.temperature, weather.condition).watering,
-
                         'watering',
-
                         isRTL
-
                       )}
-
                     </Text>
-
                   </View>
-
                 </View>
-
-                
 
                 <View style={styles.plantCareRow}>
-
                   <View style={styles.plantCareItem}>
-
                     <View style={styles.plantCareIconContainer}>
-
                       <Ionicons name="flower-outline" size={18} color={COLORS.primary} />
-
                     </View>
-
                     <Text style={[styles.plantCareLabel, { textAlign: 'center' }]}>
-
                       {isRTL ? t('careMatrix.labels.misting') : 'Misting'}
-
                     </Text>
-
                     <Text style={[styles.plantCareValue, { textAlign: 'center' }]}>
-
                       {translateCareValue(
-
                         getPlantCareRecommendation(weather.temperature, weather.condition).humidity,
-
                         'misting',
-
                         isRTL
-
                       )}
-
                     </Text>
-
                   </View>
-
-                  
 
                   <View style={styles.plantCareItem}>
-
                     <View style={styles.plantCareIconContainer}>
-
                       <Ionicons name="time-outline" size={18} color={COLORS.primary} />
-
                     </View>
-
                     <Text style={[styles.plantCareLabel, { textAlign: 'center' }]}>
-
                       {isRTL ? t('careMatrix.labels.season') : 'Season'}
-
                     </Text>
-
                     <Text style={[styles.plantCareValue, { textAlign: 'center' }]}>
-
-                      {(() => {
-
-                        const season = getSeason(weather.temperature);
-
-                        return translateCareValue(season, 'season', isRTL);
-
-                      })()}
-
+                      {translateCareValue(getSeason(weather.temperature), 'season', isRTL)}
                     </Text>
-
                   </View>
-
                 </View>
-
               </View>
-
-            </View>          ) : (
+            </View>
+          ) : (
             <View style={styles.weatherErrorCard}>
               <Text style={styles.weatherErrorText}>
                 {t('home.weatherError')}
@@ -619,14 +540,8 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     paddingBottom: 0,
   },
-  headerRTL: {
-    flexDirection: 'row-reverse',
-  },
   greeting: {
     flex: 1,
-  },
-  greetingRTL: {
-    alignItems: 'flex-end',
   },
   greetingText: {
     fontFamily: 'PlusJakartaSans-Bold',
@@ -635,16 +550,10 @@ const styles = StyleSheet.create({
     marginBottom: FIBONACCI.XXS,
     textAlign: 'left',
   },
-  greetingTextRTL: {
-    textAlign: 'right',
-  },
   headerButtons: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-  },
-  headerButtonsRTL: {
-    flexDirection: 'row-reverse',
   },
   languageToggle: {
     backgroundColor: COLORS.primary,
@@ -671,15 +580,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-
-
-  description: {
-    fontSize: TYPOGRAPHY.SM,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    lineHeight: TYPOGRAPHY.LG,
-    paddingHorizontal: FIBONACCI.LG,
-  },
   section: {
     marginTop: 0,
     marginBottom: FIBONACCI.LG,
@@ -693,10 +593,6 @@ const styles = StyleSheet.create({
     marginBottom: FIBONACCI.MD,
     textAlign: 'left',
   },
-  sectionTitleRTL: {
-    textAlign: 'right',
-  },
-
   // Garden Stats Styles
   gardenStatsContainer: {
     flexDirection: 'row',
@@ -730,174 +626,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 16,
   },
-
-  careGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  careGridRTL: {
-    flexDirection: 'row-reverse',
-  },
-  sectionTitleAr: {
-    fontSize: TYPOGRAPHY.BASE,
-    fontWeight: '600',
-    color: COLORS.primary,
-    marginBottom: FIBONACCI.LG,
-  },
-  careCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: ELEMENT_SIZES.RADIUS_MD,
-    padding: FIBONACCI.LG,
-    width: '48%',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: FIBONACCI.SM,
-    elevation: 3,
-  },
-  cardIcon: {
-    marginBottom: FIBONACCI.SM,
-  },
-  cardTitle: {
-    fontSize: TYPOGRAPHY.SM,
-    fontWeight: '600',
-    color: COLORS.primary,
-    marginBottom: FIBONACCI.XS,
-    textAlign: 'center',
-  },
-  cardDescription: {
-    fontSize: TYPOGRAPHY.XS,
-    color: COLORS.text,
-    textAlign: 'center',
-    lineHeight: TYPOGRAPHY.MD,
-  },
-  cardTip: {
-    fontSize: TYPOGRAPHY.SM,
-    color: COLORS.secondary,
-    marginBottom: FIBONACCI.XS,
-    fontStyle: 'italic',
-  },
-  cairoTip: {
-    fontSize: TYPOGRAPHY.SM,
-    color: COLORS.warning,
-    fontWeight: '500',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: FIBONACCI.MD,
-  },
-  actionButtonsRTL: {
-    flexDirection: 'row-reverse',
-  },
-  actionButton: {
-    flex: 1,
-    backgroundColor: COLORS.primary,
-    borderRadius: ELEMENT_SIZES.RADIUS_MD,
-    padding: FIBONACCI.LG,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: FIBONACCI.XS,
-    elevation: 3,
-  },
-  actionButtonRTL: {
-    // Same centered layout for both languages
-  },
-  actionButtonText: {
-    color: COLORS.white,
-    fontSize: TYPOGRAPHY.SM,
-    fontWeight: '600',
-    marginTop: FIBONACCI.XS,
-    textAlign: 'center',
-  },
-  actionButtonTextAr: {
-    color: COLORS.white,
-    fontSize: TYPOGRAPHY.SM,
-    marginTop: FIBONACCI.XXS,
-  },
-  actionButtonSecondary: {
-    flex: 1,
-    backgroundColor: COLORS.white,
-    borderRadius: ELEMENT_SIZES.RADIUS_MD,
-    padding: FIBONACCI.LG,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: COLORS.primary,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: FIBONACCI.XS,
-    elevation: 3,
-  },
-  actionButtonSecondaryRTLLayout: {
-    // Same centered layout for both languages
-  },
-  actionButtonSecondaryText: {
-    color: COLORS.primary,
-    fontSize: TYPOGRAPHY.SM,
-    fontWeight: '600',
-    marginTop: FIBONACCI.XS,
-    textAlign: 'center',
-  },
-  actionButtonSecondaryTextAr: {
-    color: COLORS.primary,
-    fontSize: TYPOGRAPHY.SM,
-    marginTop: FIBONACCI.XXS,
-  },
-  cairoTipsCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: ELEMENT_SIZES.RADIUS_MD,
-    padding: FIBONACCI.LG,
-    borderLeftWidth: 4,
-    borderLeftColor: COLORS.warning,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: FIBONACCI.SM,
-    elevation: 3,
-  },
-  cairoTipsCardRTL: {
-    borderLeftWidth: 0,
-    borderRightWidth: 4,
-    borderRightColor: COLORS.warning,
-  },
-  cairoTipsTitle: {
-    fontSize: TYPOGRAPHY.BASE,
-    fontWeight: '600',
-    color: COLORS.primary,
-    marginBottom: FIBONACCI.SM,
-    textAlign: 'left',
-  },
-  cairoTipsTitleRTL: {
-    textAlign: 'right',
-  },
-  cairoTipsSubtitle: {
-    fontSize: TYPOGRAPHY.SM,
-    color: COLORS.textSecondary,
-    marginBottom: FIBONACCI.LG,
-  },
-  tipsList: {
-    gap: FIBONACCI.XS,
-  },
-  tipsListRTL: {
-    // Same gap layout for both languages
-  },
-  tipItem: {
-    fontSize: TYPOGRAPHY.SM,
-    color: COLORS.text,
-    lineHeight: TYPOGRAPHY.LG,
-    textAlign: 'left',
-  },
-  tipItemRTL: {
-    textAlign: 'right',
-  },
-  bottomPadding: {
-    height: FIBONACCI.XXXL,
-  },
-  // Weather Widget Styles
   weatherLoadingCard: {
     backgroundColor: COLORS.white,
     borderRadius: ELEMENT_SIZES.RADIUS_LG,
@@ -913,11 +641,6 @@ const styles = StyleSheet.create({
     marginTop: FIBONACCI.SM,
     fontSize: TYPOGRAPHY.SM,
     color: COLORS.text,
-  },
-  weatherLoadingTextAr: {
-    fontSize: TYPOGRAPHY.XS,
-    color: COLORS.textSecondary,
-    marginTop: FIBONACCI.XXS,
   },
   weatherCard: {
     backgroundColor: COLORS.white,
@@ -959,6 +682,18 @@ const styles = StyleSheet.create({
     textAlign: 'left',
   },
   weatherTempRTL: {
+    textAlign: 'right',
+  },
+  weatherTempContainer: {
+    flexDirection: 'column',
+  },
+  weatherAvgLabel: {
+    fontSize: TYPOGRAPHY.XS,
+    color: COLORS.textSecondary,
+    marginTop: -4,
+    textAlign: 'left',
+  },
+  weatherAvgLabelRTL: {
     textAlign: 'right',
   },
   weatherLocation: {
@@ -1005,35 +740,6 @@ const styles = StyleSheet.create({
   weatherIcon: {
     fontSize: TYPOGRAPHY.HUGE,
   },
-  refreshButton: {
-    padding: FIBONACCI.XXS,
-    borderRadius: ELEMENT_SIZES.RADIUS_MD,
-    backgroundColor: COLORS.white,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  weatherDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: FIBONACCI.LG,
-  },
-  weatherDetailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: FIBONACCI.XS,
-  },
-  weatherDetailText: {
-    fontSize: TYPOGRAPHY.SM,
-    color: COLORS.text,
-  },
-
-  // Unified Plant Care Grid Styles
   plantCareGrid: {
     marginTop: FIBONACCI.LG,
     paddingTop: FIBONACCI.LG,
@@ -1076,6 +782,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: TYPOGRAPHY.BASE,
   },
+  // Error and retry styles
   weatherErrorCard: {
     backgroundColor: COLORS.white,
     borderRadius: ELEMENT_SIZES.RADIUS_LG,
@@ -1094,11 +801,6 @@ const styles = StyleSheet.create({
     color: COLORS.error || '#dc2626',
     marginBottom: FIBONACCI.XXS,
   },
-  weatherErrorTextAr: {
-    fontSize: TYPOGRAPHY.XS,
-    color: COLORS.textSecondary,
-    marginBottom: FIBONACCI.MD,
-  },
   retryButton: {
     backgroundColor: COLORS.primary,
     paddingHorizontal: FIBONACCI.LG,
@@ -1110,76 +812,4 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.SM,
     fontWeight: '500',
   },
-  // Care Advice Styles
-  careAdviceContainer: {
-    marginTop: 0,
-  },
-  careConditions: {
-    backgroundColor: '#f0f7ff',
-    paddingHorizontal: FIBONACCI.MD,
-    paddingVertical: FIBONACCI.XS,
-    borderRadius: ELEMENT_SIZES.RADIUS_SM,
-    marginBottom: FIBONACCI.MD,
-    alignItems: 'center',
-  },
-  careConditionText: {
-    fontSize: TYPOGRAPHY.XS,
-    color: COLORS.primary,
-    fontWeight: '500',
-  },
-  careAdviceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: FIBONACCI.SM,
-  },
-  careAdviceItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginHorizontal: FIBONACCI.XXS,
-  },
-  careAdviceIconContainer: {
-    width: FIBONACCI.LG,
-    height: FIBONACCI.LG,
-    borderRadius: FIBONACCI.MD,
-    backgroundColor: '#f0f7ff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: FIBONACCI.SM,
-  },
-  careAdviceContent: {
-    flex: 1,
-  },
-  careAdviceLabel: {
-    fontSize: TYPOGRAPHY.XXS,
-    color: COLORS.textSecondary,
-    fontWeight: '500',
-    marginBottom: FIBONACCI.XXS,
-  },
-  careAdviceValue: {
-    fontSize: TYPOGRAPHY.XS,
-    color: COLORS.text,
-    fontWeight: '600',
-  },
-  // Auth Design Button Styles
-  authDesignButton: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: FIBONACCI.MD, // 13px - Golden ratio padding
-    paddingHorizontal: FIBONACCI.LG, // 21px - Golden ratio padding
-    borderRadius: ELEMENT_SIZES.RADIUS_MD, // 13px - Golden ratio rounding
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: FIBONACCI.XXS }, // 3px shadow
-    shadowOpacity: 0.15,
-    shadowRadius: FIBONACCI.SM, // 8px shadow radius
-    elevation: 3,
-    marginBottom: FIBONACCI.LG, // 21px - Extra spacing at bottom
-  },
-  authDesignButtonText: {
-    color: COLORS.white,
-    fontSize: TYPOGRAPHY.BASE, // 16px - Golden ratio typography
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-
 });

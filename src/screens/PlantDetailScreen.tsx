@@ -11,7 +11,7 @@ import {
   UIManager,
   Platform,
 } from 'react-native';
-import { Image } from 'expo-image'; // ⚡ UPGRADE: expo-image for WebP support & faster loading
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -23,58 +23,28 @@ import {
   PLANT_LOCATIONS,
   WINDOW_DIRECTIONS,
   CARE_EVENT_TYPES,
-  CARE_CATEGORIES,
   FIBONACCI,
   TYPOGRAPHY,
   ELEMENT_SIZES,
 } from '../constants';
 import { useStore } from '../store';
 import { dbService } from '../services/supabase';
-import { Plant, CareEvent, CareRecommendation, EnhancedCareRecommendation } from '../types';
-import { getCareRecommendations, getCareRecommendationTranslated, getCurrentSeason, getSeasonDisplayName, getPersonalizedCareRecommendations } from '../utils/careMap';
+import { Plant, CareEvent, EnhancedCareRecommendation } from '../types';
+import { getPersonalizedCareRecommendations } from '../utils/careMap';
 import { useRTL } from '../utils/rtl';
 import { logger } from '../utils/logger';
+import {
+  extractMaxWateringDays,
+  formatWateringSchedule,
+  formatLightValue,
+  translateWateringTip,
+  translateCheckSoilTip,
+  translateSeasonalTip,
+} from '../utils/careTextUtils';
 
 interface RouteParams {
   plantId: string;
 }
-
-// Helper function to format watering schedule (100_dry -> 100% dry, 100%dry -> 100% dry)
-const formatWateringSchedule = (schedule: string): string => {
-  if (!schedule) return schedule;
-  // Replace underscores with spaces and ensure space after %
-  return schedule
-    .replace(/_/g, ' ')
-    .replace(/(\d+)%\s*dry/gi, '$1% dry')  // Fix 100%dry or 100% dry -> 100% dry
-    .replace(/(\d+)\s+dry/i, '$1% dry');   // Fix 100 dry -> 100% dry
-};
-
-// Helper function to format light/orientation values (bright_direct -> Bright direct)
-const formatLightValue = (value: string): string => {
-  if (!value) return value;
-  // Replace underscores with spaces and capitalize first letter
-  return value
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-};
-
-// Helper function to extract maximum watering days from text like "Water every 12-16 days"
-const extractMaxWateringDays = (wateringText: string): number => {
-  if (!wateringText) return 7; // Default fallback
-
-  // Match patterns like "12-16 days" or "14 days"
-  const rangeMatch = wateringText.match(/(\d+)-(\d+)\s*days?/i);
-  if (rangeMatch) {
-    return parseInt(rangeMatch[2], 10); // Return the max value (16 from "12-16")
-  }
-
-  const singleMatch = wateringText.match(/(\d+)\s*days?/i);
-  if (singleMatch) {
-    return parseInt(singleMatch[1], 10); // Return single value (14 from "14 days")
-  }
-
-  return 7; // Fallback to 7 days if no pattern found
-};
 
 export default function PlantDetailScreen() {
   if (Platform.OS === 'android') {
@@ -87,10 +57,9 @@ export default function PlantDetailScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [editableNickname, setEditableNickname] = useState('');
-  const [isCareGuideExpanded, setIsCareGuideExpanded] = useState(false);
   const [enhancedCare, setEnhancedCare] = useState<EnhancedCareRecommendation | null>(null);
   const [isLoadingCare, setIsLoadingCare] = useState(false);
-  const [isCareTipsExpanded, setIsCareTipsExpanded] = useState(false);
+  const [isCareGuideExpanded, setIsCareGuideExpanded] = useState(true); // Expanded by default
 
   const navigation = useNavigation();
   const route = useRoute();
@@ -98,6 +67,45 @@ export default function PlantDetailScreen() {
   const { plants, updatePlant, user } = useStore();
   const isRTL = useRTL();
   const { t } = useTranslation();
+
+  // Helper function to translate plant type
+  const translatePlantType = (type: string): string => {
+    if (!type) return type;
+    const typeKey = type.toLowerCase().replace(/\s+/g, '');
+    // Try to get translation, fallback to capitalized original if not found
+    const translated = t(`care.plantTypes.${typeKey}`, { defaultValue: '' });
+    return translated || (type.charAt(0).toUpperCase() + type.slice(1));
+  };
+
+  // Helper function to translate watering schedule
+  const translateWateringSchedule = (schedule: string): string => {
+    if (!schedule) return schedule;
+    // Extract percentage from patterns like "75% dry", "100_dry", "60 dry"
+    const match = schedule.match(/(\d+)%?\s*dry/i);
+    if (match) {
+      const percentage = match[1];
+      const translated = t(`care.watering.dry${percentage}`, { defaultValue: '' });
+      return translated || formatWateringSchedule(schedule);
+    }
+    return formatWateringSchedule(schedule);
+  };
+
+  // Helper function to translate humidity level
+  const translateHumidity = (humidity: string): string => {
+    if (!humidity) return humidity;
+    const key = humidity.toLowerCase();
+    const translated = t(`care.humidity.${key}`, { defaultValue: '' });
+    return translated || (humidity.charAt(0).toUpperCase() + humidity.slice(1));
+  };
+
+  // Helper function to translate light value
+  const translateLight = (light: string): string => {
+    if (!light) return light;
+    // Convert "bright_direct" to "brightDirect" for translation key lookup
+    const key = light.replace(/_(.)/g, (_, char) => char.toUpperCase());
+    const translated = t(`care.light.${key}`, { defaultValue: '' });
+    return translated || formatLightValue(light);
+  };
 
   useEffect(() => {
     const foundPlant = plants.find(p => p.id === plantId);
@@ -331,17 +339,6 @@ export default function PlantDetailScreen() {
     });
   };
 
-  // Get dynamic care recommendations based on plant's room and current season
-  const getCareMapRecommendations = (): CareRecommendation => {
-    if (!plant) return { light: '', placement: '', watering: '', humidity: '' };
-
-    const currentSeason = getCurrentSeason();
-    const baseRecommendations = getCareRecommendations(plant.location, currentSeason);
-    const translatedRecommendations = getCareRecommendationTranslated(baseRecommendations, isRTL);
-
-    return translatedRecommendations;
-  };
-
   if (isLoading || !plant) {
     return (
       <SafeAreaView style={styles.container}>
@@ -400,139 +397,66 @@ export default function PlantDetailScreen() {
           </View>
         </View>
 
-        {/* Plant Info */}
+        {/* Plant Header Info */}
         <View style={styles.content}>
           <Text style={[styles.plantName, isRTL && styles.plantNameRTL]}>{plant.common_name || 'Unknown Plant'}</Text>
           <Text style={[styles.plantSubtitle, isRTL && styles.plantSubtitleRTL]}>
             {getLocationLabel(plant.location)} • {getDirectionLabel(plant.window_direction)} window
           </Text>
 
-          {/* Collapsible Care Guide Section */}
-          {(plant.plant_info || plant.plant_type || plant.watering_schedule || plant.preferred_humidity || plant.preferred_orientation) && (
-            <View style={styles.careGuideSection}>
-              <TouchableOpacity
-                style={styles.careGuideHeader}
-                onPress={() => setIsCareGuideExpanded(!isCareGuideExpanded)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.careGuideTitle, isRTL && styles.careGuideTitleRTL]}>
-                  {t('plantDetail.careGuide')}
-                </Text>
-                <Ionicons
-                  name={isCareGuideExpanded ? "chevron-up" : "chevron-down"}
-                  size={20}
-                  color={COLORS.primary}
-                />
-              </TouchableOpacity>
-
-              {isCareGuideExpanded && (
-                <View>
-                  {plant.plant_info && (
-                    <Text style={[styles.careGuideDescription, isRTL && styles.careGuideDescriptionRTL]}>
-                      {plant.plant_info}
-                    </Text>
-                  )}
-
-                  <View style={styles.careGuideDetails}>
-                    {plant.plant_type && (
-                      <View style={[styles.careGuideItem, isRTL && styles.careGuideItemRTL]}>
-                        <Ionicons name="leaf" size={16} color={COLORS.primary} />
-                        <Text style={[styles.careGuideLabel, isRTL && styles.careGuideLabelRTL]}>
-                          {isRTL ? 'النوع' : 'Type'}
-                        </Text>
-                        <Text style={[styles.careGuideValue, isRTL && styles.careGuideValueRTL]}>
-                          {plant.plant_type.charAt(0).toUpperCase() + plant.plant_type.slice(1)}
-                        </Text>
-                      </View>
-                    )}
-
-                    {plant.watering_schedule && (
-                      <View style={[styles.careGuideItem, isRTL && styles.careGuideItemRTL]}>
-                        <Ionicons name="water" size={16} color={COLORS.primary} />
-                        <Text style={[styles.careGuideLabel, isRTL && styles.careGuideLabelRTL]}>
-                          {isRTL ? 'الري' : 'Watering'}
-                        </Text>
-                        <Text style={[styles.careGuideValue, isRTL && styles.careGuideValueRTL]}>
-                          {formatWateringSchedule(plant.watering_schedule)}
-                        </Text>
-                      </View>
-                    )}
-
-                    {plant.preferred_humidity && (
-                      <View style={[styles.careGuideItem, isRTL && styles.careGuideItemRTL]}>
-                        <Ionicons name="cloud" size={16} color={COLORS.primary} />
-                        <Text style={[styles.careGuideLabel, isRTL && styles.careGuideLabelRTL]}>
-                          {isRTL ? 'الرطوبة' : 'Humidity'}
-                        </Text>
-                        <Text style={[styles.careGuideValue, isRTL && styles.careGuideValueRTL]}>
-                          {plant.preferred_humidity.charAt(0).toUpperCase() + plant.preferred_humidity.slice(1)}
-                        </Text>
-                      </View>
-                    )}
-
-                    {plant.preferred_orientation && (
-                      <View style={[styles.careGuideItem, isRTL && styles.careGuideItemRTL]}>
-                        <Ionicons name="sunny" size={16} color={COLORS.primary} />
-                        <Text style={[styles.careGuideLabel, isRTL && styles.careGuideLabelRTL]}>
-                          {isRTL ? 'الإضاءة' : 'Light'}
-                        </Text>
-                        <Text style={[styles.careGuideValue, isRTL && styles.careGuideValueRTL]}>
-                          {formatLightValue(plant.preferred_orientation)}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-              )}
+          {/* Plant Type Badge */}
+          {plant.plant_type && (
+            <View style={[styles.plantTypeBadge, isRTL && styles.plantTypeBadgeRTL]}>
+              <Ionicons name="leaf" size={14} color={COLORS.primary} />
+              <Text style={styles.plantTypeBadgeText}>{translatePlantType(plant.plant_type)}</Text>
             </View>
           )}
 
-          {/* Adjusted Care Tips Section - Collapsible */}
-          {enhancedCare && (
-            <View style={styles.careGuideSection}>
-              <TouchableOpacity
-                style={styles.careGuideHeader}
-                onPress={() => setIsCareTipsExpanded(!isCareTipsExpanded)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.careGuideTitle}>
-                  {isRTL ? 'نصائح العناية المخصصة' : 'Adjusted Care Tips'}
+          {/* Care Schedule - Most actionable info first */}
+          <View style={styles.scheduleContainer}>
+            <Text style={[styles.sectionTitle, isRTL && styles.sectionTitleRTL]}>{t('plantDetail.careSchedule')}</Text>
+            <View style={styles.scheduleCard}>
+              <View style={styles.scheduleItem}>
+                <Text style={[styles.scheduleLabel, isRTL && styles.scheduleLabelRTL]}>{t('plantDetail.lastWatered')}</Text>
+                <Text style={[styles.scheduleValue, plant.last_watered_at && styles.scheduleValueSuccess, isRTL && styles.scheduleValueRTL]}>
+                  {plant.last_watered_at ? formatDate(plant.last_watered_at) : t('plantDetail.never')}
                 </Text>
-                <Ionicons
-                  name={isCareTipsExpanded ? "chevron-up" : "chevron-down"}
-                  size={20}
-                  color={COLORS.primary}
-                />
-              </TouchableOpacity>
+              </View>
 
-              {isCareTipsExpanded && (
-                <View style={styles.careGuideDetails}>
-                  <View style={styles.careGuideItem}>
-                    <Ionicons name="water-outline" size={20} color={COLORS.primary} />
-                    <Text style={[styles.careGuideValue, { flex: 1, marginLeft: FIBONACCI.MD }]}>
-                      {formatWateringSchedule(enhancedCare.adjusted.watering)}
-                    </Text>
-                  </View>
-
-                  <View style={styles.careGuideItem}>
-                    <Ionicons name="calendar-outline" size={20} color={COLORS.primary} />
-                    <Text style={[styles.careGuideValue, { flex: 1, marginLeft: FIBONACCI.MD }]}>
-                      {enhancedCare.adjusted.wateringFrequency}
-                    </Text>
-                  </View>
-
-                  {enhancedCare.tips.length > 0 && (
-                    <View style={styles.careGuideItem}>
-                      <Ionicons name="bulb-outline" size={20} color={COLORS.primary} />
-                      <Text style={[styles.careGuideValue, { flex: 1, marginLeft: FIBONACCI.MD }]}>
-                        {enhancedCare.tips[0]}
-                      </Text>
-                    </View>
+              <View style={styles.scheduleItem}>
+                <Text style={styles.scheduleLabel}>{t('plantDetail.nextWateringLabel')}</Text>
+                <Text style={[
+                  styles.scheduleValue,
+                  daysUntilWatering !== null && daysUntilWatering <= 0 && styles.scheduleOverdue,
+                  daysUntilWatering !== null && daysUntilWatering === 1 && styles.scheduleWarning
+                ]}>
+                  {daysUntilWatering !== null ? (
+                    daysUntilWatering <= 0 ? t('plantDetail.now') :
+                    daysUntilWatering === 1 ? t('plantDetail.tomorrow') :
+                    t('plantDetail.inXDays', { days: daysUntilWatering })
+                  ) : (
+                    t('plantDetail.notSet')
                   )}
+                </Text>
+              </View>
+
+              {/* Progress Dots */}
+              <View style={styles.progressContainer}>
+                <View style={styles.progressDots}>
+                  {[...Array(7)].map((_, index) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.progressDot,
+                        index < (7 - (daysUntilWatering || 0)) && styles.progressDotActive
+                      ]}
+                    />
+                  ))}
                 </View>
-              )}
+                <Text style={styles.progressLabel}>{t('plantDetail.wateringCycle')}</Text>
+              </View>
             </View>
-          )}
+          </View>
 
           {/* Quick Actions */}
           <View style={styles.actionsContainer}>
@@ -572,91 +496,79 @@ export default function PlantDetailScreen() {
             </View>
           </View>
 
-          {/* Care Schedule */}
-          <View style={styles.scheduleContainer}>
-            <Text style={[styles.sectionTitle, isRTL && styles.sectionTitleRTL]}>{t('plantDetail.careSchedule')}</Text>
-            <View style={styles.scheduleCard}>
-              <View style={styles.scheduleItem}>
-                <Text style={[styles.scheduleLabel, isRTL && styles.scheduleLabelRTL]}>{t('plantDetail.lastWatered')}</Text>
-                <Text style={[styles.scheduleValue, plant.last_watered_at && styles.scheduleValueSuccess, isRTL && styles.scheduleValueRTL]}>
-                  {plant.last_watered_at ? formatDate(plant.last_watered_at) : t('plantDetail.never')}
+          {/* Care Guide - Merged section (expanded by default) */}
+          {(enhancedCare || plant.preferred_humidity) && (
+            <View style={styles.careGuideSection}>
+              <TouchableOpacity
+                style={styles.careGuideHeader}
+                onPress={() => setIsCareGuideExpanded(!isCareGuideExpanded)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.careGuideTitle, isRTL && styles.careGuideTitleRTL]}>
+                  {t('plantDetail.careGuide')}
                 </Text>
-              </View>
+                <Ionicons
+                  name={isCareGuideExpanded ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color={COLORS.primary}
+                />
+              </TouchableOpacity>
 
-              <View style={styles.scheduleItem}>
-                <Text style={styles.scheduleLabel}>{t('plantDetail.nextWateringLabel')}</Text>
-                <Text style={[
-                  styles.scheduleValue,
-                  daysUntilWatering !== null && daysUntilWatering <= 0 && styles.scheduleOverdue
-                ]}>
-                  {daysUntilWatering !== null ? (
-                    daysUntilWatering <= 0 ? t('plantDetail.now') :
-                    daysUntilWatering === 1 ? t('plantDetail.tomorrow') :
-                    t('plantDetail.inXDays', { days: daysUntilWatering })
-                  ) : (
-                    t('plantDetail.notSet')
+              {isCareGuideExpanded && (
+                <View style={styles.careGuideDetails}>
+                  {/* Personalized watering tip */}
+                  {enhancedCare && (
+                    <View style={styles.careGuideItem}>
+                      <Ionicons name="water-outline" size={20} color={COLORS.primary} />
+                      <Text style={[styles.careGuideValue, isRTL && styles.careGuideValueRTL]}>
+                        {translateWateringTip(enhancedCare.adjusted.watering, t)}
+                      </Text>
+                    </View>
                   )}
-                </Text>
-              </View>
 
-              {/* Progress Dots */}
-              <View style={styles.progressContainer}>
-                <View style={styles.progressDots}>
-                  {[...Array(7)].map((_, index) => (
-                    <View
-                      key={index}
-                      style={[
-                        styles.progressDot,
-                        index < (7 - (daysUntilWatering || 0)) && styles.progressDotActive
-                      ]}
-                    />
-                  ))}
+                  {/* Check soil tip */}
+                  {enhancedCare && (
+                    <View style={styles.careGuideItem}>
+                      <Ionicons name="calendar-outline" size={20} color={COLORS.primary} />
+                      <Text style={[styles.careGuideValue, isRTL && styles.careGuideValueRTL]}>
+                        {translateCheckSoilTip(enhancedCare.adjusted.wateringFrequency, t)}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Humidity from plant database */}
+                  {plant.preferred_humidity && (
+                    <View style={styles.careGuideItem}>
+                      <Ionicons name="cloud-outline" size={20} color={COLORS.primary} />
+                      <Text style={[styles.careGuideValue, isRTL && styles.careGuideValueRTL]}>
+                        {isRTL ? 'الرطوبة:' : 'Humidity:'} {translateHumidity(plant.preferred_humidity)}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Seasonal tip */}
+                  {enhancedCare && enhancedCare.tips.length > 0 && (
+                    <View style={styles.careGuideItem}>
+                      <Ionicons name="sunny-outline" size={20} color={COLORS.primary} />
+                      <Text style={[styles.careGuideValue, isRTL && styles.careGuideValueRTL]}>
+                        {translateSeasonalTip(enhancedCare.tips[0], t)}
+                      </Text>
+                    </View>
+                  )}
                 </View>
-                <Text style={styles.progressLabel}>{t('plantDetail.wateringCycle')}</Text>
-              </View>
+              )}
             </View>
-          </View>
-
-          {/* Plant Details */}
-          <View style={styles.detailsContainer}>
-            <Text style={styles.sectionTitle}>{t('plantDetail.plantDetails')}</Text>
-
-            <View style={styles.detailCard}>
-              <View style={styles.detailItem}>
-                <Text style={styles.detailIcon}>📍</Text>
-                <View style={styles.detailContent}>
-                  <Text style={styles.detailLabel}>{t('plantDetail.location')}</Text>
-                  <Text style={styles.detailValue}>{getLocationLabel(plant.location)}</Text>
-                </View>
-              </View>
-
-              <View style={styles.detailItem}>
-                <Text style={styles.detailIcon}>🧭</Text>
-                <View style={styles.detailContent}>
-                  <Text style={styles.detailLabel}>{t('plantDetail.window')}</Text>
-                  <Text style={styles.detailValue}>{getDirectionLabel(plant.window_direction)}</Text>
-                </View>
-              </View>
-
-              <View style={styles.detailItem}>
-                <Text style={styles.detailIcon}>📅</Text>
-                <View style={styles.detailContent}>
-                  <Text style={styles.detailLabel}>{t('plantDetail.added')}</Text>
-                  <Text style={styles.detailValue}>{formatDate(plant.created_at)}</Text>
-                </View>
-              </View>
-            </View>
-          </View>
+          )}
 
           {/* Care History */}
           <View style={styles.historyContainer}>
-            <Text style={styles.sectionTitle}>{t('plantDetail.careHistory')}</Text>
+            <Text style={[styles.sectionTitle, isRTL && styles.sectionTitleRTL]}>{t('plantDetail.careHistory')}</Text>
             
             {careHistory.length === 0 ? (
               <View style={styles.emptyHistory}>
-                <Text style={styles.emptyHistoryText}>No care events yet</Text>
+                <Text style={styles.emptyHistoryText}>{t('plantDetail.noCareEvents')}</Text>
                 <Text style={styles.emptyHistorySubtext}>
-                  Start caring for your plant to build a history
+                  {t('plantDetail.noCareEventsSubtext')}
                 </Text>
               </View>
             ) : (
@@ -773,10 +685,30 @@ const styles = StyleSheet.create({
   plantSubtitle: {
     fontSize: 16,
     color: COLORS.textSecondary,
-    marginBottom: 32,
+    marginBottom: 12,
   },
   plantSubtitleRTL: {
     textAlign: 'right',
+  },
+  plantTypeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: COLORS.background,
+    paddingHorizontal: FIBONACCI.SM,
+    paddingVertical: FIBONACCI.XS,
+    borderRadius: FIBONACCI.MD,
+    marginBottom: FIBONACCI.LG,
+    gap: FIBONACCI.XS,
+  },
+  plantTypeBadgeRTL: {
+    alignSelf: 'flex-end',
+    flexDirection: 'row-reverse',
+  },
+  plantTypeBadgeText: {
+    fontSize: TYPOGRAPHY.SM,
+    color: COLORS.primary,
+    fontWeight: '500',
   },
   actionsContainer: {
     marginBottom: 32,
@@ -820,7 +752,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     borderRadius: 16,
     padding: FIBONACCI.LG,
-    marginTop: 16,
   },
   scheduleItem: {
     flexDirection: 'row',
@@ -849,6 +780,9 @@ const styles = StyleSheet.create({
   scheduleOverdue: {
     color: COLORS.error,
   },
+  scheduleWarning: {
+    color: COLORS.warning,
+  },
   progressContainer: {
     marginTop: 24,
     alignItems: 'center',
@@ -870,39 +804,6 @@ const styles = StyleSheet.create({
   progressLabel: {
     fontSize: 12,
     color: COLORS.textSecondary,
-  },
-  detailsContainer: {
-    marginBottom: FIBONACCI.XL, // 34px - Fibonacci
-  },
-  detailCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: ELEMENT_SIZES.RADIUS_LG, // 21px - Fibonacci
-    padding: FIBONACCI.LG, // 21px
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    gap: FIBONACCI.MD, // 13px
-  },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  detailIcon: {
-    fontSize: FIBONACCI.LG, // 21px - Fibonacci
-    marginRight: FIBONACCI.MD, // 13px
-    fontFamily: 'Helvetica',
-  },
-  detailContent: {
-    flex: 1,
-  },
-  detailLabel: {
-    fontSize: TYPOGRAPHY.SM, // 14px
-    color: COLORS.textSecondary,
-    marginBottom: FIBONACCI.XXS, // 3px
-  },
-  detailValue: {
-    fontSize: TYPOGRAPHY.BASE, // 16px
-    fontWeight: '600',
-    color: COLORS.text,
   },
   historyContainer: {
     marginBottom: FIBONACCI.XL, // 34px - Fibonacci
@@ -953,7 +854,7 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   bottomPadding: {
-    height: FIBONACCI.XL, // 34px - Fibonacci
+    height: FIBONACCI.MD, // 13px - Just enough for tab bar clearance
   },
 
   // Collapsible Care Guide Styles
@@ -980,17 +881,6 @@ const styles = StyleSheet.create({
   careGuideTitleRTL: {
     textAlign: 'right',
   },
-  careGuideDescription: {
-    fontSize: TYPOGRAPHY.SM, // 14px
-    color: COLORS.text,
-    lineHeight: FIBONACCI.LG, // 21px
-    padding: FIBONACCI.MD, // 13px
-    paddingTop: FIBONACCI.SM, // 8px
-    textAlign: 'center',
-  },
-  careGuideDescriptionRTL: {
-    textAlign: 'right',
-  },
   careGuideDetails: {
     padding: FIBONACCI.MD, // 13px
     paddingTop: FIBONACCI.SM, // 8px
@@ -1000,31 +890,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.background,
-    padding: FIBONACCI.MD, // 13px
-    borderRadius: ELEMENT_SIZES.RADIUS_SM, // 8px
-    gap: FIBONACCI.SM, // 8px
-  },
-  careGuideItemRTL: {
-    flexDirection: 'row-reverse',
-  },
-  careGuideLabel: {
-    fontSize: TYPOGRAPHY.SM, // 14px
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-    marginLeft: FIBONACCI.XS, // 5px
-  },
-  careGuideLabelRTL: {
-    textAlign: 'right',
-    marginLeft: 0,
-    marginRight: FIBONACCI.XS,
+    padding: FIBONACCI.MD,
+    borderRadius: ELEMENT_SIZES.RADIUS_SM,
+    gap: FIBONACCI.SM,
   },
   careGuideValue: {
-    fontSize: TYPOGRAPHY.SM, // 14px
+    fontSize: TYPOGRAPHY.SM,
     color: COLORS.text,
     flex: 1,
-    textAlign: 'right',
   },
   careGuideValueRTL: {
-    textAlign: 'left',
+    textAlign: 'right',
   },
 });

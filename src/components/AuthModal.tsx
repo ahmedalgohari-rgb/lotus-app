@@ -36,6 +36,9 @@ interface AuthModalProps {
 export default function AuthModal({ visible, onClose, onAuthSuccess }: AuthModalProps) {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
+
+  // DEBUG: Verify this file is loading
+  console.log('🔵 AuthModal LOADED - Apple button should be CLEAN (no Coming Soon)');
   const [showPhoneAuth, setShowPhoneAuth] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otpCode, setOtpCode] = useState('');
@@ -180,15 +183,31 @@ export default function AuthModal({ visible, onClose, onAuthSuccess }: AuthModal
       if (error) throw error;
 
       if (data && 'user' in data && data.user) {
-        setUser({
+        // Check if user has first_name in profile
+        const { data: profileData } = await dbService.getProfile(data.user.id);
+        const hasFirstName = profileData?.first_name && profileData.first_name.trim().length > 0;
+
+        const userData = {
           id: data.user.id,
           email: data.user.email,
-          name: data.user.user_metadata?.name || data.user.email,
+          name: profileData?.first_name || data.user.user_metadata?.name || data.user.email,
+          first_name: profileData?.first_name,
           avatar_url: data.user.user_metadata?.avatar_url,
           created_at: data.user.created_at,
-        });
-        setAuthenticated(true);
-        handlePostAuthNavigation();
+        };
+
+        if (!hasFirstName) {
+          // New user - show name collection modal
+          setPendingUser(userData);
+          setShowNameCollection(true);
+          setIsLoading(false);
+        } else {
+          // Existing user - proceed
+          setUser(userData);
+          setAuthenticated(true);
+          setIsLoading(false);
+          handlePostAuthNavigation();
+        }
       }
     } catch (error: any) {
       // Don't log or show error if user intentionally cancelled
@@ -360,16 +379,12 @@ export default function AuthModal({ visible, onClose, onAuthSuccess }: AuthModal
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                        style={styles.appleButton}
-                        disabled={true}
+                          style={styles.appleButton}
+                          onPress={handleAppleSignIn}
+                          disabled={isLoading}
                         >
-                            <View style={styles.appleButtonContent}>
-                                <Ionicons name="logo-apple" size={24} color={COLORS.primary} />
-                                <Text style={styles.appleButtonText}>{t('auth.continueWithApple')}</Text>
-                                <View style={styles.comingSoonContainer}>
-                                    <Text style={styles.comingSoonText}>{t('auth.comingSoon')}</Text>
-                                </View>
-                            </View>
+                          <Ionicons name="logo-apple" size={24} color={COLORS.primary} />
+                          <Text style={styles.appleButtonText}>{t('auth.continueWithApple')}</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -480,14 +495,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: FIBONACCI.SM,
     elevation: 4,
-    position: 'relative',
-  },
-  appleButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
-    position: 'relative',
   },
   appleButtonText: {
     color: COLORS.primary,

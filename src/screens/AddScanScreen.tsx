@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   FlatList,
   TouchableOpacity,
   Dimensions,
+  Keyboard,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,6 +34,29 @@ export default function AddScanScreen({ navigation }: AddScanScreenProps) {
   const [popularPlants, setPopularPlants] = useState<Plant[]>([]);
   const [searchResults, setSearchResults] = useState<PlantMatch[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  // Track keyboard visibility
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      setIsKeyboardVisible(true);
+    });
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setIsKeyboardVisible(false);
+    });
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
+
+  const handleCancelSearch = useCallback(() => {
+    setSearchQuery('');
+    setSearchResults([]);
+    setIsSearching(false);
+    Keyboard.dismiss();
+  }, []);
 
   useEffect(() => {
     // Load popular plants (hardcoded for Phase 1)
@@ -110,6 +135,9 @@ export default function AddScanScreen({ navigation }: AddScanScreenProps) {
         family: plant.characteristics.family,
         genus: plant.names.scientific[0]?.split(' ')[0], // Extract genus from scientific name
         plant_info: plant.care.plant_info, // Use plant's actual description
+        // 🌐 Arabic content from database
+        common_name_arabic: plant.names.arabic?.[0],
+        plant_info_arabic: plant.care.plant_info_arabic,
         plant_type: plant.care.plant_type,
         watering_schedule: wateringMap[plant.care.watering.schedule] || plant.care.watering.description,
         preferred_humidity: plant.care.humidity || 'Medium',
@@ -121,6 +149,11 @@ export default function AddScanScreen({ navigation }: AddScanScreenProps) {
           confidence: 100, // Perfect match since user selected from database
           match_type: 'exact', // Exact match - user manually selected this plant
           plant_id: plant.id,
+          primary_plant_name: plant.names.common[0],
+          primary_plant_info: plant.care.plant_info,
+          // 🌐 Arabic content from database
+          primary_plant_name_arabic: plant.names.arabic?.[0],
+          primary_plant_info_arabic: plant.care.plant_info_arabic,
           alternatives: [], // No alternatives needed for manual selection
         },
         care_available: true, // This plant has full care information in our database
@@ -178,7 +211,7 @@ export default function AddScanScreen({ navigation }: AddScanScreenProps) {
 
       {/* Search + Identify Row - Outside FlatList */}
       <View style={[styles.searchRow, isRTL && styles.searchRowRTL]}>
-        <View style={styles.searchContainer}>
+        <View style={[styles.searchContainer, isKeyboardVisible && styles.searchContainerExpanded]}>
           <SearchBar
             value={searchQuery}
             onChangeText={handleSearchChange}
@@ -186,15 +219,27 @@ export default function AddScanScreen({ navigation }: AddScanScreenProps) {
           />
         </View>
 
-        <Text style={[styles.orText, isRTL && styles.orTextRTL]}>{t('addScan.or')}</Text>
-
-        <TouchableOpacity
-          style={styles.identifyButton}
-          onPress={handleIdentifyPress}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="camera" size={24} color={COLORS.text} />
-        </TouchableOpacity>
+        {/* Show Cancel button when keyboard is visible, otherwise show camera button */}
+        {isKeyboardVisible ? (
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={handleCancelSearch}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.cancelText}>{isRTL ? 'إلغاء' : 'Cancel'}</Text>
+          </TouchableOpacity>
+        ) : (
+          <>
+            <Text style={[styles.orText, isRTL && styles.orTextRTL]}>{t('addScan.or')}</Text>
+            <TouchableOpacity
+              style={styles.identifyButton}
+              onPress={handleIdentifyPress}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="camera" size={24} color={COLORS.text} />
+            </TouchableOpacity>
+          </>
+        )}
       </View>
 
       {/* Plant List - Only section title and results */}
@@ -212,9 +257,9 @@ export default function AddScanScreen({ navigation }: AddScanScreenProps) {
         }
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        // Keyboard behavior - keep keyboard open while typing
+        // Keyboard behavior - dismiss on scroll, handle taps
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="none"
+        keyboardDismissMode="on-drag"
         // Performance optimizations
         removeClippedSubviews={false}
         maxToRenderPerBatch={5}
@@ -323,5 +368,18 @@ const styles = StyleSheet.create({
   },
   emptyTextRTL: {
     textAlign: 'center',
+  },
+  searchContainerExpanded: {
+    flex: 1,
+    marginRight: FIBONACCI.MD,
+  },
+  cancelButton: {
+    paddingHorizontal: FIBONACCI.MD,
+    paddingVertical: FIBONACCI.SM,
+  },
+  cancelText: {
+    fontSize: TYPOGRAPHY.BASE,
+    color: COLORS.primary,
+    fontWeight: '600',
   },
 });

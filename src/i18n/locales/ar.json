@@ -2,7 +2,7 @@
   "common": {
     "loading": "جاري التحميل...",
     "error": "خطأ",
-    "success": "تم بنجاح",
+    "success": "تمام!",
     "ok": "تمام",
     "cancel": "إلغاء",
     "save": "حفظ",
@@ -13,7 +13,7 @@
     "back": "رجوع",
     "next": "التالي",
     "done": "تم",
-    "retry": "حاول تاني",
+    "retry": "جرب تاني",
     "close": "إغلاق"
   },
   "navigation": {
@@ -21,24 +21,24 @@
     "scan": "صور",
     "add": "إضافة",
     "plants": "حديقتي",
-    "profile": "الملف الشخصي",
+    "profile": "حسابي",
     "settings": "الإعدادات"
   },
   "auth": {
     "title": "أهلاً بيك في لوتس",
-    "subtitle": "رفيقك في العناية بالنباتات في البيت",
-    "tagline": "اعتني بنباتاتك في البيت.\nكبر معاها بإرشادات الخبراء.",
-    "signInWithGoogle": "دخول بجوجل",
+    "subtitle": "صاحبك في الاهتمام بنباتاتك",
+    "tagline": "نباتاتك في أمان معانا.\nرعاية سهلة ونصائح مخصصة.",
+    "signInWithGoogle": "ادخل بجوجل",
     "signInWithApple": "دخول بآبل",
     "signInWithFacebook": "دخول بفيسبوك",
     "continueWithPhone": "كمل بالموبايل",
     "continueWithGoogle": "كمل بجوجل",
     "continueWithApple": "كمل بآبل",
     "continueWithFacebook": "كمل بفيسبوك",
-    "continueAsGuest": "استمر كضيف",
+    "continueAsGuest": "كمل بدون حساب",
     "signingIn": "جاري تسجيل الدخول...",
     "signInError": "فشل تسجيل الدخول. حاول تاني.",
-    "guestMode": "وضع الضيف",
+    "guestMode": "بدون حساب",
     "guestDescription": "خصائص محدودة متاحة في وضع الضيف",
     "alreadyMember": "عندك حساب؟ سجل دخول",
     "maybeLater": "ممكن بعدين",
@@ -65,7 +65,7 @@
     "noPlantsSubtitle": "صور أول زرعة عشان تبدأ!",
     "careReminders": "اللي لازم تعمله النهاردة",
     "seasonalTips": "نصايح موسمية",
-    "weatherTitle": "الجو إيه في القاهرة النهاردة",
+    "weatherTitle": "الجو إيه النهاردة؟",
     "temperature": "الحرارة",
     "humidity": "الرطوبة",
     "rainfall": "المطر",
@@ -75,9 +75,9 @@
     "weatherError": "مش قادرين نجيب بيانات الطقس"
   },
   "addScan": {
-    "title": "ابحث عن نباتك",
+    "title": "دور على نباتك",
     "subtitle": "دور بالاسم أو صور عشان تضيف النبات لحديقتك.",
-    "searchPlaceholder": "ابحث عن نبات...",
+    "searchPlaceholder": "اكتب اسم نباتك",
     "or": "أو",
     "identify": "تعرف على النبات",
     "popularPlants": "النباتات الشائعة",
@@ -86,12 +86,12 @@
   },
   "scan": {
     "title": "اعرف زرعتك",
-    "subtitle": "وجه الكاميرا على ورقة الزرعة",
+    "subtitle": "صور ورق النبات",
     "takePhoto": "خد صورة",
     "retakePhoto": "صور تاني",
     "usePhoto": "استخدم الصورة دي",
-    "analyzing": "جاري تحليل الزرعة...",
-    "identificationResults": "تم تحديد الزرعة!",
+    "analyzing": "بنعرف النبات...",
+    "identificationResults": "عرفناها!",
     "confidence": "نسبة التأكد",
     "addToCollection": "ضيف لنباتاتي",
     "tryAgain": "جرب صورة تانية",
@@ -110,6 +110,8 @@
     "permissions": {
       "requesting": "محتاجين الكاميرا عشان نصور النباتات",
       "noAccess": "تم رفض إذن الكاميرا",
+      "noPhotoAccess": "محتاجين إذن معرض الصور",
+      "photoSettingsPrompt": "لازم تسمح بالوصول لمعرض الصور من الإعدادات",
       "grantButton": "ادي الإذن",
       "openSettings": "افتح الإعدادات",
       "settingsPrompt": "لازم تفعل الكاميرا من الإعدادات عشان نعرف النباتات"
@@ -129,7 +131,7 @@
     "needsWater": "محتاجة مياه",
     "healthy": "بصحة كويسة",
     "needsAttention": "محتاجة اهتمام",
-    "critical": "حالة خطيرة",
+    "critical": "في خطر",
     "waterNow": "اسقيها دلوقتي",
     "daysAgo": "يوم فات",
     "filterAll": "الكل",
@@ -154,10 +156,10 @@
     "lastCare": "آخر عناية",
     "never": "أبداً",
     "notSet": "مش محدد",
-    "plantInfo": "معلومات الزرعة",
-    "plantDetails": "تفاصيل النبتة",
+    "plantInfo": "معلومات النبات",
+    "plantDetails": "تفاصيل النبات",
     "quickActions": "إجراءات سريعة",
-    "careSchedule": "جدول العناية",
+    "careSchedule": "مواعيد العناية",
     "location": "المكان",
     "window": "الشباك",
     "windowDirection": "اتجاه الشباك",
@@ -166,16 +168,16 @@
     "healthStatus": "الحالة الصحية",
     "careActions": "أعمال العناية",
     "water": "ري",
-    "feed": "تغذية",
-    "fertilize": "تسميد",
-    "prune": "تقليم",
-    "repot": "نقل إصيص",
+    "feed": "غذى",
+    "fertilize": "سمد",
+    "prune": "قلم",
+    "repot": "تغيير إصيص",
     "move": "نقل",
     "addNote": "ضيف ملاحظة",
     "careNote": "ملاحظة العناية (اختياري)",
-    "careRecorded": "تم تسجيل العناية بنجاح",
+    "careRecorded": "تمام، اتسجلت!",
     "deletePlant": "احذف الزرعة",
-    "confirmDelete": "متأكد إنك عايز تحذف الزرعة دي؟",
+    "confirmDelete": "متأكد إنك عايز تحذفها؟",
     "careReminder": "اعمل تذكير عناية",
     "plantAge": "عمر الزرعة",
     "careStreak": "سلسلة العناية",
@@ -184,6 +186,8 @@
     "now": "دلوقتي!",
     "tomorrow": "بكرة",
     "inXDays": "بعد {{days}} يوم",
+    "noCareEvents": "لسه مفيش أحداث عناية",
+    "noCareEventsSubtext": "ابدأ اهتم بنباتك عشان يبقى ليك تاريخ",
     "careLabels": {
       "type": "النوع:",
       "watering": "الري:",
@@ -192,25 +196,27 @@
     }
   },
   "addPlant": {
+    "unknownPlant": "زرعة مش معروفة",
+    "unidentified": "مش محددة",
     "title": "ضيف زرعة جديدة",
     "customizeTitle": "ضبط زرعتك",
-    "plantNickname": "اسم الزرعة",
-    "enterNickname": "ادخل اسم لزرعتك",
-    "plantLocation": "موقع الزرعة",
-    "whereWillPlantLive": "زرعتك هتعيش فين؟",
-    "windowDirection": "اتجاه الشباك",
+    "plantNickname": "اسم نبتتك",
+    "enterNickname": "حب تسميها إيه؟",
+    "plantLocation": "مكان النبتة",
+    "whereWillPlantLive": "مكان النبات؟",
+    "windowDirection": "الشباك ناحية فين؟",
     "plantSpecies": "نوع الزرعة",
     "searchSpecies": "دور على نوع الزرعة...",
     "customWateringSchedule": "جدول ري مخصوص",
     "everyDays": "كل {{days}} يوم",
-    "saveToCollection": "احفظ في حديقتي",
+    "saveToCollection": "احفظها في حديقتي",
     "plantAdded": "تمت إضافة الزرعة لمجموعتك!",
-    "plantAddedTitle": "تمت الإضافة! 🌿",
+    "plantAddedTitle": "اتضافت! 🌿",
     "plantAddedMessage": "{{name}} اتضافت لحديقتك",
     "careTips": "نصائح العناية",
     "selectedDirection": "المحدد:",
     "locations": {
-      "living_room": "أوضة المعيشة",
+      "living_room": "الصالون",
       "bedroom": "أوضة النوم",
       "kitchen": "المطبخ",
       "bathroom": "الحمام",
@@ -243,10 +249,41 @@
       "prune": "تم التقليم",
       "repot": "تم نقل الإصيص"
     },
-    "smartRecommendations": "توصيات ذكية",
-    "weatherBasedCare": "حسب جو القاهرة",
+    "smartRecommendations": "توصيات",
+    "weatherBasedCare": "حسب جو النهاردة",
     "skipToday": "استنى لبكرة",
-    "scheduleNext": "حدد موعد العناية الجاية"
+    "scheduleNext": "حدد موعد العناية الجاية",
+    "waterEveryDays": "اسقيها كل {{minDays}}-{{maxDays}} يوم ({{percentage}}٪ ناشف)",
+    "checkSoilDays": "افحص التربة كل {{days}} يوم",
+    "afternoonWarmth": "دفى بعد الظهر",
+    "maximumWinterLight": "ضوء شتوي قوي",
+    "morningLight": "ضوء الصبح",
+    "plantTypes": {
+      "succulent": "صباريات",
+      "tropical": "استوائي",
+      "flowering": "مزهر",
+      "foliage": "أوراق زينة",
+      "cactus": "صبار",
+      "palm": "نخيل",
+      "fern": "سرخس"
+    },
+    "watering": {
+      "dry100": "١٠٠٪ ناشف",
+      "dry75": "٧٥٪ ناشف",
+      "dry60": "٦٠٪ ناشف",
+      "dry30": "٣٠٪ ناشف"
+    },
+    "humidity": {
+      "low": "منخفضة",
+      "medium": "متوسطة",
+      "high": "عالية"
+    },
+    "light": {
+      "brightDirect": "ضوء قوي مباشر",
+      "brightIndirect": "ضوء قوي غير مباشر",
+      "mediumIndirect": "ضوء متوسط غير مباشر",
+      "lowLight": "ضوء خفيف"
+    }
   },
   "weather": {
     "current": "الجو دلوقتي في القاهرة",
@@ -254,7 +291,7 @@
     "warm": "دافي",
     "mild": "معتدل",
     "cool": "برد",
-    "dry": "ناشف",
+    "dry": "جاف",
     "humid": "رطب",
     "rainy": "مطر",
     "sunny": "مشمس",
@@ -323,8 +360,8 @@
     "aboutMessage": "تطبيق لوتس للعناية بالنباتات\\nالإصدار 2.0.0\\nمصنوع بحب لمحبي النباتات المصريين 🌿🇪🇬"
   },
   "errors": {
-    "networkError": "مشكلة في النت. شيك على الاتصال.",
-    "imageError": "مشكلة في معالجة الصورة",
+    "networkError": "مفيش نت",
+    "imageError": "مشكلة في الصورة",
     "cameraError": "مشكلة في الكاميرا",
     "saveError": "مشكلة في حفظ البيانات",
     "loadError": "مشكلة في تحميل البيانات",
@@ -337,7 +374,7 @@
       "description": "معظم النباتات محتاجة مية كل 5-7 أيام"
     },
     "light": {
-      "description": "ضوء مشرق غير مباشر مناسب لمعظم النباتات"
+      "description": "ضوء قوي بس مش مباشر"
     },
     "position": {
       "description": "اتجاه الشباك مهم لصحة النباتات"
@@ -363,7 +400,7 @@
       "tips": "نصايح",
       "gallery": "الصور"
     },
-    "analyzing": "بحلل النبات...",
+    "analyzing": "بنعرف النبات...",
     "results": {
       "title": "النبات اتحدد",
       "family": "العائلة: {{family}}",
@@ -394,9 +431,9 @@
   },
   "plantResult": {
     "title": "تم تحديد النبتة!",
-    "titleDatabase": "اتعرف على نبتتك!",
-    "plantStory": "قصة نبتتك",
-    "unlockPotential": "اطلق الإمكانيات الكاملة لنبتتك",
+    "titleDatabase": "اتعرف على نباتك!",
+    "plantStory": "قصة نباتك",
+    "unlockPotential": "اطلق الإمكانيات الكاملة لنباتك",
     "imageProcessingNote": "تمت معالجة الصورة، لكن الجودة ممكن تتحسن",
     "signInPrompt": "عندك حساب؟ سجل دخول",
     "maybeLater": "ممكن بعدين",
@@ -408,7 +445,7 @@
     },
     "buttons": {
       "saveAuth": "ضيف لنباتاتي",
-      "saveGuest": "احفظ نبتتي",
+      "saveGuest": "احفظ نباتي",
       "tryAnother": "جرب تاني"
     },
     "matchTypes": {
@@ -426,14 +463,14 @@
   },
   "plantRequest": {
     "requestCare": "طلب نصائح العناية",
-    "requestSpecific": "طلب صنف محدد",
+    "requestSpecific": "اطلب نوع نباتك",
     "requested": "تم إرسال الطلب ✓",
     "submitting": "جارٍ الإرسال...",
     "thankYou": "شكراً! سنعطي الأولوية لإضافة هذا النبات.",
     "alternatives": {
       "title": "لدينا {{count}} أصناف من {{genus}}",
       "subtitle": "اضغط لعرض نباتات مشابهة:",
-      "requestButton": "طلب صنف محدد"
+      "requestButton": "اطلب نوع نباتك"
     },
     "genericCare": {
       "title": "إرشادات العناية العامة",
@@ -454,7 +491,19 @@
   "account": {
     "termsAndConditions": "الشروط والأحكام",
     "accountManagement": "إدارة الحساب",
+    "contactUs": "تواصل معنا",
     "logout": "تسجيل الخروج"
+  },
+  "feedback": {
+    "title": "تواصل معنا",
+    "subtitle": "نحب نسمع رأيك! شاركنا ملاحظاتك أو اقتراحاتك أو أي مشاكل واجهتك.",
+    "placeholder": "اكتب رسالتك هنا...",
+    "send": "إرسال",
+    "error": "أوبس!",
+    "emptyMessage": "اكتب رسالة قبل ما تبعت.",
+    "thankYouTitle": "شكراً ليك! 💚",
+    "thankYouMessage": "وصلنا رسالتك. شكراً إنك ساعدتنا نحسن لوتس!",
+    "submitError": "مقدرناش نبعت الرسالة. جرب تاني."
   },
   "errors": {
     "notAPlant": {

@@ -49,13 +49,28 @@ interface AppStore extends AppState {
   clearStorage: () => Promise<void>;
 }
 
-// Helper function to detect current season based on Cairo's climate
+// Helper function to detect current season using official astronomical dates
 const getCurrentSeason = (): Season => {
-  const month = new Date().getMonth(); // 0-11
-  if (month >= 5 && month <= 8) return 'summer';      // June-September
-  if (month >= 11 || month <= 2) return 'winter';     // December-February
-  if (month >= 3 && month <= 4) return 'spring';      // March-April
-  return 'fall';                                        // October-November
+  const now = new Date();
+  const month = now.getMonth(); // 0-11
+  const day = now.getDate();
+
+  // Official astronomical season dates (Egypt/Northern Hemisphere)
+  // Winter: Dec 21 - Mar 20
+  // Spring: Mar 21 - Jun 20
+  // Summer: Jun 21 - Sep 22
+  // Autumn/Fall: Sep 23 - Dec 20
+
+  if ((month === 11 && day >= 21) || month === 0 || month === 1 || (month === 2 && day <= 20)) {
+    return 'winter'; // Dec 21 - Mar 20
+  }
+  if ((month === 2 && day >= 21) || month === 3 || month === 4 || (month === 5 && day <= 20)) {
+    return 'spring'; // Mar 21 - Jun 20
+  }
+  if ((month === 5 && day >= 21) || month === 6 || month === 7 || (month === 8 && day <= 22)) {
+    return 'summer'; // Jun 21 - Sep 22
+  }
+  return 'fall'; // Sep 23 - Dec 20
 };
 
 export const useStore = create<AppStore>((set, get) => ({

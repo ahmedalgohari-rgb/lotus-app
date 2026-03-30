@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ImageStyle, StyleProp, ActivityIndicator } from 'react-native';
-import { Image } from 'expo-image'; // ⚡ UPGRADE: expo-image for 10x faster loading & better caching
+import { Image, ImageSource } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY } from '../constants';
 import { logger } from '../utils/logger';
@@ -8,29 +8,20 @@ import { getPlantImage } from '../assets/plantImages';
 
 interface PlantImageProps {
   imageUrl?: string | null;
-  plantId?: string;  // Plant ID for local database image lookup
-  capturedImageUri?: string;  // User's captured photo (highest priority)
+  plantId?: string;
+  capturedImageUri?: string;
   plantName?: string;
   size?: number;
   style?: StyleProp<ImageStyle>;
 }
 
 /**
- * PlantImage Component with PERFORMANCE OPTIMIZATION & SMART FALLBACK
+ * PlantImage Component with Smart Fallback System
  *
- * 3-Tier Priority System with automatic fallback:
- * 1. User's captured photo (capturedImageUri) - For scanned plants, show THEIR photo
- *    → If file deleted from device: Automatically falls back to cloud URL
- * 2. Cloud URL (imageUrl) - Backup when local captured photo missing, or for cross-device sync
- * 3. Local database WebP image (plantId) - For manually added plants (no personal photo)
- *
- * ⚡ NEW: expo-image Upgrade (10x faster than React Native Image):
- * - Memory + disk caching (automatic, intelligent eviction)
- * - Native C++ implementation (faster decoding)
- * - Shared cache pool across app
- * - No iOS timeout bugs (unlike force-cache)
- * - Smooth transitions (200ms fade-in)
- * - Works with FlatList virtualization
+ * 3-Tier Priority:
+ * 1. User's captured photo (capturedImageUri)
+ * 2. Cloud URL (imageUrl)
+ * 3. Local database WebP image (plantId)
  */
 export default function PlantImage({
   imageUrl,
@@ -39,68 +30,51 @@ export default function PlantImage({
   plantName = 'Plant',
   size = 80,
   style
-}: PlantImageProps) {
-  // Priority 1: User's captured photo (HIGHEST - for scanned plants, show THEIR photo!)
+}: PlantImageProps): JSX.Element {
   const hasCapturedImage = !!capturedImageUri;
-
-  // Priority 2: Cloud URL (fallback if captured photo file missing from device)
   const hasCloudImage = !!imageUrl && (imageUrl.startsWith('http://') || imageUrl.startsWith('https://'));
-
-  // Priority 3: Local database image (FINAL FALLBACK - always available, bundled WebP ~15-70KB)
   const localImage = plantId ? getPlantImage(plantId) : null;
   const hasLocalImage = !!localImage;
 
-  // Loading state: Only show spinner for non-instant images (captured/cloud may be slow)
-  // Database images are bundled = instant load (no spinner needed)
   const [imageError, setImageError] = useState(false);
-  const [capturedImageFailed, setCapturedImageFailed] = useState(false); // Track if captured image failed to load
-  const [cloudImageFailed, setCloudImageFailed] = useState(false); // Track if cloud image failed to load
+  const [capturedImageFailed, setCapturedImageFailed] = useState(false);
+  const [cloudImageFailed, setCloudImageFailed] = useState(false);
   const [isLoading, setIsLoading] = useState(hasCapturedImage || hasCloudImage);
-  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
 
-  // Add 10-second timeout for image loading (only for remote images)
+  // Timeout for remote image loading (10 seconds)
   React.useEffect(() => {
-    if (isLoading && !hasLocalImage) {
-      const timeout = setTimeout(() => {
-        if (isLoading) {
-          logger.warn(`⏱️ PlantImage: Loading timeout for "${plantName}"`, {
-            hasCaptured: hasCapturedImage,
-            hasCloud: hasCloudImage,
-            reason: 'Image took >10s to load - possible network issue'
-          });
-          setLoadingTimedOut(true);
-          setIsLoading(false);
-          setImageError(true);
-        }
-      }, 10000); // 10 second timeout (remote images on slow connections)
+    if (!isLoading || hasLocalImage) return;
 
-      return () => clearTimeout(timeout);
+    const timeout = setTimeout(() => {
+      logger.warn(`PlantImage: Loading timeout for "${plantName}"`);
+      setIsLoading(false);
+      setImageError(true);
+    }, 10000);
+
+    return () => clearTimeout(timeout);
+  }, [isLoading, hasLocalImage, plantName]);
+
+  const optimizedImageUrl = hasCloudImage ? optimizeImageUrl(imageUrl!, size) : null;
+
+  // Determine current image source based on fallback state
+  function getImageSource(): { source: ImageSource; type: 'captured' | 'cloud' | 'database' | 'placeholder' } {
+    if (hasCapturedImage && !capturedImageFailed) {
+      return { source: { uri: capturedImageUri }, type: 'captured' };
     }
-  }, [isLoading, hasLocalImage, plantName, hasCapturedImage, hasCloudImage]);
+    if (hasCloudImage && !cloudImageFailed) {
+      return { source: { uri: optimizedImageUrl! }, type: 'cloud' };
+    }
+    if (localImage) {
+      return { source: localImage, type: 'database' };
+    }
+    return { source: require('../../assets/icon.png'), type: 'placeholder' };
+  }
 
-  // Priority 3: Remote URL (optimized with CDN parameters - fallback only)
-  const optimizedImageUrl = !hasLocalImage && !hasCapturedImage && imageUrl ? optimizeImageUrl(imageUrl, size) : null;
-
-  // If no image source at all, show fallback
-  if (!hasLocalImage && !hasCapturedImage && !optimizedImageUrl || imageError) {
-    // 🔍 DEBUG: Log why we're showing fallback emoji
-    if (!hasLocalImage && !hasCapturedImage && !imageUrl && plantName) {
-      logger.warn(`🌿 PlantImage: Showing emoji fallback for "${plantName}"`, {
-        reason: 'No image source available',
-        hasLocal: hasLocalImage,
-        hasCaptured: !!capturedImageUri,
-        hasCloud: !!imageUrl,
-        hasPlantId: !!plantId,
-      });
-    } else if (imageError && plantName) {
-      logger.error(`🌿 PlantImage: Image load failed for "${plantName}"`, {
-        reason: 'Image loading error',
-        hasLocal: hasLocalImage,
-        hasCaptured: hasCapturedImage,
-        hasCloud: !!imageUrl,
-        cloudUrl: imageUrl,
-        loadingTimedOut,
-      });
+  // Show fallback if no image sources available or all failed
+  const hasNoImageSource = !hasLocalImage && !hasCapturedImage && !optimizedImageUrl;
+  if (hasNoImageSource || imageError) {
+    if (hasNoImageSource && plantName) {
+      logger.warn(`PlantImage: No image source for "${plantName}"`);
     }
 
     return (
@@ -115,117 +89,78 @@ export default function PlantImage({
     );
   }
 
+  const { source, type } = getImageSource();
+  const isRemoteImage = type === 'captured' || type === 'cloud';
+
+  function handleLoadStart(): void {
+    if (isRemoteImage) {
+      setIsLoading(true);
+      logger.debug(`Loading ${type} image for "${plantName}"`);
+    }
+  }
+
+  function handleLoad(): void {
+    setIsLoading(false);
+    logger.debug(`Image loaded for "${plantName}" (${type})`);
+  }
+
+  function handleError(event: { error: string }): void {
+    logger.error(`Image load error for "${plantName}"`, {
+      type,
+      error: event.error || 'Unknown error',
+    });
+
+    // Cascade to next fallback
+    if (hasCapturedImage && !capturedImageFailed) {
+      logger.info(`Falling back from captured to ${hasCloudImage ? 'cloud' : 'database'} for "${plantName}"`);
+      setCapturedImageFailed(true);
+      return;
+    }
+
+    if (hasCloudImage && !cloudImageFailed) {
+      logger.info(`Falling back from cloud to ${hasLocalImage ? 'database' : 'placeholder'} for "${plantName}"`);
+      setCloudImageFailed(true);
+      return;
+    }
+
+    setIsLoading(false);
+    setImageError(true);
+  }
+
   return (
     <View style={[{ width: size, height: size }, style]}>
-      {/* Loading placeholder - only show for remote images or captured photos */}
-      {!hasLocalImage && isLoading && (
+      {isRemoteImage && isLoading && (
         <View style={[styles.loadingContainer, { width: size, height: size }]}>
           <ActivityIndicator size="small" color={COLORS.primary} />
         </View>
       )}
 
-      {/* Actual image - Smart cascading fallback system */}
       <Image
-        source={
-          // Priority 1: User's captured photo (if exists and hasn't failed)
-          (hasCapturedImage && !capturedImageFailed) ? { uri: capturedImageUri } :
-          // Priority 2: Cloud URL (if exists and hasn't failed)
-          (hasCloudImage && !cloudImageFailed) ? { uri: optimizedImageUrl } :
-          // Priority 3: Local database image - SAFE FALLBACK (bundled, always works!)
-          localImage || require('../../assets/icon.png')
-        }
+        source={source}
         style={[styles.image, { width: size, height: size }]}
-        // ⚡ expo-image: Smart caching (memory + disk, automatic eviction)
         cachePolicy="memory-disk"
-        // ⚡ expo-image: Smooth fade-in transition (0ms for instant local images)
-        transition={hasLocalImage ? 0 : 200}
-        // ⚡ expo-image: Cover mode (same as React Native resizeMode="cover")
+        transition={type === 'database' ? 0 : 200}
         contentFit="cover"
-        onLoadStart={() => {
-          // Show loading for non-instant images (captured/cloud are slow, database is instant)
-          const loadingSource =
-            (hasCapturedImage && !capturedImageFailed) ? 'captured' :
-            (hasCloudImage && !cloudImageFailed) ? 'cloud' :
-            hasLocalImage ? 'database' : 'placeholder';
-
-          if (loadingSource !== 'database' && loadingSource !== 'placeholder') {
-            setIsLoading(true);
-            logger.debug(`🖼️ Loading ${loadingSource} image for "${plantName}"`, {
-              hasLocal: hasLocalImage,
-              hasCaptured: hasCapturedImage,
-              hasCloud: hasCloudImage,
-              capturedFailed: capturedImageFailed,
-              cloudFailed: cloudImageFailed,
-              cloudUrl: hasCloudImage ? imageUrl : undefined,
-            });
-          }
-        }}
-        onLoad={() => {
-          setIsLoading(false);
-          const actualSource =
-            (hasCapturedImage && !capturedImageFailed) ? 'captured' :
-            (hasCloudImage && !cloudImageFailed) ? 'cloud' :
-            hasLocalImage ? 'database' : 'placeholder';
-          logger.debug(`✅ Image loaded for "${plantName}"`, { source: actualSource });
-        }}
-        onError={(error) => {
-          logger.error(`❌ Image load error for "${plantName}"`, {
-            hasLocal: hasLocalImage,
-            hasCaptured: hasCapturedImage,
-            hasCloud: hasCloudImage,
-            cloudUrl: imageUrl,
-            capturedImageFailed,
-            cloudImageFailed,
-            error: error.message || 'Unknown error',
-          });
-
-          // Cascading fallback logic:
-          // 1. If captured image failed and we haven't tried cloud yet → try cloud
-          if (hasCapturedImage && !capturedImageFailed) {
-            logger.info(`🔄 Captured image failed, ${hasCloudImage ? 'falling back to cloud URL' : 'trying database'} for "${plantName}"`);
-            setCapturedImageFailed(true); // Re-render with cloud or database
-            return;
-          }
-
-          // 2. If cloud failed and we haven't tried database yet → try database
-          if (hasCloudImage && !cloudImageFailed) {
-            logger.info(`🔄 Cloud URL failed, ${hasLocalImage ? 'falling back to database image' : 'no more fallbacks'} for "${plantName}"`);
-            setCloudImageFailed(true); // Re-render with database
-            return;
-          }
-
-          // 3. Everything failed - show placeholder (app icon)
-          setIsLoading(false);
-          setImageError(true);
-        }}
+        onLoadStart={handleLoadStart}
+        onLoad={handleLoad}
+        onError={handleError}
       />
     </View>
   );
 }
 
 /**
- * Optimize image URL for faster loading
- * For Shopify CDN: Request appropriately sized images (80-90% smaller files!)
+ * Optimize image URL for faster loading via CDN parameters
  */
 function optimizeImageUrl(url: string, size: number): string {
-  // Calculate optimal size (2x for retina displays)
-  const optimalSize = Math.ceil(size * 2);
+  const optimalSize = Math.ceil(size * 2); // 2x for retina
+  const separator = url.includes('?') ? '&' : '?';
 
-  // Kaynuna uses Shopify CDN - supports width parameter
-  if (url.includes('kaynuna.co/cdn/shop')) {
-    // Add Shopify image transformation parameters
-    // Format: image.jpg?width=XXX
-    const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}width=${optimalSize}&format=pjpg`; // Progressive JPEG
+  // Shopify CDN optimization
+  if (url.includes('kaynuna.co/cdn/shop') || url.includes('plantcultcairo.com/cdn/shop')) {
+    return `${url}${separator}width=${optimalSize}&format=pjpg`;
   }
 
-  // PlantCult Cairo also uses Shopify CDN
-  if (url.includes('plantcultcairo.com/cdn/shop')) {
-    const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}width=${optimalSize}&format=pjpg`; // Progressive JPEG
-  }
-
-  // For other URLs, return as-is (can add more CDN optimizations here)
   return url;
 }
 
@@ -236,11 +171,11 @@ const styles = StyleSheet.create({
   },
   fallbackContainer: {
     borderRadius: 12,
-    backgroundColor: '#E8F5E9', // Light green background
+    backgroundColor: '#E8F5E9',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: COLORS.primary + '20', // 20% opacity
+    borderColor: COLORS.primary + '20',
   },
   fallbackText: {
     position: 'absolute',

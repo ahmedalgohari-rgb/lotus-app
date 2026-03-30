@@ -229,15 +229,28 @@ const translateCareValue = (value: string, type: 'light' | 'placement' | 'wateri
   return translations[type][value] || value;
 };
 
-// Helper function to determine current season
+// Helper function to determine current season using official astronomical dates
 export const getCurrentSeason = (): string => {
-  const month = new Date().getMonth(); // 0-11
+  const now = new Date();
+  const month = now.getMonth(); // 0-11
+  const day = now.getDate();
 
-  // Egyptian seasons (Cairo climate)
-  if (month >= 11 || month <= 1) return 'winter'; // Dec, Jan, Feb
-  if (month >= 2 && month <= 4) return 'spring'; // Mar, Apr, May
-  if (month >= 5 && month <= 8) return 'summer'; // Jun, Jul, Aug, Sep
-  return 'autumn'; // Oct, Nov
+  // Official astronomical season dates (Egypt/Northern Hemisphere)
+  // Winter: Dec 21 - Mar 20
+  // Spring: Mar 21 - Jun 20
+  // Summer: Jun 21 - Sep 22
+  // Autumn: Sep 23 - Dec 20
+
+  if ((month === 11 && day >= 21) || month === 0 || month === 1 || (month === 2 && day <= 20)) {
+    return 'winter'; // Dec 21 - Mar 20
+  }
+  if ((month === 2 && day >= 21) || month === 3 || month === 4 || (month === 5 && day <= 20)) {
+    return 'spring'; // Mar 21 - Jun 20
+  }
+  if ((month === 5 && day >= 21) || month === 6 || month === 7 || (month === 8 && day <= 22)) {
+    return 'summer'; // Jun 21 - Sep 22
+  }
+  return 'autumn'; // Sep 23 - Dec 20
 };
 
 // Main function to get care recommendations

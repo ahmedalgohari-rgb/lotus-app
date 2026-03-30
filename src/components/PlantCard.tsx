@@ -9,6 +9,7 @@ import { COLORS, FIBONACCI, TYPOGRAPHY, ELEMENT_SIZES } from '../constants';
 import { Plant } from '../types';
 import PlantImage from './PlantImage';
 import { useRTL } from '../utils/rtl';
+import { getCurrentLanguage } from '../i18n';
 
 interface PlantCardProps {
   plant: Plant;
@@ -18,9 +19,13 @@ interface PlantCardProps {
 
 export default function PlantCard({ plant, onPress, imageUrl }: PlantCardProps) {
   const isRTL = useRTL();
+  const currentLang = getCurrentLanguage(); // 🌐 FIX: Get language for localization
 
-  // Get the first common name and scientific name
-  const commonName = plant.names.common[0] || 'Unknown Plant';
+  // 🌐 FIX: Use Arabic name when language is Arabic
+  const commonName = currentLang === 'ar' && plant.names?.arabic?.length > 0
+    ? plant.names.arabic[0]
+    : (plant.names.common[0] || 'Unknown Plant');
+
   const scientificName = plant.names.scientific[0] || '';
 
   // Use image from plant database or provided imageUrl

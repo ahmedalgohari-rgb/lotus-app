@@ -18,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
+import { getCurrentLanguage } from '../i18n';
 
 import {
   COLORS,
@@ -100,8 +101,8 @@ export default function PlantResultScreen() {
       return 'full';
     }
 
-    // GENUS_MATCH: Medium-confidence genus match with alternatives
-    if (match_type === 'genus' && confidence >= 70 && confidence < 85) {
+    // GENUS_MATCH: All genus matches show alternatives (any confidence)
+    if (match_type === 'genus') {
       return 'genus';
     }
 
@@ -115,10 +116,32 @@ export default function PlantResultScreen() {
 
   const matchScenario = identificationResult ? getMatchScenario() : 'none';
   const dbMatch = identificationResult?.database_match;
+  const currentLang = getCurrentLanguage(); // 🌐 FIX: Get current language for localization
+
+  // 🐛 DEBUG: Log what data we have
+  useEffect(() => {
+    console.log('=== PLANT RESULT DEBUG ===');
+    console.log('Current Language:', currentLang);
+    console.log('English Name:', identificationResult?.common_name);
+    console.log('Arabic Name:', identificationResult?.common_name_arabic);
+    console.log('English Info:', identificationResult?.plant_info?.substring(0, 30));
+    console.log('Arabic Info:', identificationResult?.plant_info_arabic?.substring(0, 30));
+    console.log('DB Match Found:', dbMatch?.found);
+    console.log('DB Match Arabic Name:', dbMatch?.primary_plant_name_arabic);
+  }, []);
 
   // 🌿 CULTIVAR OVERRIDE: When user refines to a specific cultivar, use its data
-  const [displayedPlantInfo, setDisplayedPlantInfo] = useState(identificationResult?.plant_info);
-  const [displayedPlantName, setDisplayedPlantName] = useState(identificationResult?.common_name);
+  // 🌐 LOCALIZATION: Use Arabic content when language is Arabic
+  const [displayedPlantInfo, setDisplayedPlantInfo] = useState(
+    currentLang === 'ar' && identificationResult?.plant_info_arabic
+      ? identificationResult.plant_info_arabic
+      : identificationResult?.plant_info
+  );
+  const [displayedPlantName, setDisplayedPlantName] = useState(
+    currentLang === 'ar' && identificationResult?.common_name_arabic
+      ? identificationResult.common_name_arabic
+      : identificationResult?.common_name
+  );
 
   useEffect(() => {
     if (plantDatabaseId && dbMatch?.all_cultivars) {
@@ -130,13 +153,22 @@ export default function PlantResultScreen() {
         const fullPlantData = plantData.plants.find((p: any) => p.id === plantDatabaseId);
 
         if (fullPlantData) {
-          setDisplayedPlantName(fullPlantData.names.common[0]);
-          setDisplayedPlantInfo(fullPlantData.care?.plant_info || identificationResult.plant_info);
-          logger.debug('🌿 Updated display to cultivar:', plantDatabaseId);
+          // 🌐 LOCALIZATION: Use Arabic name/info when language is Arabic
+          const plantName = currentLang === 'ar' && fullPlantData.names.arabic?.length > 0
+            ? fullPlantData.names.arabic[0]
+            : fullPlantData.names.common[0];
+
+          const plantInfo = currentLang === 'ar' && fullPlantData.care?.plant_info_arabic
+            ? fullPlantData.care.plant_info_arabic
+            : (fullPlantData.care?.plant_info || identificationResult.plant_info);
+
+          setDisplayedPlantName(plantName);
+          setDisplayedPlantInfo(plantInfo);
+          logger.debug('🌿 Updated display to cultivar:', plantDatabaseId, { lang: currentLang });
         }
       }
     }
-  }, [plantDatabaseId]);
+  }, [plantDatabaseId, currentLang]);
 
   // Animation for phone modal slide-up and fade-in
   const phoneModalSlideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
@@ -360,6 +392,90 @@ export default function PlantResultScreen() {
       }
     } catch (error: any) {
       logger.error('Facebook sign in error:', error);
+      logger.groupEnd();
+
+      // Don't show error alert if user intentionally cancelled
+      if (error?.name !== 'UserCancelled' && error?.message !== 'User cancelled OAuth') {
+        Alert.alert('Sign In Failed', 'Please try again.');
+      }
+
+      setIsLoading(false);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    setIsLoading(true);
+    logger.group('🔐 Apple Sign-In Flow (Modal)');
+    timer.start('apple-signin-modal');
+
+    try {
+      logger.debug('Initiating Apple OAuth from modal...');
+      const { data, error } = await authService.signInWithApple();
+      if (error) throw error;
+
+      if (data && 'user' in data && data.user) {
+        logger.debug('Apple OAuth successful', { userId: data.user.id, email: data.user.email });
+
+        const { data: profileData } = await dbService.getProfile(data.user.id);
+        const hasFirstName = profileData?.first_name && profileData.first_name.trim().length > 0;
+
+        const appleFullName = data.user.user_metadata?.name || data.user.user_metadata?.full_name;
+        const appleFirstName = appleFullName?.split(' ')[0]?.trim();
+
+        const userData = {
+          id: data.user.id,
+          email: data.user.email,
+          name: profileData?.first_name || appleFullName || data.user.email,
+          first_name: profileData?.first_name || appleFirstName,
+          avatar_url: data.user.user_metadata?.avatar_url,
+          created_at: data.user.created_at,
+        };
+
+        if (!hasFirstName && appleFirstName) {
+          // Auto-save Apple-provided name
+          logger.info('Auto-saving Apple-provided name', { firstName: appleFirstName });
+          try {
+            await dbService.updateUserProfile(data.user.id, appleFirstName);
+            setUser({
+              ...userData,
+              first_name: appleFirstName,
+              name: appleFirstName,
+            });
+            updateUserName(appleFirstName);
+            setAuthenticated(true);
+            logger.success('User authenticated with auto-saved name');
+            timer.end('apple-signin-modal');
+            logger.groupEnd();
+            setIsLoading(false);
+            handlePostAuthSuccess();
+          } catch (saveError) {
+            logger.error('Error auto-saving Apple name:', saveError);
+            setPendingUser(userData);
+            setShowNameCollection(true);
+            logger.groupEnd();
+            setIsLoading(false);
+          }
+        } else if (!hasFirstName && !appleFirstName) {
+          // Show name collection modal
+          logger.info('Showing name collection modal');
+          setPendingUser(userData);
+          setShowNameCollection(true);
+          timer.end('apple-signin-modal');
+          logger.groupEnd();
+          setIsLoading(false);
+        } else {
+          // Existing user with first_name
+          logger.success('Returning user authenticated', { firstName: userData.first_name });
+          setUser(userData);
+          setAuthenticated(true);
+          timer.end('apple-signin-modal');
+          logger.groupEnd();
+          setIsLoading(false);
+          handlePostAuthSuccess();
+        }
+      }
+    } catch (error: any) {
+      logger.error('Apple sign in error:', error);
       logger.groupEnd();
 
       // Don't show error alert if user intentionally cancelled
@@ -649,18 +765,12 @@ export default function PlantResultScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.appleButton, styles.buttonDisabled]}
-                  disabled={true}
+                  style={[styles.appleButton, isLoading && styles.buttonDisabled]}
+                  onPress={handleAppleSignIn}
+                  disabled={isLoading}
                 >
-                  <View style={styles.appleButtonContent}>
-                    <Ionicons name="logo-apple" size={FIBONACCI.LG} color="#999" />
-                    <Text style={[styles.appleButtonText, styles.buttonTextDisabled]}>
-                      {t('auth.continueWithApple')}
-                    </Text>
-                    <View style={styles.comingSoonBadge}>
-                      <Text style={styles.comingSoonText}>{t('auth.comingSoon')}</Text>
-                    </View>
-                  </View>
+                  <Ionicons name="logo-apple" size={FIBONACCI.LG} color={COLORS.primary} />
+                  <Text style={styles.appleButtonText}>{t('auth.continueWithApple')}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -817,13 +927,7 @@ export default function PlantResultScreen() {
               style={styles.resultImage}
               resizeMode="cover"
             />
-            {/* Only show confidence badge for scanned plants (when capturedImage exists) */}
-            {capturedImage && (
-              <MatchBadge
-                matchType={matchScenario}
-                confidence={dbMatch?.confidence || identificationResult.confidence}
-              />
-            )}
+            {/* Removed "Identified by AI" badge - PlantNet logo below is sufficient */}
             {/* Provider Attribution Watermark (Dynamic based on active provider) */}
             {/* Required by some providers' Terms of Service (e.g., PlantNet) */}
             {capturedImage && (() => {
@@ -1359,6 +1463,9 @@ const styles = StyleSheet.create({
     marginLeft: FIBONACCI.MD,
   },
   appleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: COLORS.white,
     height: ELEMENT_SIZES.BUTTON_MD, // 55px - Fibonacci button height
     borderRadius: FIBONACCI.XL, // 34px - Pill shape
@@ -1367,7 +1474,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: FIBONACCI.SM,
     elevation: 4,
-    position: 'relative',
   },
   appleButtonContent: {
     flexDirection: 'row',

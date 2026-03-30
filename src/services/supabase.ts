@@ -6,6 +6,12 @@ import { readAsStringAsync, EncodingType } from 'expo-file-system/legacy';
 import { Plant, PlantSpecies, CareEvent, User } from '../types';
 import { logger } from '../utils/logger';
 
+// NOTE: For production builds with native Apple Sign-In:
+// 1. npm install expo-apple-authentication
+// 2. Set usesAppleSignIn: true in app.json
+// 3. Use EAS build (npx eas build --profile development --platform ios)
+// For now, we use OAuth web flow which works in Expo Go
+
 // OAuth error type for better type safety
 interface OAuthError {
   message: string;
@@ -15,7 +21,7 @@ interface OAuthError {
 
 // Session polling configuration constants
 const SESSION_POLL_INTERVAL_MS = 500;
-const SESSION_POLL_MAX_ATTEMPTS = 20; // 10 second timeout (20 × 500ms)
+const SESSION_POLL_MAX_ATTEMPTS = 40; // 20 second timeout (40 × 500ms)
 
 // Helper function to create OAuth error responses
 function createOAuthError(message: string, name: string, status: number) {
@@ -81,21 +87,73 @@ export const authService = {
       logger.debug(`Opening ${provider} OAuth browser with URL:`, data.url);
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
 
+      // Log the full result for debugging
+      logger.debug(`WebBrowser result type: ${result.type}`);
+      if ('url' in result) {
+        logger.debug(`WebBrowser result URL: ${result.url}`);
+      }
+
       if (result.type === 'success') {
         logger.debug(`${provider} OAuth browser returned successfully`);
 
-        // Different session handling for different providers
+        // FIRST: Always try to extract tokens from URL (works for all providers)
+        // Supabase puts tokens in URL fragment even for Apple OAuth
+        if ('url' in result && result.url) {
+          logger.debug('Attempting token extraction from redirect URL:', result.url);
+          const url = result.url;
+          const tokenParams: Record<string, string> = {};
+
+          // Parse URL fragment for tokens
+          const fragment = url.split('#')[1];
+          if (fragment) {
+            fragment.split('&').forEach(part => {
+              const [key, value] = part.split('=');
+              if (key && value) {
+                tokenParams[key] = decodeURIComponent(value);
+              }
+            });
+          }
+
+          logger.debug('Extracted token params:', Object.keys(tokenParams));
+
+          const accessToken = tokenParams['access_token'];
+          const refreshToken = tokenParams['refresh_token'];
+
+          if (accessToken && refreshToken) {
+            logger.debug('Found tokens in URL! Setting session...');
+            const sessionResult = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+
+            if (!sessionResult.error && sessionResult.data.session) {
+              logger.debug(`${provider} OAuth successful via URL token extraction`);
+              return {
+                data: {
+                  user: sessionResult.data.session.user,
+                  session: sessionResult.data.session
+                },
+                error: null
+              };
+            } else if (sessionResult.error) {
+              logger.error('Failed to set session from URL tokens:', sessionResult.error);
+            }
+          } else {
+            logger.debug('No tokens found in URL fragment, trying alternative methods...');
+          }
+        }
+
+        // FALLBACK: Session polling (for Apple when URL extraction fails)
         if (options?.useSessionPolling) {
-          // Apple uses session polling (10 second timeout)
-          logger.debug(`Polling for session (max ${SESSION_POLL_MAX_ATTEMPTS * SESSION_POLL_INTERVAL_MS / 1000} seconds)...`);
+          logger.debug(`URL extraction failed, polling for session (max ${SESSION_POLL_MAX_ATTEMPTS * SESSION_POLL_INTERVAL_MS / 1000} seconds)...`);
           let sessionData = null;
 
           for (let i = 0; i < SESSION_POLL_MAX_ATTEMPTS; i++) {
             await new Promise(resolve => setTimeout(resolve, SESSION_POLL_INTERVAL_MS));
-            const result = await supabase.auth.getSession();
+            const pollResult = await supabase.auth.getSession();
 
-            if (result.data.session) {
-              sessionData = result;
+            if (pollResult.data.session) {
+              sessionData = pollResult;
               logger.debug(`Session found after ${(i + 1) * SESSION_POLL_INTERVAL_MS}ms`);
               break;
             }
@@ -116,7 +174,7 @@ export const authService = {
             return { data: null, error: sessionData.error };
           }
 
-          logger.debug(`${provider} OAuth successful, session retrieved`);
+          logger.debug(`${provider} OAuth successful, session retrieved via polling`);
           return {
             data: {
               user: sessionData.data.session.user,
@@ -124,55 +182,83 @@ export const authService = {
             },
             error: null
           };
-        } else {
-          // Google/Facebook extract tokens from redirect URL
-          logger.debug('Redirect URL:', result.url);
-          const url = result.url;
-          const params: Record<string, string> = {};
+        }
 
-          // Parse URL fragment
-          const fragment = url.split('#')[1];
+        // If we get here, token extraction failed and no session polling
+        // This means something went wrong with the OAuth flow
+        logger.error('Token extraction failed and no session polling configured');
+        return createOAuthError('No tokens in redirect URL', 'OAuthError', 500);
+      } else if (result.type === 'cancel' || result.type === 'dismiss') {
+        // Safari might show 'cancel' when it can't navigate to lotus:// scheme
+        // but the URL with tokens might still be in the result
+        logger.info(`Browser returned '${result.type}', checking for tokens...`);
+
+        // FIRST: Try to extract tokens from URL (Safari might have captured it)
+        if ('url' in result && result.url) {
+          logger.debug('Found URL in cancelled/dismissed result:', result.url);
+          const tokenParams: Record<string, string> = {};
+          const fragment = result.url.split('#')[1];
           if (fragment) {
             fragment.split('&').forEach(part => {
               const [key, value] = part.split('=');
               if (key && value) {
-                params[key] = decodeURIComponent(value);
+                tokenParams[key] = decodeURIComponent(value);
               }
             });
           }
 
-          logger.debug('Extracted params:', Object.keys(params));
-
-          const accessToken = params['access_token'];
-          const refreshToken = params['refresh_token'];
+          const accessToken = tokenParams['access_token'];
+          const refreshToken = tokenParams['refresh_token'];
 
           if (accessToken && refreshToken) {
-            logger.debug('Setting session with extracted tokens...');
+            logger.debug('Found tokens in cancelled result! Setting session...');
             const sessionResult = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken,
             });
 
-            if (sessionResult.error) {
-              logger.error('Failed to set session:', sessionResult.error);
-              return { data: null, error: sessionResult.error };
+            if (!sessionResult.error && sessionResult.data.session) {
+              logger.success(`${provider} OAuth successful via URL extraction (despite browser ${result.type})`);
+              return {
+                data: {
+                  user: sessionResult.data.session.user,
+                  session: sessionResult.data.session
+                },
+                error: null
+              };
             }
+          }
+        }
 
-            logger.debug(`${provider} OAuth successful, session created`);
+        // FALLBACK: Session polling for Apple OAuth
+        if (options?.useSessionPolling) {
+          logger.info(`No tokens in URL, polling for session (Apple OAuth workaround)...`);
+          let sessionData = null;
+
+          for (let i = 0; i < SESSION_POLL_MAX_ATTEMPTS; i++) {
+            await new Promise(resolve => setTimeout(resolve, SESSION_POLL_INTERVAL_MS));
+            const pollResult = await supabase.auth.getSession();
+
+            if (pollResult.data.session) {
+              sessionData = pollResult;
+              logger.debug(`Session found after browser '${result.type}' (${(i + 1) * SESSION_POLL_INTERVAL_MS}ms)`);
+              break;
+            }
+          }
+
+          if (sessionData?.data?.session) {
+            logger.success(`${provider} OAuth successful via polling despite browser ${result.type}`);
             return {
               data: {
-                user: sessionResult.data.session!.user,
-                session: sessionResult.data.session
+                user: sessionData.data.session.user,
+                session: sessionData.data.session
               },
               error: null
             };
-          } else {
-            logger.error('No tokens found in redirect URL');
-            return createOAuthError('No tokens in redirect URL', 'OAuthError', 500);
           }
         }
-      } else if (result.type === 'cancel') {
-        logger.info(`User cancelled ${provider} OAuth`);
+
+        logger.info(`User cancelled ${provider} OAuth (no session found)`);
         return createOAuthError('User cancelled OAuth', 'UserCancelled', 400);
       } else {
         logger.error(`${provider} OAuth failed with type:`, result.type);
@@ -195,8 +281,11 @@ export const authService = {
   },
 
   signInWithApple: async () => {
+    // Using OAuth web flow (works in Expo Go and development)
+    // For production with native Apple Sign-In, see comments at top of file
+    logger.debug('Starting Apple Sign-In via OAuth web flow...');
     return authService._signInWithOAuth('apple', {
-      useSessionPolling: true, // Apple uses session polling instead of URL tokens
+      useSessionPolling: true,
     });
   },
 
@@ -464,4 +553,7 @@ export const dbService = {
       return false;
     }
   },
+
+  // Expose Supabase client for auth operations
+  supabase,
 };

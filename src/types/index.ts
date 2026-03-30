@@ -81,6 +81,9 @@ export interface IdentificationResult {
   family?: string;
   genus?: string;
   plant_info: string;
+  // 🌐 Arabic content from database
+  common_name_arabic?: string;
+  plant_info_arabic?: string;
   plant_type: string; // Allow any plant type string
   watering_schedule: string; // Display-ready string like "60% Dry - Water when mostly dry"
   preferred_humidity: string; // Display-ready string like "Medium"
@@ -100,6 +103,9 @@ export interface IdentificationResult {
     match_type: 'exact' | 'genus' | 'common_name' | 'none';
     primary_plant_name?: string; // Name from database to display instead of PlantNet
     primary_plant_info?: string; // Plant info from database
+    // 🌐 Arabic content from database
+    primary_plant_name_arabic?: string;
+    primary_plant_info_arabic?: string;
     // CULTIVAR PICKER: When >1 exact matches exist (same species, different varieties)
     multiple_cultivars?: boolean; // True when multiple varieties share same scientific name
     all_cultivars?: Array<{      // All matching cultivars for optional refiner UI

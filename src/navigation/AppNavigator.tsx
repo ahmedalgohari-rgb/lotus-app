@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Screens
 import HomeScreen from '../screens/HomeScreen';
@@ -53,7 +54,8 @@ function MainStack() {
 // Main tab navigator
 function MainTabs() {
   const { t } = useTranslation();
-  
+  const insets = useSafeAreaInsets(); // 🔧 FIX: Get device-specific safe area insets
+
   return (
     // @ts-ignore - Navigation types are working correctly at runtime
     <Tab.Navigator
@@ -81,9 +83,9 @@ function MainTabs() {
           backgroundColor: COLORS.white,
           borderTopColor: '#F2F2F7', // Lighter border for better contrast
           borderTopWidth: 0.5,
-          paddingBottom: 8, // More padding for better touch targets
+          paddingBottom: Math.max(insets.bottom, 8), // 🔧 FIX: Use safe area inset (adapts to all iPhone models including Pro Max)
           paddingTop: 8,
-          height: 68, // Increased height for better accessibility
+          height: 68 + Math.max(insets.bottom - 8, 0), // 🔧 FIX: Adjust total height to account for extra bottom padding
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -1 },
           shadowOpacity: 0.1,

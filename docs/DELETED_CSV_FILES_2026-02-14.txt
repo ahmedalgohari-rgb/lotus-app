@@ -1,0 +1,67 @@
+CSV Files Deleted on 2026-02-14
+===================================
+
+Main Source of Truth (KEPT):
+✅ database_complete_detailed.csv (564K, 718 plants)
+
+Deleted Files (39 total):
+--------------------------
+
+BACKUPS & DEBUGGING (11 files):
+  - database_complete_detailed.BEFORE_PARTIAL_SYNC.csv (417K)
+  - database_complete_detailed.CORRUPTED.csv (417K)
+  - database_complete_detailed.MISSING_COLS.csv (372K)
+  - database_complete_detailed.MISSING_DATA.csv (391K)
+  - database_complete_detailed.backup-before-local-refs.csv (132K)
+  - database_complete_detailed.backup-before-url-clear.csv (143K)
+  - database_complete_detailed.backup.2026-02-12T00-38-40.csv (136K)
+  - database_complete_detailed.backup.2026-02-12T00-40-35.csv (136K)
+  - database_complete_detailed.backup.2026-02-12T00-41-54.csv (136K)
+  - database_complete_detailed.backup.2026-02-12T02-55-58.csv (417K)
+  - database_complete_detailed.backup.20260213_005534.csv (263K)
+
+OLD VERSIONS (4 files):
+  - database_complete_detailed_136.csv (136K)
+  - database_complete_detailed_CLEAN.csv (432K)
+  - database_complete_detailed_FIXED.csv (280K)
+  - database_complete_detailed_REBUILT.csv (278K)
+
+MERGED BATCHES - Critical Plants (1 file):
+  - missing_critical_plants.csv (9.7K - 11 plants added to main CSV)
+
+MERGED BATCHES - Session Feb 14 (8 files):
+  - missing_batch_1.csv (14K - 23 plants)
+  - missing_batch_2.csv (12K - 21 plants)
+  - missing_batch_3.csv (16K - 28 plants)
+  - missing_batch_4.csv (20K - 27 plants)
+  - missing_batch_5.csv (16K - 25 plants)
+  - missing_batch_6.csv (15K - 26 plants)
+  - missing_batch_7.csv (15K - 26 plants)
+  - missing_batch_8.csv (18K - 27 plants)
+  Total: 104 plants (all merged into database_complete_detailed.csv)
+
+MERGED BATCHES - Previous Session (14 files):
+  - new_plants_batch1.csv (29K)
+  - new_plants_batch2.csv (26K)
+  - new_plants_batch3.csv (24K)
+  - new_plants_batch4.csv (23K)
+  - new_plants_batch5.csv (22K)
+  - new_plants_batch6.csv (38K)
+  - new_plants_batch7.csv (33K)
+  - new_plants_batch8.csv (32K)
+  - new_plants_batch9.csv (17K)
+  - new_plants_batch10.csv (18K)
+  - new_plants_batch11.csv (18K)
+  - new_plants_batch12.csv (23K)
+  - new_plants_batch13.csv (11K)
+  - new_plants_batch14.csv (28K)
+  All previously merged
+
+TEMPORARY FILES (2 files):
+  - database_merged_new.csv (340K)
+  - database_vs_csv_comparison.csv (33K)
+
+REASON FOR DELETION:
+All data from these files has been consolidated into database_complete_detailed.csv.
+The main CSV now contains 718 plants with complete location rating data.
+These files are no longer needed and were creating clutter.

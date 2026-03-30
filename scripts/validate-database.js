@@ -36,7 +36,9 @@ function validateGenus(plant) {
     return { valid: false, error: 'Missing genus field' };
   }
 
-  const extractedGenus = scientificName.split(/\s+/)[0];
+  // Extract genus (skip × symbol for hybrids)
+  const parts = scientificName.split(/\s+/);
+  const extractedGenus = parts[0] === '×' ? parts[1] : parts[0];
 
   if (extractedGenus !== genus) {
     return {
@@ -68,11 +70,11 @@ function validateRequiredFields(plant) {
 function validateScientificName(plant) {
   const scientificName = plant.names.scientific[0];
 
-  // Should start with capital letter (Genus)
-  if (!/^[A-Z]/.test(scientificName)) {
+  // Should start with capital letter (Genus) or × for hybrids
+  if (!/^([A-Z]|×\s)/.test(scientificName)) {
     return {
       valid: false,
-      error: `Scientific name should start with capital letter: "${scientificName}"`
+      error: `Scientific name should start with capital letter or × for hybrids: "${scientificName}"`
     };
   }
 

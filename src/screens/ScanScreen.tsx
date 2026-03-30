@@ -19,19 +19,31 @@ import { createPlantIdService } from '../services/plant-identification';
 import { getCurrentLanguage } from '../i18n';
 import { logger, timer } from '../utils/logger';
 
+// Camera constants (never change during component lifecycle)
+const CAMERA_ZOOM = 0;
+const CAMERA_FACING: CameraType = 'back';
+
 export default function ScanScreen({ route }: any) {
   const { t } = useTranslation();
   const [permission, requestPermission] = useCameraPermissions();
   const [isLoading, setIsLoading] = useState(false);
-
-  // Camera zoom level (0 = default device zoom)
-  const [zoom] = useState(0);
-
-  // Flashlight toggle state
   const [flashlightEnabled, setFlashlightEnabled] = useState(false);
 
   const cameraRef = useRef<CameraView>(null);
   const navigation = useNavigation();
+
+  // Auto-request camera permission on mount (triggers native iOS prompt)
+  useEffect(() => {
+    if (permission && !permission.granted && !permission.canAskAgain) {
+      // Permission was denied permanently - do nothing, show settings screen
+      return;
+    }
+
+    if (permission && !permission.granted) {
+      // Trigger native iOS permission prompt
+      requestPermission();
+    }
+  }, [permission, requestPermission]);
 
   // Handle navigation parameters when returning from auth
   useEffect(() => {
@@ -51,18 +63,12 @@ export default function ScanScreen({ route }: any) {
     }
   }, [route?.params, navigation]);
 
-  const getCameraPermissions = async () => {
-    if (!permission?.granted) {
-      await requestPermission();
-    }
-  };
-
   const takePicture = async () => {
     if (cameraRef.current) {
       try {
         setIsLoading(true);
         timer.start('camera-capture');
-        logger.debug('Camera capture initiated', { zoom });
+        logger.debug('Camera capture initiated', { zoom: CAMERA_ZOOM });
 
         const photo = await cameraRef.current.takePictureAsync({
           quality: 1.0,  // Maximum quality for better plant identification
@@ -95,9 +101,19 @@ export default function ScanScreen({ route }: any) {
 
   const pickImage = async () => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Please allow photo library access');
+      // Request permission (triggers native iOS prompt if not already granted)
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (permissionResult.status !== 'granted') {
+        // User denied permission - show alert with option to go to settings
+        Alert.alert(
+          t('scan.permissions.noPhotoAccess'),
+          t('scan.permissions.photoSettingsPrompt'),
+          [
+            { text: t('common.cancel'), style: 'cancel' },
+            { text: t('scan.permissions.openSettings'), onPress: () => Linking.openSettings() }
+          ]
+        );
         return;
       }
 
@@ -191,33 +207,21 @@ export default function ScanScreen({ route }: any) {
     }
   };
 
+  // Loading state while checking permissions
   if (!permission) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.permissionText}>{t('scan.permissions.requesting')}</Text>
       </View>
     );
   }
 
+  // Permission denied - native iOS prompt already handled this
+  // Just show loading screen, the useEffect will trigger the native prompt
   if (!permission.granted) {
     return (
-      <View style={styles.permissionContainer}>
-        <Ionicons name="camera-outline" size={80} color={COLORS.primary} />
-        <Text style={styles.permissionText}>
-          {t('scan.permissions.noAccess')}
-        </Text>
-        <Text style={styles.permissionSubtext}>
-          {t('scan.permissions.settingsPrompt')}
-        </Text>
-        <TouchableOpacity
-          style={styles.permissionButton}
-          onPress={() => Linking.openSettings()}
-        >
-          <Text style={styles.buttonText}>
-            {t('scan.permissions.openSettings')}
-          </Text>
-        </TouchableOpacity>
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -228,8 +232,8 @@ export default function ScanScreen({ route }: any) {
       <CameraView
         ref={cameraRef}
         style={styles.camera}
-        facing={cameraType}
-        zoom={zoom}
+        facing={CAMERA_FACING}
+        zoom={CAMERA_ZOOM}
         enableTorch={flashlightEnabled}
       />
 
@@ -324,13 +328,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.black,
-  },
-  permissionContainer: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: FIBONACCI.XL,
   },
   camera: {
     flex: 1,
@@ -480,38 +477,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  permissionText: {
-    fontSize: TYPOGRAPHY.LG,
-    fontWeight: '700',
-    color: COLORS.text,
-    marginTop: FIBONACCI.XL,
-    textAlign: 'center',
-  },
-  permissionSubtext: {
-    fontSize: TYPOGRAPHY.BASE,
-    color: COLORS.textSecondary,
-    marginTop: FIBONACCI.MD,
-    textAlign: 'center',
-    paddingHorizontal: FIBONACCI.XL,
-    lineHeight: TYPOGRAPHY.BASE * 1.5,
-  },
-  permissionButton: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: FIBONACCI.XXL,
-    paddingVertical: FIBONACCI.LG,
-    borderRadius: FIBONACCI.XL,
-    marginTop: FIBONACCI.XXL,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  buttonText: {
-    color: COLORS.white,
-    fontSize: TYPOGRAPHY.BASE,
-    fontWeight: '600',
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,

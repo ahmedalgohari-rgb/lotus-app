@@ -135,12 +135,19 @@ async function directPlantNetApiCall(
 
   logger.debug(`📤 Calling Edge Function: identify-plant (organ=${organ}, lang=${language})`);
 
+  // 🧪 DEV MODE: Disable rate limiting for Expo development builds
+  const isDevMode = __DEV__; // true only in Expo dev, false in TestFlight/production
+  if (isDevMode) {
+    logger.info('🧪 DEV MODE: Unlimited scanning enabled for testing');
+  }
+
   const response = await fetch(`${EDGE_FUNCTION_URL}/identify-plant`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${session.access_token}`, // ✅ Send USER token, not anon key
       'apikey': SUPABASE_ANON_KEY,
       'Content-Type': 'application/json',
+      ...(isDevMode && { 'X-Dev-Mode': 'true' }), // 🧪 Bypass rate limits in dev
     },
     body: JSON.stringify({
       imageBase64: base64WithPrefix,
@@ -369,7 +376,7 @@ export const plantNetService = {
       logger.info(`✅ Accepting result with ${Math.round(topScore * 100)}% confidence (above 15% threshold)`);
     }
 
-    return plantNetService.processBestMatch(speciesResults, language);
+    return await plantNetService.processBestMatch(speciesResults, language);
   },
 
   /**
@@ -421,8 +428,44 @@ export const plantNetService = {
 
     const normalizedSearchName = normalizeScientificName(scientificName);
 
-    // TIER 1: EXACT scientific name match (no substring matching!)
-    // "Dracaena trifasciata" should NOT match "Dracaena trifasciata 'Golden Flame'"
+    // ✅ TIER 1: Common name match FIRST (highest priority - what user actually sees)
+    // If PlantNet says "Eyelash begonia" and we have it → USE IT, don't check scientific name
+    const commonNameMatch = plantDatabaseService.searchPlants({
+      text: commonName
+    });
+
+    const commonMatches = commonNameMatch.filter(m =>
+      m.matchType === 'common' && m.confidence >= 60
+    );
+
+    if (commonMatches.length > 0) {
+      logger.debug(`✅ TIER 1: Common name match - ${commonMatches[0].plant.id} (EXACT MATCH FOUND)`);
+      logger.debug(`   PlantNet common: "${commonName}" ~ Database: "${commonMatches[0].matchedName}"`);
+
+      return {
+        found: true,
+        confidence: 95, // High confidence - exact common name match
+        plant_id: commonMatches[0].plant.id,
+        match_type: 'exact', // Changed from 'common_name' to 'exact' - this IS an exact match!
+        primary_plant_name: commonMatches[0].plant.names.common[0],
+        primary_scientific_name: commonMatches[0].plant.names.scientific[0], // ✅ Database scientific name
+        primary_plant_info: commonMatches[0].plant.care?.plant_info,
+        // 🌐 Arabic content from database
+        primary_plant_name_arabic: commonMatches[0].plant.names.arabic?.[0],
+        primary_plant_info_arabic: commonMatches[0].plant.care?.plant_info_arabic,
+        // Show alternatives if multiple common name matches
+        alternatives: commonMatches.slice(1, 7).map(m => ({
+          plant_id: m.plant.id,
+          confidence: 95,
+          plant_name: m.plant.names.common[0]
+        }))
+      };
+    }
+
+    // ⚠️ Common name NOT in database - fall back to scientific/genus matching
+    logger.debug(`⚠️ Common name "${commonName}" not found in database - trying scientific/genus match...`);
+
+    // TIER 2: EXACT scientific name match (fallback only if common name not found)
     const allPlants = plantDatabaseService.getAllPlants();
     const exactMatches: Array<{ plant: any; matchedName: string }> = [];
 
@@ -459,11 +502,11 @@ export const plantNetService = {
           }
         }
 
-        logger.debug(`✅ TIER 1: Exact scientific name match - MULTIPLE CULTIVARS (${exactMatches.length})`);
+        logger.debug(`✅ TIER 2: Exact scientific name match (fallback) - MULTIPLE CULTIVARS (${exactMatches.length})`);
         logger.debug(`   PlantNet: "${scientificName}" matches ${exactMatches.length} cultivars:`);
         exactMatches.forEach(m => logger.debug(`     - ${m.plant.id}: ${m.plant.names.common[0]}`));
       } else {
-        logger.debug(`✅ TIER 1: Exact scientific name match - ${exactMatches[0].plant.id}`);
+        logger.debug(`✅ TIER 2: Exact scientific name match (fallback) - ${exactMatches[0].plant.id}`);
         logger.debug(`   PlantNet: "${scientificName}" = Database: "${exactMatches[0].matchedName}"`);
       }
 
@@ -476,7 +519,11 @@ export const plantNetService = {
         plant_id: selectedPlant.plant.id,
         match_type: 'exact',
         primary_plant_name: genericName || selectedPlant.plant.names.common[0],
+        primary_scientific_name: selectedPlant.matchedName, // ✅ Database scientific name
         primary_plant_info: selectedPlant.plant.care?.plant_info,
+        // 🌐 Arabic content from database
+        primary_plant_name_arabic: selectedPlant.plant.names.arabic?.[0],
+        primary_plant_info_arabic: selectedPlant.plant.care?.plant_info_arabic,
         // NEW: Include all cultivars for optional refiner when multiple exist
         multiple_cultivars: hasMultipleCultivars,
         all_cultivars: hasMultipleCultivars
@@ -487,7 +534,8 @@ export const plantNetService = {
               is_selected: m.plant.id === selectedPlant.plant.id, // Mark the auto-selected one
             }))
           : undefined,
-        alternatives: exactMatches.slice(1, 3).map(m => ({
+        // 🔧 FIX: Show up to 6 alternatives for exact matches too
+        alternatives: exactMatches.slice(1, 7).map(m => ({
           plant_id: m.plant.id,
           confidence: 95,
           plant_name: m.plant.names.common[0]
@@ -495,9 +543,9 @@ export const plantNetService = {
       };
     }
 
-    // TIER 2: Genus match (same genus, different species/cultivar)
-    // "Dracaena trifasciata" → "Dracaena trifasciata 'Golden Flame'" = Tier 2 (genus match)
-    // "Dracaena trifasciata" → "Dracaena zeylanica" = Tier 2 (genus match)
+    // TIER 3: Genus match (same genus, different species/cultivar)
+    // "Dracaena trifasciata" → "Dracaena trifasciata 'Golden Flame'" = Tier 3 (genus match)
+    // "Dracaena trifasciata" → "Dracaena zeylanica" = Tier 3 (genus match)
     const genusMatches: Array<{ plant: any; matchedName: string }> = [];
 
     for (const plant of allPlants) {
@@ -517,55 +565,45 @@ export const plantNetService = {
     }
 
     if (genusMatches.length > 0) {
-      logger.debug(`✅ TIER 2: Genus match - ${genusMatches[0].plant.id}`);
-      logger.debug(`   PlantNet: "${scientificName}" ~ Database: "${genusMatches[0].matchedName}" (same genus)`);
+      logger.debug(`✅ TIER 3: Genus match (fallback) - found ${genusMatches.length} similar plants`);
+      logger.debug(`   PlantNet identified: "${commonName}" (${scientificName})`);
+      logger.debug(`   Not in database - showing top 3 similar ${genus} plants`);
+
+      // Sort by difficulty (beginner first) to show most commonly used varieties
+      const sortedMatches = genusMatches.sort((a, b) => {
+        const difficultyOrder = { 'beginner': 1, 'intermediate': 2, 'advanced': 3 };
+        const diffA = difficultyOrder[a.plant.care?.difficulty] || 3;
+        const diffB = difficultyOrder[b.plant.care?.difficulty] || 3;
+        return diffA - diffB;
+      });
 
       return {
         found: true,
-        confidence: 80, // Medium-high confidence for genus match
-        plant_id: genusMatches[0].plant.id,
+        confidence: confidence, // Keep PlantNet's original confidence
+        plant_id: null, // ⚠️ This exact plant is NOT in database
         match_type: 'genus',
-        primary_plant_name: genusMatches[0].plant.names.common[0],
-        primary_plant_info: genusMatches[0].plant.care?.plant_info,
-        alternatives: genusMatches.slice(1, 3).map(m => ({
+        // ✅ Show what PlantNet identified (NOT database plant)
+        primary_plant_name: commonName,
+        primary_scientific_name: scientificName,
+        primary_plant_info: `We don't have "${commonName}" in our database yet. Here are similar ${genus} plants you can save:`,
+        // 🌐 Arabic content
+        primary_plant_name_arabic: commonName, // Keep original (no translation available)
+        primary_plant_info_arabic: `ليس لدينا "${commonName}" في قاعدة البيانات حتى الآن. إليك نباتات ${genus} مماثلة يمكنك حفظها:`,
+        // ✅ Show TOP 3 most common alternatives (beginner-friendly first)
+        alternatives: sortedMatches.slice(0, 3).map(m => ({
           plant_id: m.plant.id,
           confidence: 80,
-          plant_name: m.plant.names.common[0]
+          plant_name: m.plant.names.common[0],
+          difficulty: m.plant.care?.difficulty || 'intermediate' // Show difficulty level
         }))
       };
     }
 
-    // TIER 3: Common name match (substring matching is OK here)
-    const commonNameMatch = plantDatabaseService.searchPlants({
-      text: commonName
-    });
-
-    const commonMatches = commonNameMatch.filter(m =>
-      m.matchType === 'common' && m.confidence >= 60
-    );
-
-    if (commonMatches.length > 0) {
-      logger.debug(`✅ TIER 3: Common name match - ${commonMatches[0].plant.id}`);
-      logger.debug(`   PlantNet common: "${commonName}" ~ Database: "${commonMatches[0].matchedName}"`);
-
-      return {
-        found: true,
-        confidence: commonMatches[0].confidence,
-        plant_id: commonMatches[0].plant.id,
-        match_type: 'common_name',
-        primary_plant_name: commonMatches[0].plant.names.common[0],
-        primary_plant_info: commonMatches[0].plant.care?.plant_info,
-        alternatives: commonMatches.slice(1, 3).map(m => ({
-          plant_id: m.plant.id,
-          confidence: m.confidence,
-          plant_name: m.plant.names.common[0]
-        }))
-      };
-    }
-
-    // No match found - return none
-    logger.debug(`❌ No database match found for "${scientificName}"`);
-    logger.debug(`   Tried: Exact match, Genus "${genus}" match, Common name "${commonName}" match`);
+    // No match found after trying all tiers - return none
+    logger.debug(`❌ No database match found`);
+    logger.debug(`   Tried TIER 1: Common name "${commonName}" - NOT FOUND`);
+    logger.debug(`   Tried TIER 2: Scientific name "${scientificName}" - NOT FOUND`);
+    logger.debug(`   Tried TIER 3: Genus "${genus}" - NOT FOUND`);
 
     return {
       found: false,
@@ -578,7 +616,7 @@ export const plantNetService = {
   /**
    * Process multiple results to find the best match with language support
    */
-  processBestMatch: (species: any[], language: 'en' | 'ar' = 'en'): IdentificationResult => {
+  processBestMatch: async (species: any[], language: 'en' | 'ar' = 'en'): Promise<IdentificationResult> => {
     const topResult = species[0];
 
     // Get common name in English or Arabic
@@ -617,13 +655,27 @@ export const plantNetService = {
       adjustedConfidence = Math.min(95, adjustedConfidence + 5);
     }
 
-    // Get comprehensive care data using centralized service
-    const careData = plantDatabaseService.getComprehensivePlantCare(
+    // Get comprehensive care data using centralized service (now async)
+    const careData = await plantDatabaseService.getComprehensivePlantCare(
       topResult.scientificNameWithoutAuthor,
       commonName,
       topResult.family.scientificNameWithoutAuthor,
       language
     );
+
+    // 🔍 AUTOMATIC RESEARCH: If plant not in database, trigger background research
+    // This populates the researched_plants cache for future scans
+    if (careData.needsResearch) {
+      logger.info(`🌐 Triggering automatic research for: ${topResult.scientificNameWithoutAuthor}`);
+      // Fire and forget - don't wait for research to complete
+      import('./plantResearch').then(({ plantResearchService }) => {
+        plantResearchService.research(
+          topResult.scientificNameWithoutAuthor,
+          commonName,
+          topResult.family.scientificNameWithoutAuthor
+        ).catch(err => logger.error('Background research failed:', err));
+      });
+    }
 
     // ✅ TIER MATCHING: Match PlantNet result to database for tier classification
     const databaseMatch = plantNetService.matchPlantToDatabase(
@@ -637,21 +689,26 @@ export const plantNetService = {
     // ✅ USE DATABASE NAME: When we have a database match, prefer its name over PlantNet's
     // This ensures "Song of Jamaica" shows instead of "Corn plant" for genus matches
     const displayName = databaseMatch.primary_plant_name || careData.plant_name;
+    const displayScientificName = databaseMatch.primary_scientific_name || topResult.scientificNameWithoutAuthor;
     const displayInfo = databaseMatch.primary_plant_info || careData.plant_info;
 
     return {
       confidence: adjustedConfidence,
       common_name: displayName,
-      scientific_name: topResult.scientificNameWithoutAuthor,
+      scientific_name: displayScientificName, // ✅ FIX: Use database scientific name when matched
       family: topResult.family.scientificNameWithoutAuthor,
       genus: topResult.genus.scientificNameWithoutAuthor,
       plant_info: displayInfo,
+      // 🌐 Arabic content from database match
+      common_name_arabic: databaseMatch.primary_plant_name_arabic,
+      plant_info_arabic: databaseMatch.primary_plant_info_arabic,
       plant_type: careData.plant_type,
       watering_schedule: careData.watering_frequency,
       preferred_humidity: 'medium', // Legacy field - info now in watering_schedule
       preferred_orientation: careData.orientation,
       database_match: databaseMatch, // ✅ TIER MATCHING: Determines Tier 1/2/3 classification
-      alternatives: species.slice(1, 4).map(s => ({
+      // 🔧 FIX: Show up to 5 alternatives from PlantNet API
+      alternatives: species.slice(1, 6).map(s => ({
         common_name: s.commonNames?.find((n: any) => n.lang === 'en')?.name || s.scientificNameWithoutAuthor,
         scientific_name: s.scientificNameWithoutAuthor,
         confidence: Math.round(s.score * 100)

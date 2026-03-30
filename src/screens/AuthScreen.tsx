@@ -413,18 +413,14 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.appleButton, styles.buttonDisabled]}
-              disabled={true}
+              style={[styles.appleButton, isLoading && styles.buttonDisabled]}
+              onPress={handleAppleSignIn}
+              disabled={isLoading}
             >
-              <View style={styles.appleButtonContent}>
-                <Ionicons name="logo-apple" size={24} color="#999" />
-                <Text style={[styles.appleButtonText, styles.buttonTextDisabled]}>
-                  {t('auth.continueWithApple')}
-                </Text>
-                <View style={styles.comingSoonContainer}>
-                  <Text style={styles.comingSoonText}>{t('auth.comingSoon')}</Text>
-                </View>
-              </View>
+              <Ionicons name="logo-apple" size={24} color={COLORS.primary} />
+              <Text style={styles.appleButtonText}>
+                {t('auth.continueWithApple')}
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -573,6 +569,9 @@ const styles = StyleSheet.create({
     marginLeft: FIBONACCI.MD,
   },
   appleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: COLORS.white,
     height: ELEMENT_SIZES.BUTTON_MD,
     borderRadius: FIBONACCI.XL,
@@ -582,14 +581,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: FIBONACCI.SM,
     elevation: 4,
-    position: 'relative',
-  },
-  appleButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
-    position: 'relative',
   },
   appleButtonText: {
     color: COLORS.primary,

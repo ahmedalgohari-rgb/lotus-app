@@ -28,6 +28,7 @@ import { useRTL } from '../utils/rtl';
 import { useStore } from '../store';
 import { authService } from '../services/supabase';
 import { logger } from '../utils/logger';
+import FeedbackModal from './FeedbackModal';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const DRAWER_WIDTH = SCREEN_WIDTH * 0.8;
@@ -48,6 +49,7 @@ export default function AccountDrawer({ visible, onClose, userName = 'Guest' }: 
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
   const [shouldRender, setShouldRender] = useState(visible);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   // Animate drawer open/close with enhanced timing
   useEffect(() => {
@@ -111,6 +113,15 @@ export default function AccountDrawer({ visible, onClose, userName = 'Guest' }: 
     }
   }, [visible, slideAnim, fadeAnim, scaleAnim]);
 
+  // Handle contact us - close drawer first, then open feedback modal
+  const handleContactUs = () => {
+    onClose(); // Close the drawer first
+    // Small delay to let drawer close animation complete before showing feedback modal
+    setTimeout(() => {
+      setShowFeedbackModal(true);
+    }, 350);
+  };
+
   // Handle logout with confirmation
   const handleLogout = () => {
     Alert.alert(
@@ -166,9 +177,17 @@ export default function AccountDrawer({ visible, onClose, userName = 'Guest' }: 
     );
   };
 
-  if (!shouldRender) return null;
-
+  // Always render FeedbackModal, but only render drawer when shouldRender is true
   return (
+  <>
+    {/* Feedback Modal - rendered independently of drawer */}
+    <FeedbackModal
+      visible={showFeedbackModal}
+      onClose={() => setShowFeedbackModal(false)}
+    />
+
+    {/* Drawer - only render when shouldRender is true */}
+    {shouldRender && (
     <Modal
       visible={visible}
       transparent
@@ -230,6 +249,22 @@ export default function AccountDrawer({ visible, onClose, userName = 'Guest' }: 
 
           {/* Menu Items - Centered */}
           <View style={styles.menuContainer}>
+            {/* Contact Us */}
+            <TouchableOpacity
+              style={[styles.menuItem, isRTL && styles.menuItemRTL]}
+              onPress={handleContactUs}
+            >
+              <Ionicons
+                name="chatbubble-outline"
+                size={FIBONACCI.LG}
+                color={COLORS.text}
+                style={[styles.menuIcon, isRTL && styles.menuIconRTL]}
+              />
+              <Text style={[styles.menuText, isRTL && styles.menuTextRTL]}>
+                {t('account.contactUs')}
+              </Text>
+            </TouchableOpacity>
+
             {/* Logout */}
             <TouchableOpacity
               style={[
@@ -263,6 +298,8 @@ export default function AccountDrawer({ visible, onClose, userName = 'Guest' }: 
         </Animated.View>
       </Animated.View>
     </Modal>
+    )}
+  </>
   );
 }
 
@@ -285,14 +322,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 8,
-  },
-  drawerRTL: {
-    right: undefined,
-    left: 0,
-    shadowOffset: {
-      width: 2,
-      height: 0,
-    },
   },
   closeButton: {
     position: 'absolute',

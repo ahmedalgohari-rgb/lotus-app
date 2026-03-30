@@ -34,6 +34,7 @@ import { useRTL } from '../utils/rtl';
 import { useTranslation } from 'react-i18next';
 import { getPersonalizedCareRecommendations } from '../utils/careMap';
 import PlantImage from '../components/PlantImage';
+import { extractMaxWateringDays } from '../utils/careTextUtils';
 
 const getScoreGradient = (score: number): [string, string] => {
   switch (score) {
@@ -44,24 +45,6 @@ const getScoreGradient = (score: number): [string, string] => {
     case 1: return ['#FEE2E2', '#EF4444']; // Not Recommended - Pink to Red
     default: return ['#F3F4F6', '#D1D5DB']; // Fallback - Gray
   }
-};
-
-// Helper function to extract maximum watering days from text like "Water every 12-16 days"
-const extractMaxWateringDays = (wateringText: string): number => {
-  if (!wateringText) return 7; // Default fallback
-
-  // Match patterns like "12-16 days" or "14 days"
-  const rangeMatch = wateringText.match(/(\d+)-(\d+)\s*days?/i);
-  if (rangeMatch) {
-    return parseInt(rangeMatch[2], 10); // Return the max value (16 from "12-16")
-  }
-
-  const singleMatch = wateringText.match(/(\d+)\s*days?/i);
-  if (singleMatch) {
-    return parseInt(singleMatch[1], 10); // Return single value (14 from "14 days")
-  }
-
-  return 7; // Fallback to 7 days if no pattern found
 };
 
 interface RouteParams {
@@ -259,7 +242,7 @@ export default function EditPlantScreen() {
                   ]}
                   onPress={() => setLocation(loc.value)}
                 >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={styles.optionCardContent}>
                     <Text style={[
                       styles.optionText,
                       location === loc.value && styles.optionTextSelected,
@@ -621,6 +604,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     alignItems: 'center',
+    position: 'relative',
+  },
+  optionCardContent: {
+    alignItems: 'center',
+    width: '100%',
   },
   optionCardSelected: {
     backgroundColor: COLORS.primary,

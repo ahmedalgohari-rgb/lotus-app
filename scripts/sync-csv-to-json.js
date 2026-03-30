@@ -164,12 +164,12 @@ function readCSV() {
   const content = fs.readFileSync(CSV_PATH, 'utf-8');
   const lines = content.split('\n').filter(line => line.trim());
 
-  // Skip header rows and duplicates:
-  // Row 0-1: database_complete_detailed (empty duplicate headers)
-  // Row 2: Plant ID,Common Name,... (actual header)
-  // Row 3+: Actual plant data
+  // Skip header rows:
+  // Row 0 (index 0): Plant ID,Common Name,... (headers)
+  // Row 1 (index 1): Plant ID,Common Name,... (headers with units - duplicate)
+  // Row 2+ (index 2+): Actual plant data
   return lines
-    .slice(3) // Skip first 3 rows (2 empty headers + 1 column header)
+    .slice(2) // Skip first 2 header rows
     .filter(line => {
       const firstCol = line.split(',')[0].trim();
       // Skip any remaining header-like rows

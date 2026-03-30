@@ -23,7 +23,8 @@
         "NSCameraUsageDescription": "Lotus needs access to your camera to identify plants and take photos of your plant collection.",
         "NSPhotoLibraryUsageDescription": "Lotus needs access to your photo library to save and retrieve photos of your plants.",
         "NSPhotoLibraryAddUsageDescription": "Lotus needs permission to save plant photos to your photo library."
-      }
+      },
+      "usesAppleSignIn": false
     },
     "android": {
       "adaptiveIcon": {
@@ -38,10 +39,21 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "@config-plugins/detox",
       "expo-font",
       "expo-web-browser",
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Lotus needs access to your camera to identify plants and take photos of your plant collection."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Lotus needs access to your photo library to save and retrieve photos of your plants."
+        }
+      ]
     ],
     "extra": {
       "eas": {

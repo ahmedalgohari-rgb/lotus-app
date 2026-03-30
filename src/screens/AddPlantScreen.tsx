@@ -38,6 +38,12 @@ import { useRTL } from '../utils/rtl';
 import AuthModal from '../components/AuthModal';
 import { logger } from '../utils/logger';
 import PlantImage from '../components/PlantImage';
+import {
+  extractMaxWateringDays,
+  translateWateringTip,
+  translateCheckSoilTip,
+  translateSeasonalTip,
+} from '../utils/careTextUtils';
 
 const getScoreGradient = (score: number): [string, string] => {
   switch (score) {
@@ -48,24 +54,6 @@ const getScoreGradient = (score: number): [string, string] => {
     case 1: return ['#FEE2E2', '#EF4444']; // Not Recommended - Pink to Red
     default: return ['#F3F4F6', '#D1D5DB']; // Fallback - Gray
   }
-};
-
-// Helper function to extract maximum watering days from text like "Water every 12-16 days"
-const extractMaxWateringDays = (wateringText: string): number => {
-  if (!wateringText) return 7; // Default fallback
-
-  // Match patterns like "12-16 days" or "14 days"
-  const rangeMatch = wateringText.match(/(\d+)-(\d+)\s*days?/i);
-  if (rangeMatch) {
-    return parseInt(rangeMatch[2], 10); // Return the max value (16 from "12-16")
-  }
-
-  const singleMatch = wateringText.match(/(\d+)\s*days?/i);
-  if (singleMatch) {
-    return parseInt(singleMatch[1], 10); // Return single value (14 from "14 days")
-  }
-
-  return 7; // Fallback to 7 days if no pattern found
 };
 
 interface RouteParams {
@@ -133,7 +121,11 @@ export default function AddPlantScreen() {
       const plant = plantDatabaseService.getPlantById(plantDatabaseId);
       if (plant) {
         setDbPlant(plant);
-        setNickname(plant.names.common[0] || 'My Plant');
+        // Use Arabic name when language is Arabic, fallback to English
+        const plantName = isRTL && plant.names.arabic?.[0]
+          ? plant.names.arabic[0]
+          : (plant.names.common[0] || 'My Plant');
+        setNickname(plantName);
         logger.info('✅ Loaded plant from direct selection', { plantId: plantDatabaseId });
       }
     } else if (identificationResult?.database_match?.found && identificationResult.database_match.plant_id) {
@@ -141,7 +133,11 @@ export default function AddPlantScreen() {
       const plant = plantDatabaseService.getPlantById(identificationResult.database_match.plant_id);
       if (plant) {
         setDbPlant(plant);
-        setNickname(plant.names.common[0] || 'My Plant');
+        // Use Arabic name when language is Arabic, fallback to English
+        const plantName = isRTL && plant.names.arabic?.[0]
+          ? plant.names.arabic[0]
+          : (plant.names.common[0] || 'My Plant');
+        setNickname(plantName);
         logger.info('✅ Loaded plant from database match', {
           plantId: identificationResult.database_match.plant_id,
           matchType: identificationResult.database_match.match_type,
@@ -151,7 +147,11 @@ export default function AddPlantScreen() {
     } else if (identificationResult && !identificationResult.care_available) {
       // CASE 3: PlantNet identified but NOT in database (identified-only)
       setDbPlant(null); // No database plant available
-      setNickname(identificationResult.common_name || 'My Plant');
+      // Use Arabic name from identification result if available
+      const plantName = isRTL && identificationResult.common_name_arabic
+        ? identificationResult.common_name_arabic
+        : (identificationResult.common_name || 'My Plant');
+      setNickname(plantName);
       logger.warn('⚠️ Plant identified but not in curated database', {
         commonName: identificationResult.common_name,
         scientificName: identificationResult.scientific_name
@@ -290,11 +290,45 @@ export default function AddPlantScreen() {
       return;
     }
 
-    const finalNickname = nickname.trim() || (dbPlant?.names.common[0] || 'My Plant');
+    // Use Arabic name when language is Arabic and nickname is empty
+    const finalNickname = nickname.trim() || (
+      isRTL && dbPlant?.names.arabic?.[0]
+        ? dbPlant.names.arabic[0]
+        : (dbPlant?.names.common[0] || 'My Plant')
+    );
 
     setIsLoading(true);
 
     try {
+      // 🔒 FIX: Verify Supabase session is valid before attempting save
+      const { data: { session }, error: sessionError } = await dbService.supabase.auth.getSession();
+
+      if (sessionError || !session) {
+        logger.warn('⚠️ Session invalid - attempting refresh...', { sessionError });
+
+        // Try to refresh session automatically
+        const { data: { session: newSession }, error: refreshError } = await dbService.supabase.auth.refreshSession();
+
+        if (refreshError || !newSession) {
+          logger.error('❌ Session refresh failed - user needs to re-authenticate', { refreshError });
+          Alert.alert(
+            'Session Expired',
+            'Please sign in again to save your plant.',
+            [
+              {
+                text: 'Sign In',
+                onPress: () => {
+                  setIsLoading(false);
+                  setAuthModalVisible(true);
+                }
+              }
+            ]
+          );
+          return;
+        }
+
+        logger.info('✅ Session refreshed successfully');
+      }
       // ⚡ OPTIMIZATION: Use pre-processed & pre-uploaded images from PlantResultScreen!
       // No processing or upload needed - already done in background ✨
       const capturedImageUri = preProcessedImageUri || capturedImage || '';
@@ -357,11 +391,11 @@ export default function AddPlantScreen() {
         common_name: dbPlant?.names.common[0] || identificationResult?.common_name || null,
         scientific_name: dbPlant?.names.scientific[0] || identificationResult?.scientific_name || null,
 
-        // Only set care fields if plant is curated (in database)
-        plant_type: isCurated ? (dbPlant?.care.plant_type || null) : 'unknown',
-        watering_schedule: isCurated ? (dbPlant?.care.watering.schedule || null) : null,
-        preferred_humidity: isCurated ? (dbPlant?.care.humidity || null) : null,
-        preferred_orientation: isCurated ? (dbPlant?.care.light.requirement || null) : null,
+        // Use data from identificationResult (already populated by PlantNet service with database match OR family fallback)
+        plant_type: identificationResult?.plant_type || 'foliage', // Fallback to valid constraint value
+        watering_schedule: identificationResult?.watering_schedule || null,
+        preferred_humidity: identificationResult?.preferred_humidity || null,
+        preferred_orientation: identificationResult?.preferred_orientation || null,
         species_id: dbPlant?.id || null,
 
         // NEW: Database matching metadata
@@ -376,15 +410,15 @@ export default function AddPlantScreen() {
       if (data) {
         addPlant(data);
         Alert.alert(
-          'Plant Added! 🌿',
-          `${finalNickname} has been added to your garden`,
+          t('addPlant.plantAddedTitle'),
+          t('addPlant.plantAddedMessage', { name: finalNickname }),
           [
             {
-              text: 'OK',
+              text: t('common.ok'),
               onPress: () => {
                 navigation.reset({
                   index: 0,
-                  routes: [{ 
+                  routes: [{
                     name: 'MainTabs' as never,
                     state: {
                       routes: [
@@ -514,21 +548,21 @@ export default function AddPlantScreen() {
                 ))}
                 <View style={styles.tipCard}>
                   <Ionicons name="water-outline" size={20} color={COLORS.primary} />
-                  <Text style={styles.tipText}>{enhancedCareRec.adjusted.watering}</Text>
+                  <Text style={styles.tipText}>{translateWateringTip(enhancedCareRec.adjusted.watering, t)}</Text>
                 </View>
                 <View style={styles.tipCard}>
                   <Ionicons name="calendar-outline" size={20} color={COLORS.primary} />
-                  <Text style={styles.tipText}>{enhancedCareRec.adjusted.wateringFrequency}</Text>
+                  <Text style={styles.tipText}>{translateCheckSoilTip(enhancedCareRec.adjusted.wateringFrequency, t)}</Text>
                 </View>
                 {enhancedCareRec.tips.length > 0 && (
                   <View style={styles.tipCard}>
                     <Ionicons name="bulb-outline" size={20} color={COLORS.primary} />
-                    <Text style={styles.tipText}>{enhancedCareRec.tips[0]}</Text>
+                    <Text style={styles.tipText}>{translateSeasonalTip(enhancedCareRec.tips[0], t)}</Text>
                   </View>
                 )}
               </View>
             )}
-            <View style={{ marginTop: FIBONACCI.SM }}>
+            <View style={{ marginTop: FIBONACCI.XS }}>
               <Text style={styles.label}>{t('addPlant.plantNickname')}</Text>
               <TextInput
                 style={[
@@ -541,10 +575,7 @@ export default function AddPlantScreen() {
                 placeholderTextColor={COLORS.textSecondary}
                 onFocus={() => {
                   setNicknameFocused(true); // 🎨 Change color to dark black when user taps/focuses
-                  // 🔧 FIX: Auto-scroll nickname into view when keyboard opens
-                  setTimeout(() => {
-                    scrollViewRef.current?.scrollToEnd({ animated: true });
-                  }, 100);
+                  // 🔧 Removed auto-scroll - let KeyboardAvoidingView handle it naturally for smoother transition
                 }}
                 onBlur={() => setNicknameFocused(false)} // 🎨 Revert to light grey when user exits
               />
@@ -581,10 +612,12 @@ export default function AddPlantScreen() {
                       />
                       <View style={styles.headerTextContainer}>
                           <Text style={styles.headerTitle} numberOfLines={2} ellipsizeMode="tail">
-                            ✓ {isRTL && dbPlant?.names.arabic ? dbPlant.names.arabic[0] : (dbPlant?.names.common[0] || 'Snake Plant')}
+                            ✓ {isRTL && dbPlant?.names.arabic
+                              ? dbPlant.names.arabic[0]
+                              : (dbPlant?.names.common[0] || identificationResult?.common_name || t('addPlant.unknownPlant'))}
                           </Text>
                           <Text style={styles.headerSubtitle} numberOfLines={1} ellipsizeMode="tail">
-                            {dbPlant?.care.plant_type || 'Succulent'}
+                            {dbPlant?.care.plant_type || identificationResult?.scientific_name || t('addPlant.unidentified')}
                           </Text>
                       </View>
                   </View>
@@ -743,24 +776,6 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.SM,   // 14px - Original size (reverted from 16px)
     color: COLORS.textSecondary,
   },
-  viewMoreButton: {
-    alignSelf: 'center',
-    paddingVertical: FIBONACCI.SM,
-    paddingHorizontal: FIBONACCI.MD,
-    marginTop: FIBONACCI.XXS,
-  },
-  fullCareGuideExpanded: {
-    marginTop: FIBONACCI.SM,
-    marginBottom: FIBONACCI.SM,
-    paddingTop: FIBONACCI.SM,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-  },
-  plantDescription: {
-    fontSize: TYPOGRAPHY.SM,
-    color: COLORS.text,
-    lineHeight: FIBONACCI.LG,
-  },
   // New Layout Styles
   layoutHeader: {
     paddingTop: FIBONACCI.XL,     // 34px - Creates visual breathing room at top
@@ -780,7 +795,7 @@ const styles = StyleSheet.create({
     paddingBottom: FIBONACCI.MD, // Minimal padding for Steps 1 & 2
   },
   step3ExtraPadding: {
-    paddingBottom: 350, // 🔧 Extra padding for Step 3 keyboard clearance (ensures input visible above keyboard)
+    paddingBottom: FIBONACCI.LG, // 🔧 FIX: Minimal spacing (21px) - keeps buttons close to input without excessive gap
   },
   stepContentContainer: {
     justifyContent: 'center',
@@ -1035,13 +1050,6 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.SM,
     color: COLORS.textSecondary,
     marginLeft: FIBONACCI.SM,
-  },
-  descriptionExpanded: {
-    marginTop: FIBONACCI.SM,
-    marginBottom: FIBONACCI.SM,
-    paddingTop: FIBONACCI.SM,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
   },
   footerButton: {
     flexDirection: 'row',

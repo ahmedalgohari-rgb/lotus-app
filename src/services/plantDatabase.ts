@@ -331,59 +331,25 @@ class PlantDatabaseService {
   }
 
   /**
-   * Calculate text similarity between two strings
-   */
-  private calculateTextSimilarity(text1: string, text2: string): number {
-    const words1 = text1.split(' ').filter(w => w.length > 2);
-    const words2 = text2.split(' ').filter(w => w.length > 2);
-    
-    if (words1.length === 0 || words2.length === 0) return 0;
-    
-    // Exact match bonus
-    if (text1 === text2) return 100;
-    
-    // Word matching
-    let matches = 0;
-    for (const word1 of words1) {
-      for (const word2 of words2) {
-        if (word1 === word2) {
-          matches++;
-          break;
-        }
-        // Partial match for longer words
-        if (word1.length > 4 && word2.length > 4) {
-          const shorter = word1.length < word2.length ? word1 : word2;
-          const longer = word1.length >= word2.length ? word1 : word2;
-          if (longer.includes(shorter)) {
-            matches += 0.8;
-            break;
-          }
-        }
-      }
-    }
-    
-    const maxWords = Math.max(words1.length, words2.length);
-    return Math.round((matches / maxWords) * 100);
-  }
-
-  /**
    * Get plant care data with language preference and fallback to family care
    */
-  getComprehensivePlantCare(
+  async getComprehensivePlantCare(
     scientificName: string,
     commonName?: string,
     family?: string,
     language: 'en' | 'ar' = 'en'
-  ): {
+  ): Promise<{
     plant_name: string;
     plant_info: string;
     watering_frequency: string;
     orientation: string;
     plant_type: string;
-    matchInfo?: PlantMatch
-  } {
+    matchInfo?: PlantMatch;
+    needsResearch?: boolean;
+    fromResearchCache?: boolean;
+  }> {
     try {
-      // Try to find exact plant match
+      // Try to find exact plant match in curated database
       const searchResults = this.searchPlants({
         text: `${scientificName} ${commonName || ''}`.trim()
       });
@@ -393,29 +359,61 @@ class PlantDatabaseService {
       return this.formatPlantCareResponse(bestMatch.plant, language, bestMatch);
     }
 
+    // 🔍 NEW: Check researched plants cache before family fallback
+    try {
+      const { plantResearchService } = await import('./plantResearch');
+      const researchedPlant = await plantResearchService.getFromCache(scientificName);
+
+      if (researchedPlant) {
+        logger.info(`✅ Found in research cache: ${scientificName}`);
+        const care = researchedPlant.care_data;
+
+        return {
+          plant_name: researchedPlant.common_names[0] || scientificName,
+          plant_info: care.plant_info + (researchedPlant.verified ? '' : ' (Auto-researched - pending verification)'),
+          watering_frequency: this.formatWateringFrequency(care.watering.schedule, language),
+          orientation: this.formatOrientation(care.light.requirement, language),
+          plant_type: care.plant_type,
+          fromResearchCache: true,
+          needsResearch: false
+        };
+      }
+    } catch (error) {
+      logger.warn('Research cache check failed, continuing with family fallback:', error);
+    }
+
     // Fallback to family-based care
     const familyInfo = this.getFamily(family || '');
-    
+
     if (familyInfo) {
       return {
         plant_name: commonName || scientificName,
         plant_info: familyInfo.care.plant_info + (family ? ` (Family: ${family})` : ''),
         watering_frequency: this.formatWateringFrequency(familyInfo.care.watering.schedule, language),
         orientation: this.formatOrientation(familyInfo.care.light.requirement, language),
-        plant_type: familyInfo.care.plant_type
+        plant_type: familyInfo.care.plant_type,
+        needsResearch: false // Has family match, don't need research
       };
     }
     
-    // Ultimate fallback
+    // Ultimate fallback - Log for future research
+    logger.info(`🔍 UNKNOWN PLANT DETECTED - Needs Research:`, {
+      scientificName,
+      commonName,
+      family: family || 'unknown',
+      timestamp: new Date().toISOString()
+    });
+
     const defaultFamily = this.getFamily('default')!;
     return {
       plant_name: commonName || scientificName,
       plant_info: commonName
-        ? `${commonName} - ${defaultFamily.care.plant_info}`
-        : defaultFamily.care.plant_info,
+        ? `${commonName} - ${defaultFamily.care.plant_info} (General care guidelines - we're researching this plant to provide better recommendations soon!)`
+        : `${defaultFamily.care.plant_info} (General care guidelines - we're researching this plant to provide better recommendations soon!)`,
       watering_frequency: this.formatWateringFrequency(defaultFamily.care.watering.schedule, language),
       orientation: this.formatOrientation(defaultFamily.care.light.requirement, language),
-      plant_type: defaultFamily.care.plant_type
+      plant_type: defaultFamily.care.plant_type,
+      needsResearch: true // Flag for UI
     };
     } catch (error) {
       logger.error('Error in getComprehensivePlantCare:', error);
@@ -519,7 +517,7 @@ class PlantDatabaseService {
     cairoClimate?: boolean;
   }): Plant[] {
     try {
-      let query: any = {};
+      const query: Parameters<PlantDatabaseService['searchPlants']>[0] = {};
 
       if (conditions.experience) {
         query.difficulty = [conditions.experience];

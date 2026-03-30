@@ -1,0 +1,44 @@
+# EAS Build Ignore File
+# Excludes files not needed for the actual build process
+
+# Screenshots and marketing assets (not needed for build)
+Screenshots/
+app-store-assets/
+appstore screenshots/
+*.PNG
+*.png
+!assets/**/*.png
+!src/**/*.png
+
+# Documentation and scripts (not needed for build)
+docs/
+scripts/
+*.md
+CLAUDE.md
+README.md
+
+# Test files and configs
+test-app/
+coverage/
+
+# Local development files
+.claude/
+*.txt
+*.numbers
+
+# Build artifacts from previous builds
+dist/
+.expo/
+ios/Pods/
+ios/build/
+android/build/
+
+# Supabase local files
+supabase/.temp/
+
+# Backup files
+*.backup.*
+*.backup-*
+
+# macOS files
+.DS_Store

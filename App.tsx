@@ -16,6 +16,8 @@ LogBox.ignoreLogs([
   'Warning: componentWillReceiveProps has been renamed',
   'Warning: componentWillMount has been renamed',
   'Require cycle:', // Common in React Navigation
+  'SafeAreaView has been deprecated', // From library using old SafeAreaView
+  'Exception in HostFunction', // Type mismatch in New Architecture (non-fatal)
 ]);
 
 export default function App() {

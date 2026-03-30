@@ -2,39 +2,29 @@ import { WeatherData } from '../types';
 import i18n from '../i18n';
 import { logger } from '../utils/logger';
 
-// 🔒 SECURITY: API key moved to secure Edge Function
+// 🔒 SECURITY: Weather data fetched via secure Edge Function (Apple WeatherKit)
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1`;
 
-const CAIRO_COORDS = {
-  lat: 30.0444,
-  lon: 31.2357
-};
-
-interface OpenWeatherResponse {
+interface WeatherApiResponse {
   main: {
     temp: number;
-    temp_min: number;      // Minimum temperature for the day
-    temp_max: number;      // Maximum temperature for the day
+    temp_min: number;
+    temp_max: number;
     humidity: number;
-    feels_like: number;
-    pressure: number;
   };
   weather: Array<{
     main: string;
     description: string;
-    icon: string;
   }>;
   wind: {
     speed: number;
   };
-  name: string;
-  dt: number;
 }
 
 export class WeatherService {
-  private static readonly BASE_URL = 'https://api.openweathermap.org/data/2.5';
+  private static readonly BASE_URL = 'https://weatherkit.apple.com/api/v1'; // Apple WeatherKit
   private static readonly CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours - refreshes at midnight
   private static readonly REQUEST_TIMEOUT = 30000; // 30 seconds (Edge Function + API call)
   private static readonly MAX_RETRIES = 2; // Reduce retries (timeout is longer now)
@@ -108,9 +98,9 @@ export class WeatherService {
         // Use current app language
         const currentLang = i18n.language === 'ar' ? 'ar' : 'en';
 
-        // Call secure Edge Function instead of OpenWeather directly
+        // Call secure Edge Function (Apple WeatherKit)
         const response = await fetch(
-          `${EDGE_FUNCTION_URL}/get-weather?lang=${currentLang}`,
+          `${EDGE_FUNCTION_URL}/get-weather-apple?lang=${currentLang}`,
           {
             signal: controller.signal,
             headers: {
@@ -127,7 +117,7 @@ export class WeatherService {
           throw new Error(`Weather Edge Function error: ${response.status}`);
         }
 
-        const data: OpenWeatherResponse = await response.json();
+        const data: WeatherApiResponse = await response.json();
         return this.transformWeatherData(data);
 
       } catch (error: unknown) {
@@ -150,15 +140,13 @@ export class WeatherService {
   }
 
   /**
-   * Transform OpenWeather API response to our WeatherData type
+   * Transform Weather API response to our WeatherData type
    * Uses (high + low) / 2 for daily average temperature
    */
-  private static transformWeatherData(data: OpenWeatherResponse): WeatherData {
-    // Calculate daily average temperature: (high + low) / 2
+  private static transformWeatherData(data: WeatherApiResponse): WeatherData {
     const tempHigh = data.main.temp_max;
     const tempLow = data.main.temp_min;
     const tempAverage = Math.round((tempHigh + tempLow) / 2);
-
     const humidity = data.main.humidity;
     const condition = data.weather[0]?.main.toLowerCase() || 'clear';
 
@@ -170,8 +158,8 @@ export class WeatherService {
     });
 
     return {
-      temperature: tempAverage,  // Use calculated daily average
-      humidity: humidity,
+      temperature: tempAverage,
+      humidity,
       condition: this.mapWeatherCondition(condition),
       description: data.weather[0]?.description || (i18n.language === 'ar' ? 'صافي' : 'Clear'),
       windSpeed: data.wind.speed,
@@ -251,25 +239,43 @@ export class WeatherService {
   }
 
   /**
+   * Helper to get official astronomical season
+   */
+  private static getOfficialSeason(): 'winter' | 'spring' | 'summer' | 'autumn' {
+    const now = new Date();
+    const month = now.getMonth();
+    const day = now.getDate();
+
+    // Official astronomical season dates (Egypt/Northern Hemisphere)
+    if ((month === 11 && day >= 21) || month === 0 || month === 1 || (month === 2 && day <= 20)) {
+      return 'winter'; // Dec 21 - Mar 20
+    }
+    if ((month === 2 && day >= 21) || month === 3 || month === 4 || (month === 5 && day <= 20)) {
+      return 'spring'; // Mar 21 - Jun 20
+    }
+    if ((month === 5 && day >= 21) || month === 6 || month === 7 || (month === 8 && day <= 22)) {
+      return 'summer'; // Jun 21 - Sep 22
+    }
+    return 'autumn'; // Sep 23 - Dec 20
+  }
+
+  /**
    * Get mock weather data for development/fallback
-   * Uses seasonal temperatures for Cairo
+   * Uses seasonal temperatures for Cairo based on official astronomical dates
    */
   private static getMockWeatherData(): WeatherData {
-    // Use seasonal temperature for Cairo
-    const month = new Date().getMonth(); // 0-11
+    const season = this.getOfficialSeason();
     let temp: number;
     let humidity: number;
 
-    if (month >= 5 && month <= 9) {
-      // Summer (June-October): Hot
+    if (season === 'summer') {
       temp = 35;
       humidity = 35;
-    } else if (month >= 11 || month <= 2) {
-      // Winter (December-March): Mild/Cool
-      temp = 18; // Realistic winter average
+    } else if (season === 'winter') {
+      temp = 18;
       humidity = 60;
     } else {
-      // Spring/Fall: Pleasant
+      // Spring/Autumn: Pleasant
       temp = 25;
       humidity = 45;
     }
@@ -348,13 +354,13 @@ export class WeatherService {
   }
 
   /**
-   * Get seasonal care tips for Cairo
+   * Get seasonal care tips for Cairo based on official astronomical dates
    */
   static getSeasonalTips(): string[] {
-    const month = new Date().getMonth(); // 0-11
+    const season = this.getOfficialSeason();
     const isArabic = i18n.language === 'ar';
-    
-    if (month >= 5 && month <= 8) { // June-September (Summer)
+
+    if (season === 'summer') {
       return isArabic ? [
         'صيف القاهرة: اسقي أكتر في الشهور الحارة',
         'تجنب الري وقت الضهر في الحر الشديد',
@@ -366,7 +372,7 @@ export class WeatherService {
         'Provide shade for balcony plants',
         'Mist leaves in the evening for humidity'
       ];
-    } else if (month >= 11 || month <= 2) { // December-February (Winter)
+    } else if (season === 'winter') {
       return isArabic ? [
         'شتا القاهرة: قلل الري في الشهور الباردة',
         'ادخل النباتات الحساسة من البرد',
@@ -378,7 +384,7 @@ export class WeatherService {
         'Avoid overwatering to prevent root rot',
         'Place plants in sunny locations'
       ];
-    } else { // Spring/Fall
+    } else { // Spring/Autumn
       return isArabic ? [
         'الجو معتدل في القاهرة - وقت مثالي للنباتات',
         'نضف الورق من التراب والغبار',

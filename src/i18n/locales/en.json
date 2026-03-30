@@ -77,7 +77,7 @@
   "addScan": {
     "title": "Find Your Plant",
     "subtitle": "Search by name or snap a photo to add to your garden.",
-    "searchPlaceholder": "Search plant...",
+    "searchPlaceholder": "Type your plant name",
     "or": "or",
     "identify": "Identify",
     "popularPlants": "Popular Plants",
@@ -110,6 +110,8 @@
     "permissions": {
       "requesting": "Camera access is needed to scan plants",
       "noAccess": "Camera access denied",
+      "noPhotoAccess": "Photo Library Access Required",
+      "photoSettingsPrompt": "Please allow photo library access in Settings to select photos",
       "grantButton": "Grant Permission",
       "openSettings": "Open Settings",
       "settingsPrompt": "Please enable camera access in settings to identify plants"
@@ -184,6 +186,8 @@
     "now": "Now!",
     "tomorrow": "Tomorrow",
     "inXDays": "In {{days}} days",
+    "noCareEvents": "No care events yet",
+    "noCareEventsSubtext": "Start caring for your plant to build a history",
     "careLabels": {
       "type": "Type:",
       "watering": "Watering:",
@@ -192,12 +196,14 @@
     }
   },
   "addPlant": {
+    "unknownPlant": "Unknown Plant",
+    "unidentified": "Unidentified",
     "title": "Add New Plant",
     "customizeTitle": "Customize Your Plant",
     "plantNickname": "Plant Nickname",
     "enterNickname": "Enter a nickname for your plant",
     "plantLocation": "Plant Location",
-    "whereWillPlantLive": "Where will your plant live?",
+    "whereWillPlantLive": "Plant location?",
     "windowDirection": "Window Direction",
     "plantSpecies": "Plant Species",
     "searchSpecies": "Search plant species...",
@@ -245,7 +251,38 @@
     "smartRecommendations": "Smart Recommendations",
     "weatherBasedCare": "Based on local weather",
     "skipToday": "Skip today",
-    "scheduleNext": "Schedule next care"
+    "scheduleNext": "Schedule next care",
+    "waterEveryDays": "Water every {{minDays}}-{{maxDays}} days ({{percentage}}% dry)",
+    "checkSoilDays": "Check soil every {{days}} days",
+    "afternoonWarmth": "Afternoon warmth",
+    "maximumWinterLight": "Maximum winter light",
+    "morningLight": "Morning light",
+    "plantTypes": {
+      "succulent": "Succulent",
+      "tropical": "Tropical",
+      "flowering": "Flowering",
+      "foliage": "Foliage",
+      "cactus": "Cactus",
+      "palm": "Palm",
+      "fern": "Fern"
+    },
+    "watering": {
+      "dry100": "100% Dry",
+      "dry75": "75% Dry",
+      "dry60": "60% Dry",
+      "dry30": "30% Dry"
+    },
+    "humidity": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "light": {
+      "brightDirect": "Bright Direct",
+      "brightIndirect": "Bright Indirect",
+      "mediumIndirect": "Medium Indirect",
+      "lowLight": "Low Light"
+    }
   },
   "weather": {
     "current": "Current weather in Cairo",
@@ -365,14 +402,14 @@
   },
   "plantRequest": {
     "requestCare": "Request Care Tips",
-    "requestSpecific": "Request Specific Variety",
+    "requestSpecific": "Request Your Variety",
     "requested": "Request Submitted ✓",
     "submitting": "Submitting...",
     "thankYou": "Thank you! We'll prioritize adding this plant.",
     "alternatives": {
       "title": "We have {{count}} varieties of {{genus}}",
       "subtitle": "Tap to view similar plants:",
-      "requestButton": "Request Specific Variety"
+      "requestButton": "Request Your Variety"
     },
     "genericCare": {
       "title": "General Care Guidelines",
@@ -393,7 +430,19 @@
   "account": {
     "termsAndConditions": "Terms & Conditions",
     "accountManagement": "Account Management",
+    "contactUs": "Contact Us",
     "logout": "Logout"
+  },
+  "feedback": {
+    "title": "Contact Us",
+    "subtitle": "We'd love to hear from you! Share your feedback, suggestions, or report any issues.",
+    "placeholder": "Write your message here...",
+    "send": "Send",
+    "error": "Oops!",
+    "emptyMessage": "Please write a message before sending.",
+    "thankYouTitle": "Thank You! 💚",
+    "thankYouMessage": "Your feedback has been received. We appreciate you taking the time to help us improve Lotus!",
+    "submitError": "Failed to send feedback. Please try again."
   },
   "errors": {
     "notAPlant": {

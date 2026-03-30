@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-dev-mode',
 }
 
 serve(async (req) => {
@@ -54,32 +54,40 @@ serve(async (req) => {
 
     console.log(`PlantNet request from user: ${user.id}`)
 
-    // RATE LIMITING: Check API usage per user
+    // 🧪 DEV MODE: Check for development bypass header
+    const isDevMode = req.headers.get('X-Dev-Mode') === 'true'
+    if (isDevMode) {
+      console.log('🧪 DEV MODE: Rate limiting disabled for testing')
+    }
+
+    // RATE LIMITING: Check API usage per user (skip in dev mode)
     // NOTE: Each scan tries up to 3 organs (leaf, flower, fruit), so multiply scans × 3
     // TESTING: 30 requests/hour (~10 scans). PRODUCTION: reduce to 15 (~5 scans)
-    const RATE_LIMIT = 30 // TODO: Reduce to 15 for production launch
-    const oneHourAgo = new Date(Date.now() - 3600000).toISOString()
+    if (!isDevMode) {
+      const RATE_LIMIT = 30 // TODO: Reduce to 15 for production launch
+      const oneHourAgo = new Date(Date.now() - 3600000).toISOString()
 
-    const { count, error: countError } = await supabase
-      .from('api_usage')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('api_name', 'plantnet')
-      .gte('created_at', oneHourAgo)
+      const { count, error: countError } = await supabase
+        .from('api_usage')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('api_name', 'plantnet')
+        .gte('created_at', oneHourAgo)
 
-    if (countError) {
-      console.error('Rate limit check failed:', countError)
-      // Don't block on rate limit check failure - continue
-    } else if (count && count >= RATE_LIMIT) {
-      console.warn(`Rate limit exceeded for user ${user.id}: ${count} requests in last hour (limit: ${RATE_LIMIT})`)
-      return new Response(
-        JSON.stringify({
-          error: 'Rate limit exceeded',
-          message: `Maximum ${Math.floor(RATE_LIMIT / 3)} plant scans per hour. Please try again later.`,
-          retryAfter: 3600 - Math.floor((Date.now() - new Date(oneHourAgo).getTime()) / 1000)
-        }),
-        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      if (countError) {
+        console.error('Rate limit check failed:', countError)
+        // Don't block on rate limit check failure - continue
+      } else if (count && count >= RATE_LIMIT) {
+        console.warn(`Rate limit exceeded for user ${user.id}: ${count} requests in last hour (limit: ${RATE_LIMIT})`)
+        return new Response(
+          JSON.stringify({
+            error: 'Rate limit exceeded',
+            message: `Maximum ${Math.floor(RATE_LIMIT / 3)} plant scans per hour. Please try again later.`,
+            retryAfter: 3600 - Math.floor((Date.now() - new Date(oneHourAgo).getTime()) / 1000)
+          }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
     }
 
     // Parse request body
