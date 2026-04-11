@@ -431,7 +431,11 @@
     "termsAndConditions": "Terms & Conditions",
     "accountManagement": "Account Management",
     "contactUs": "Contact Us",
-    "logout": "Logout"
+    "logout": "Logout",
+    "deleteAccount": "Delete Account",
+    "deleteAccountConfirm": "Are you sure you want to permanently delete your account? This will remove all your plants, care history, and data. This action cannot be undone.",
+    "deleteAccountSuccess": "Your account has been deleted.",
+    "deleting": "Deleting..."
   },
   "feedback": {
     "title": "Contact Us",

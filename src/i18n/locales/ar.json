@@ -492,7 +492,11 @@
     "termsAndConditions": "الشروط والأحكام",
     "accountManagement": "إدارة الحساب",
     "contactUs": "تواصل معنا",
-    "logout": "تسجيل الخروج"
+    "logout": "تسجيل الخروج",
+    "deleteAccount": "حذف الحساب",
+    "deleteAccountConfirm": "متأكد إنك عايز تحذف حسابك نهائياً؟ ده هيشيل كل النباتات والبيانات بتاعتك. مش هتقدر ترجع فيه.",
+    "deleteAccountSuccess": "تم حذف حسابك.",
+    "deleting": "جاري الحذف..."
   },
   "feedback": {
     "title": "تواصل معنا",

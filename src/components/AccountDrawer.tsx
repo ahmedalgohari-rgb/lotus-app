@@ -26,7 +26,7 @@ import { useTranslation } from 'react-i18next';
 import { COLORS, FIBONACCI, TYPOGRAPHY } from '../constants';
 import { useRTL } from '../utils/rtl';
 import { useStore } from '../store';
-import { authService } from '../services/supabase';
+import { authService, supabase, supabaseUrl } from '../services/supabase';
 import { logger } from '../utils/logger';
 import FeedbackModal from './FeedbackModal';
 
@@ -42,13 +42,14 @@ interface AccountDrawerProps {
 export default function AccountDrawer({ visible, onClose, userName = 'Guest' }: AccountDrawerProps) {
   const { t } = useTranslation();
   const isRTL = useRTL();
-  const { clearStorage, setAuthenticated } = useStore();
+  const { clearStorage, setAuthenticated, user } = useStore();
   // ALWAYS start off-screen to the RIGHT (drawer width off-screen)
   const slideAnim = useRef(new Animated.Value(DRAWER_WIDTH)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
   const [shouldRender, setShouldRender] = useState(visible);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   // Animate drawer open/close with enhanced timing
@@ -177,6 +178,65 @@ export default function AccountDrawer({ visible, onClose, userName = 'Guest' }: 
     );
   };
 
+  // Handle account deletion with confirmation
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      t('account.deleteAccount'),
+      t('account.deleteAccountConfirm'),
+      [
+        {
+          text: t('common.cancel'),
+          style: 'cancel',
+        },
+        {
+          text: t('account.deleteAccount'),
+          style: 'destructive',
+          onPress: async () => {
+            setIsDeletingAccount(true);
+            try {
+              // Get current session for auth header
+              const { data: { session } } = await supabase.auth.getSession();
+              if (!session?.access_token) {
+                throw new Error('No active session');
+              }
+
+              // Call Edge Function to delete account
+              const response = await fetch(`${supabaseUrl}/functions/v1/delete-account`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${session.access_token}`,
+                  'Content-Type': 'application/json',
+                },
+              });
+
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to delete account');
+              }
+
+              logger.info('Account deleted successfully');
+
+              // Clear all local data
+              await clearStorage();
+              setAuthenticated(false);
+              onClose();
+
+              Alert.alert('', t('account.deleteAccountSuccess'));
+            } catch (error) {
+              logger.error('Account deletion error:', error);
+              Alert.alert(
+                t('common.error'),
+                'Failed to delete account. Please try again.'
+              );
+            } finally {
+              setIsDeletingAccount(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   // Always render FeedbackModal, but only render drawer when shouldRender is true
   return (
   <>
@@ -292,6 +352,36 @@ export default function AccountDrawer({ visible, onClose, userName = 'Guest' }: 
               )}
               <Text style={[styles.menuText, styles.logoutText, isRTL && styles.menuTextRTL]}>
                 {isLoggingOut ? t('common.loading') : t('account.logout')}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Delete Account */}
+            <TouchableOpacity
+              style={[
+                styles.menuItem,
+                styles.deleteItem,
+                isRTL && styles.menuItemRTL,
+                isDeletingAccount && styles.disabledItem,
+              ]}
+              onPress={handleDeleteAccount}
+              disabled={isDeletingAccount}
+            >
+              {isDeletingAccount ? (
+                <ActivityIndicator
+                  size="small"
+                  color={COLORS.error}
+                  style={[styles.menuIcon, isRTL && styles.menuIconRTL]}
+                />
+              ) : (
+                <Ionicons
+                  name="trash-outline"
+                  size={FIBONACCI.LG}
+                  color={COLORS.error}
+                  style={[styles.menuIcon, isRTL && styles.menuIconRTL]}
+                />
+              )}
+              <Text style={[styles.menuText, styles.logoutText, isRTL && styles.menuTextRTL]}>
+                {isDeletingAccount ? t('account.deleting') : t('account.deleteAccount')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -411,6 +501,12 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     color: COLORS.error,
+  },
+  deleteItem: {
+    marginTop: FIBONACCI.SM,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.error,
   },
   disabledItem: {
     opacity: 0.5,

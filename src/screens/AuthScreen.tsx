@@ -158,45 +158,102 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
 
   const handleAppleSignIn = async () => {
     setIsLoading(true);
+    logger.group('🔐 Apple Sign-In Flow');
+    timer.start('apple-signin');
+
     try {
+      logger.debug('Initiating Apple OAuth...');
       const { data, error } = await authService.signInWithApple();
       if (error) throw error;
 
       if (data && 'user' in data && data.user) {
+        logger.debug('Apple OAuth successful', { userId: data.user.id, email: data.user.email });
+
         // Check if user has a first_name in their profile
         const { data: profileData } = await dbService.getProfile(data.user.id);
         const hasFirstName = profileData?.first_name && profileData.first_name.trim().length > 0;
 
+        // Extract name from Apple's user_metadata (Apple sends name on first sign-in)
+        const appleFullName = data.user.user_metadata?.full_name
+          || data.user.user_metadata?.name
+          || (data.user.user_metadata?.first_name && data.user.user_metadata?.last_name
+            ? `${data.user.user_metadata.first_name} ${data.user.user_metadata.last_name}`
+            : data.user.user_metadata?.first_name);
+        const appleFirstName = data.user.user_metadata?.first_name
+          || appleFullName?.split(' ')[0]?.trim();
+
+        logger.debug('Profile status', {
+          hasStoredName: hasFirstName,
+          appleProvidedName: !!appleFirstName,
+          fullName: appleFullName
+        });
+
         const userData = {
           id: data.user.id,
           email: data.user.email,
-          name: profileData?.first_name || data.user.user_metadata?.name || data.user.email,
-          first_name: profileData?.first_name,
+          name: profileData?.first_name || appleFullName || data.user.email,
+          first_name: profileData?.first_name || appleFirstName,
           avatar_url: data.user.user_metadata?.avatar_url,
           created_at: data.user.created_at,
         };
 
-        if (!hasFirstName) {
-          // New user without first_name - show name collection modal
-          setPendingUser(userData);
-          setShowNameCollection(true);
-          setIsLoading(false);
-        } else {
-          // Existing user with first_name - proceed normally
+        if (!hasFirstName && appleFirstName) {
+          // Apple provided a name - auto-save it and skip modal (Apple guideline requirement)
+          logger.info('Auto-saving Apple-provided name', { firstName: appleFirstName });
+          try {
+            await dbService.updateUserProfile(data.user.id, appleFirstName);
+            setUser({
+              ...userData,
+              first_name: appleFirstName,
+              name: appleFirstName,
+            });
+            updateUserName(appleFirstName);
+            setAuthenticated(true);
+            logger.success('User authenticated with auto-saved name');
+            timer.end('apple-signin');
+            logger.groupEnd();
+            setIsLoading(false);
+            handlePostAuthNavigation();
+          } catch (saveError) {
+            logger.error('Error auto-saving Apple name:', saveError);
+            // Apple didn't provide name or save failed — proceed without name
+            // Do NOT show name modal (Apple guideline: don't ask for info Apple already provides)
+            setUser(userData);
+            setAuthenticated(true);
+            logger.groupEnd();
+            setIsLoading(false);
+            handlePostAuthNavigation();
+          }
+        } else if (!hasFirstName && !appleFirstName) {
+          // Apple didn't provide a name (happens on repeat sign-ins) — proceed without asking
+          // Apple guideline: never ask for name/email after Sign in with Apple
+          logger.info('No name from Apple (repeat sign-in), proceeding without name');
           setUser(userData);
           setAuthenticated(true);
+          timer.end('apple-signin');
+          logger.groupEnd();
+          setIsLoading(false);
+          handlePostAuthNavigation();
+        } else {
+          // Existing user with first_name - proceed normally
+          logger.success('Returning user authenticated', { firstName: userData.first_name });
+          setUser(userData);
+          setAuthenticated(true);
+          timer.end('apple-signin');
+          logger.groupEnd();
           setIsLoading(false);
           handlePostAuthNavigation();
         }
       }
     } catch (error: any) {
       logger.error('Apple sign in error:', error);
+      logger.groupEnd();
 
       // Don't show error alert if user intentionally cancelled
       if (error?.name !== 'UserCancelled' && error?.message !== 'User cancelled OAuth') {
         Alert.alert('Sign In Failed', 'Please try again.');
       }
-    } finally {
+
       setIsLoading(false);
     }
   };
