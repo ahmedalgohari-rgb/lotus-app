@@ -355,36 +355,25 @@ export default function AccountDrawer({ visible, onClose, userName = 'Guest' }: 
               </Text>
             </TouchableOpacity>
 
-            {/* Delete Account */}
-            <TouchableOpacity
-              style={[
-                styles.menuItem,
-                styles.deleteItem,
-                isRTL && styles.menuItemRTL,
-                isDeletingAccount && styles.disabledItem,
-              ]}
-              onPress={handleDeleteAccount}
-              disabled={isDeletingAccount}
-            >
-              {isDeletingAccount ? (
-                <ActivityIndicator
-                  size="small"
-                  color={COLORS.error}
-                  style={[styles.menuIcon, isRTL && styles.menuIconRTL]}
-                />
-              ) : (
-                <Ionicons
-                  name="trash-outline"
-                  size={FIBONACCI.LG}
-                  color={COLORS.error}
-                  style={[styles.menuIcon, isRTL && styles.menuIconRTL]}
-                />
-              )}
-              <Text style={[styles.menuText, styles.logoutText, isRTL && styles.menuTextRTL]}>
-                {isDeletingAccount ? t('account.deleting') : t('account.deleteAccount')}
-              </Text>
-            </TouchableOpacity>
           </View>
+
+          {/* Delete Account - anchored to bottom, de-emphasized */}
+          <TouchableOpacity
+            style={[
+              styles.deleteAccountLink,
+              isDeletingAccount && styles.disabledItem,
+            ]}
+            onPress={handleDeleteAccount}
+            disabled={isDeletingAccount}
+          >
+            {isDeletingAccount ? (
+              <ActivityIndicator size="small" color="#C0A0A0" />
+            ) : (
+              <Text style={[styles.deleteAccountText, isRTL && styles.deleteAccountTextRTL]}>
+                🥀 {t('account.deleteAccount')}
+              </Text>
+            )}
+          </TouchableOpacity>
         </Animated.View>
       </Animated.View>
     </Modal>
@@ -502,11 +491,20 @@ const styles = StyleSheet.create({
   logoutText: {
     color: COLORS.error,
   },
-  deleteItem: {
-    marginTop: FIBONACCI.SM,
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.error,
+  deleteAccountLink: {
+    paddingVertical: FIBONACCI.LG,
+    paddingHorizontal: FIBONACCI.LG,
+    marginBottom: FIBONACCI.XXXL,
+    alignItems: 'center',
+  },
+  deleteAccountText: {
+    fontSize: TYPOGRAPHY.SM,
+    color: '#C0A0A0',
+    fontWeight: '400',
+    textDecorationLine: 'underline',
+  },
+  deleteAccountTextRTL: {
+    textAlign: 'right',
   },
   disabledItem: {
     opacity: 0.5,
