@@ -55,6 +55,10 @@ IMG_*.png
 Simulator Screen Recording*
 icon_BIGGER.png
 
+# One-off utility scripts (not part of the app)
+generate-apple-jwt*.js
+apple-jwt-secret.txt
+
 # Test app
 test-app/
 
