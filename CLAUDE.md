@@ -129,6 +129,31 @@ Cairo Suitability, Summer Care, Winter Care, Image URL
 
 ## Key Learnings (Historical)
 
+### Session: April 5, 2026 - SDK 53 Downgrade & Image Loading Fix
+
+**Build Issues Fixed:**
+- Downgraded from SDK 54 to SDK 53 to fix `folly/coro/Coroutine.h` errors
+- Fixed 5 files: Changed `expo-file-system/legacy` → `expo-file-system` for SDK 53 compatibility
+  - Files: `supabase.ts`, `plantnet.ts`, `imageUtils.ts`, `memoryManager.ts`, `imageProcessor.ts`
+- Build 48 succeeded, Build 49 deployed with UI fixes
+
+**Image Loading (PlantImage.tsx):**
+- Removed cache (`cachePolicy="none"`) to prevent corrupted cache
+- 2-second timeout with automatic fallback to next source
+- Semi-transparent loading overlay
+
+**AuthScreen UX:**
+- White margins fixed: `SafeAreaView edges={['left', 'right']}` - gradient now edge-to-edge
+- Tighter spacing: Reduced padding/margins by 15-37% to fit on iPhone 13 mini without scrolling
+
+**Testing Workflow (No Xcode):**
+```bash
+EXPO_NO_CAPABILITY_SYNC=1 eas build --platform ios --profile production --non-interactive
+eas submit --platform ios --latest
+```
+
+---
+
 ### Session: March 4, 2026 - TestFlight Prep & UX Fixes
 
 **EAS Build Fix:**

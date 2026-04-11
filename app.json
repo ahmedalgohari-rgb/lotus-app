@@ -6,7 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "scheme": "lotus",
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -16,10 +15,12 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.lotus.plantcare",
+      "icon": "./assets/icon.png",
       "config": {
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
+        "CFBundleIconName": "AppIcon",
         "NSCameraUsageDescription": "Lotus needs access to your camera to identify plants and take photos of your plant collection.",
         "NSPhotoLibraryUsageDescription": "Lotus needs access to your photo library to save and retrieve photos of your plants.",
         "NSPhotoLibraryAddUsageDescription": "Lotus needs permission to save plant photos to your photo library."
@@ -39,6 +40,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "./plugins/withAppIcon",
       "expo-font",
       "expo-web-browser",
       "expo-localization",
@@ -61,9 +63,7 @@
       }
     },
     "owner": "ahmedalgohari",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/cd097998-0535-4921-91cf-d0f5abd4a3e2"
     }

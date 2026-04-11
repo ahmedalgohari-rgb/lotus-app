@@ -41,18 +41,36 @@ export default function PlantImage({
   const [cloudImageFailed, setCloudImageFailed] = useState(false);
   const [isLoading, setIsLoading] = useState(hasCapturedImage || hasCloudImage);
 
-  // Timeout for remote image loading (10 seconds)
+  // Reset loading state when image sources change
   React.useEffect(() => {
-    if (!isLoading || hasLocalImage) return;
+    setIsLoading(hasCapturedImage || hasCloudImage);
+    setCapturedImageFailed(false);
+    setCloudImageFailed(false);
+    setImageError(false);
+  }, [capturedImageUri, imageUrl]);
+
+  // Timeout for remote image loading (2 seconds - very fast fallback)
+  React.useEffect(() => {
+    if (!isLoading) return;
 
     const timeout = setTimeout(() => {
-      logger.warn(`PlantImage: Loading timeout for "${plantName}"`);
+      logger.warn(`PlantImage: Loading timeout for "${plantName}" - falling back`);
       setIsLoading(false);
-      setImageError(true);
-    }, 10000);
+
+      // If we have a captured image that timed out, mark it as failed to try next source
+      if (hasCapturedImage && !capturedImageFailed) {
+        logger.info(`Captured image timed out, trying ${hasCloudImage ? 'cloud' : 'database'}`);
+        setCapturedImageFailed(true);
+      } else if (hasCloudImage && !cloudImageFailed) {
+        logger.info(`Cloud image timed out, trying ${hasLocalImage ? 'database' : 'placeholder'}`);
+        setCloudImageFailed(true);
+      } else {
+        setImageError(true);
+      }
+    }, 2000);
 
     return () => clearTimeout(timeout);
-  }, [isLoading, hasLocalImage, plantName]);
+  }, [isLoading, hasCapturedImage, hasCloudImage, hasLocalImage, capturedImageFailed, cloudImageFailed, plantName]);
 
   const optimizedImageUrl = hasCloudImage ? optimizeImageUrl(imageUrl!, size) : null;
 
@@ -129,22 +147,23 @@ export default function PlantImage({
 
   return (
     <View style={[{ width: size, height: size }, style]}>
-      {isRemoteImage && isLoading && (
-        <View style={[styles.loadingContainer, { width: size, height: size }]}>
-          <ActivityIndicator size="small" color={COLORS.primary} />
-        </View>
-      )}
-
       <Image
         source={source}
         style={[styles.image, { width: size, height: size }]}
-        cachePolicy="memory-disk"
+        cachePolicy="none"
         transition={type === 'database' ? 0 : 200}
         contentFit="cover"
         onLoadStart={handleLoadStart}
         onLoad={handleLoad}
         onError={handleError}
+        recyclingKey={`${type}-${capturedImageUri || imageUrl || plantId}`}
       />
+
+      {isRemoteImage && isLoading && (
+        <View style={[styles.loadingOverlay, { width: size, height: size }]}>
+          <ActivityIndicator size="small" color={COLORS.primary} />
+        </View>
+      )}
     </View>
   );
 }
@@ -184,12 +203,13 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     textTransform: 'uppercase',
   },
-  loadingContainer: {
+  loadingOverlay: {
     position: 'absolute',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.background,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)', // Semi-transparent so image shows through
     borderRadius: 12,
-    zIndex: 1,
+    top: 0,
+    left: 0,
   },
 });

@@ -1,6 +1,6 @@
 import { manipulateAsync, SaveFormat, FlipType } from 'expo-image-manipulator';
 // ✅ FIX: Use legacy FileSystem API to avoid deprecation errors
-import * as FileSystem from 'expo-file-system/legacy';
+import * as FileSystem from 'expo-file-system';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from './logger';
 

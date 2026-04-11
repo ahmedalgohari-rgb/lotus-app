@@ -8,7 +8,7 @@ import {
   resizeImageForPlantNet
 } from '../utils/imageUtils';
 import { logger } from '../utils/logger';
-import { readAsStringAsync, EncodingType, getInfoAsync } from 'expo-file-system/legacy';
+import * as FileSystem from 'expo-file-system';
 import CryptoJS from 'crypto-js';
 
 // 🔒 SECURITY: PlantNet API calls now go through secure Edge Function
@@ -68,7 +68,7 @@ async function generateImageCacheKey(
 ): Promise<string> {
   try {
     // Get image file info for a unique identifier
-    const fileInfo = await getInfoAsync(imageUri);
+    const fileInfo = await FileSystem.getInfoAsync(imageUri);
     const imageSize = (fileInfo.exists && 'size' in fileInfo) ? fileInfo.size : 0;
     const modificationTime = (fileInfo.exists && 'modificationTime' in fileInfo) ? fileInfo.modificationTime : 0;
 
@@ -124,8 +124,8 @@ async function directPlantNetApiCall(
 
   // Convert RESIZED image to base64 for Edge Function
   logger.debug('🔍 Converting resized image to base64...');
-  const imageBase64 = await readAsStringAsync(resizedImageUri, {
-    encoding: EncodingType.Base64,
+  const imageBase64 = await FileSystem.readAsStringAsync(resizedImageUri, {
+    encoding: FileSystem.EncodingType.Base64,
   });
   const base64WithPrefix = `data:image/jpeg;base64,${imageBase64}`;
 

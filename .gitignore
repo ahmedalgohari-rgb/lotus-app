@@ -43,9 +43,17 @@ yarn-error.*
 # Testing
 coverage/
 
-# generated native folders
-/ios
+# Android (not used — iPhone only app)
 /android
+
+# Screenshots, recordings, and media files (don't commit these)
+IMG_*.PNG
+IMG_*.png
+*.MOV
+*.mov
+*.mp4
+Simulator Screen Recording*
+icon_BIGGER.png
 
 # Test app
 test-app/

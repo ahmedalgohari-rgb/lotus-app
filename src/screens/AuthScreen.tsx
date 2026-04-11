@@ -18,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { MaterialIcons } from '@expo/vector-icons';
 
 import { useTranslation } from 'react-i18next';
-import { COLORS, FIBONACCI, TYPOGRAPHY, ELEMENT_SIZES } from '../constants';
+import { COLORS, FIBONACCI, TYPOGRAPHY, ELEMENT_SIZES, LAYOUT_RATIO, PHI } from '../constants';
 import { authService, dbService } from '../services/supabase';
 import { useStore } from '../store';
 import NameCollectionModal from '../components/NameCollectionModal';
@@ -332,7 +332,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
   };
 
   return (
-    <SafeAreaView style={styles.container} testID="auth-screen">
+    <SafeAreaView style={styles.container} edges={['left', 'right']} testID="auth-screen">
       {/* Name Collection Modal */}
       <NameCollectionModal
         visible={showNameCollection}
@@ -375,21 +375,23 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-            {/* Logo and Taglines */}
-            <View style={styles.heroSection}>
-              <Image
-                source={require('../../assets/lotus-logo.png')}
-                style={styles.logoImage}
-                resizeMode="contain"
-              />
-              <Text style={styles.appName}>LOTUS</Text>
-              <Text style={styles.tagline}>
-                {t('auth.tagline')}
-              </Text>
-            </View>
+            {/* Centered Content Wrapper */}
+            <View style={styles.centeredContent}>
+              {/* Logo and Taglines */}
+              <View style={styles.heroSection}>
+                <Image
+                  source={require('../../assets/lotus-logo.png')}
+                  style={styles.logoImage}
+                  resizeMode="contain"
+                />
+                <Text style={styles.appName}>LOTUS</Text>
+                <Text style={styles.tagline}>
+                  {t('auth.tagline')}
+                </Text>
+              </View>
 
-          {/* Auth Buttons */}
-          <View style={styles.authButtons}>
+              {/* Auth Buttons */}
+              <View style={styles.authButtons}>
             <TouchableOpacity
               style={[styles.googleButton, isLoading && styles.buttonDisabled]}
               onPress={handleGoogleSignIn}
@@ -423,6 +425,8 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
               </Text>
             </TouchableOpacity>
           </View>
+            </View>
+            {/* End Centered Content Wrapper */}
 
             {/* Loading State */}
             {isLoading && (
@@ -461,8 +465,8 @@ const styles = StyleSheet.create({
   },
   skipContainer: {
     position: 'absolute',
-    top: 50,
-    right: 24,
+    top: FIBONACCI.XXL,                         // 55px - Fibonacci spacing from top
+    right: FIBONACCI.LG,                        // 21px - Fibonacci spacing from right
     zIndex: 1,
   },
   skipButton: {
@@ -486,67 +490,72 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: SCREEN_WIDTH * 0.08,
-    paddingTop: SCREEN_HEIGHT * 0.08,
-    paddingBottom: SCREEN_HEIGHT * 0.03,
+    paddingHorizontal: FIBONACCI.XL,           // 34px - Golden ratio horizontal padding
+    paddingTop: FIBONACCI.XXXL,                // 89px - Space for Skip button
+    paddingBottom: FIBONACCI.LG,               // 21px - Bottom breathing room
+    justifyContent: 'space-between',           // Push legal text to bottom
+  },
+  centeredContent: {
+    flex: 1,
+    justifyContent: 'center',                  // Vertically center logo + buttons
+    paddingTop: FIBONACCI.XL,                  // 34px - Slight offset from absolute center
   },
   heroSection: {
     alignItems: 'center',
-    marginBottom: SCREEN_HEIGHT * 0.005, // Minimal - children have golden ratio spacing
+    marginBottom: FIBONACCI.SM,                // 8px - Minimal gap to buttons
   },
   logo: {
-    fontSize: SCREEN_HEIGHT * 0.1,
-    marginBottom: SCREEN_HEIGHT * 0.02,
+    fontSize: FIBONACCI.HUGE,                  // 144px - Large logo emoji
+    marginBottom: FIBONACCI.LG,                // 21px
   },
   logoImage: {
-    width: SCREEN_WIDTH * 0.70,
-    height: SCREEN_HEIGHT * 0.32,
-    marginBottom: SCREEN_HEIGHT * 0.008, // Golden ratio base unit
-    // Professional shadow for depth
+    width: SCREEN_WIDTH * 0.70,                // 70% width - bold brand presence
+    height: SCREEN_HEIGHT * 0.27,              // Taller for impact
+    marginBottom: FIBONACCI.SM,                // 8px - Tight spacing to "LOTUS"
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: { width: 0, height: FIBONACCI.SM },
     shadowOpacity: 0.15,
-    shadowRadius: 20,
+    shadowRadius: FIBONACCI.LG,                // 21px shadow blur
   },
   appName: {
-    fontSize: SCREEN_HEIGHT * 0.05,
+    fontSize: TYPOGRAPHY.HUGE,                 // 55px - Display text from typography scale
     fontWeight: '700',
     color: COLORS.white,
-    marginBottom: SCREEN_HEIGHT * 0.013, // Golden ratio: 0.008 * 1.618
-    letterSpacing: 5,
+    marginBottom: FIBONACCI.SM,                // 8px - Tight spacing to tagline
+    letterSpacing: FIBONACCI.XS,               // 5px letter spacing
   },
   tagline: {
-    fontSize: SCREEN_HEIGHT * 0.02,
+    fontSize: TYPOGRAPHY.MD,                   // 18px - Medium from typography scale
     color: COLORS.white,
     textAlign: 'center',
-    lineHeight: SCREEN_HEIGHT * 0.026,
+    lineHeight: TYPOGRAPHY.XL,                 // 26px line height
     fontWeight: '500',
     opacity: 0.95,
-    marginBottom: SCREEN_HEIGHT * 0.021, // Golden ratio: 0.013 * 1.618
+    marginBottom: FIBONACCI.XL,                // 34px - Space before buttons
   },
   authButtons: {
-    marginTop: SCREEN_HEIGHT * 0.005, // Minimal since tagline has golden ratio spacing
-    marginBottom: SCREEN_HEIGHT * 0.01,
+    marginTop: FIBONACCI.XS,                   // 5px - Minimal top margin
+    marginBottom: FIBONACCI.SM,                // 8px - Bottom margin
   },
   googleButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.white,
-    height: ELEMENT_SIZES.BUTTON_MD,
-    borderRadius: FIBONACCI.XL,
-    marginBottom: FIBONACCI.LG, // 21px - Fibonacci spacing to fit content on one page
+    height: ELEMENT_SIZES.BUTTON_MD,            // 55px - Standard button height
+    borderRadius: ELEMENT_SIZES.RADIUS_LG,      // 21px - Pronounced rounding
+    marginBottom: FIBONACCI.MD,                 // 13px - Consistent gap between buttons
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: { width: 0, height: FIBONACCI.XXS },
     shadowOpacity: 0.12,
     shadowRadius: FIBONACCI.SM,
     elevation: 4,
   },
   googleButtonText: {
     color: COLORS.primary,
-    fontSize: TYPOGRAPHY.BASE,
+    fontSize: TYPOGRAPHY.BASE,                  // 16px - Body text
     fontWeight: '600',
-    marginLeft: FIBONACCI.MD,
+    marginLeft: FIBONACCI.MD,                   // 13px - Icon to text gap
   },
   facebookButton: {
     flexDirection: 'row',
@@ -554,10 +563,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: COLORS.white,
     height: ELEMENT_SIZES.BUTTON_MD,
-    borderRadius: FIBONACCI.XL,
-    marginBottom: FIBONACCI.LG, // 21px - Fibonacci spacing to fit content on one page
+    borderRadius: ELEMENT_SIZES.RADIUS_LG,
+    marginBottom: FIBONACCI.MD,                 // 13px - Same as Google button
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: { width: 0, height: FIBONACCI.XXS },
     shadowOpacity: 0.12,
     shadowRadius: FIBONACCI.SM,
     elevation: 4,
@@ -574,10 +583,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: COLORS.white,
     height: ELEMENT_SIZES.BUTTON_MD,
-    borderRadius: FIBONACCI.XL,
-    marginBottom: FIBONACCI.LG, // 21px - Fibonacci spacing to fit content on one page
+    borderRadius: ELEMENT_SIZES.RADIUS_LG,
+    marginBottom: 0,                            // Last button - no bottom margin
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: { width: 0, height: FIBONACCI.XXS },
     shadowOpacity: 0.12,
     shadowRadius: FIBONACCI.SM,
     elevation: 4,
@@ -599,17 +608,16 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   legalSection: {
-    marginTop: 'auto',
-    paddingTop: SCREEN_HEIGHT * 0.015,
-    paddingHorizontal: SCREEN_WIDTH * 0.04,
-    paddingBottom: FIBONACCI.MD,
+    paddingTop: FIBONACCI.LG,                   // 21px - Space above legal text
+    paddingHorizontal: FIBONACCI.MD,            // 13px - Horizontal padding
+    paddingBottom: FIBONACCI.MD,                // 13px - Bottom padding
   },
   legalText: {
-    fontSize: TYPOGRAPHY.XXS,
+    fontSize: TYPOGRAPHY.XS,                    // 12px - Extra small for legal text
     color: COLORS.white,
     textAlign: 'center',
-    lineHeight: TYPOGRAPHY.BASE,
-    opacity: 0.65,
+    lineHeight: TYPOGRAPHY.MD,                  // 18px line height
+    opacity: 0.7,
   },
   legalLink: {
     fontWeight: '600',
