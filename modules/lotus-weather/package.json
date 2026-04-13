@@ -1,0 +1,6 @@
+{
+  "name": "lotus-weather",
+  "version": "1.0.0",
+  "description": "Native Apple WeatherKit + CoreLocation module for Lotus",
+  "main": "index.ts"
+}

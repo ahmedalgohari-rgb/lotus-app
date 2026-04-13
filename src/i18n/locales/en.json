@@ -71,7 +71,7 @@
     "rainfall": "Rainfall",
     "careBasics": "Plant Care Basics",
     "quickActions": "Quick Actions",
-    "loadingWeather": "Loading Cairo weather...",
+    "loadingWeather": "Loading weather...",
     "weatherError": "Unable to load weather data"
   },
   "addScan": {

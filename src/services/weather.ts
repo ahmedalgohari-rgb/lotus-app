@@ -1,6 +1,8 @@
+import { Platform } from 'react-native';
 import { WeatherData } from '../types';
 import i18n from '../i18n';
 import { logger } from '../utils/logger';
+import { getNativeWeather, NativeWeatherResult } from '../../modules/lotus-weather';
 
 // 🔒 SECURITY: Weather data fetched via secure Edge Function (Apple WeatherKit)
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
@@ -33,7 +35,7 @@ export class WeatherService {
   private static lastFetch: Date | null = null;
   
   /**
-   * Get current weather data for Cairo with caching and retry logic
+   * Get current weather data with native WeatherKit (preferred) or Edge Function fallback
    */
   static async getCurrentWeather(): Promise<WeatherData | null> {
     try {
@@ -42,32 +44,103 @@ export class WeatherService {
         return this.cachedWeather;
       }
 
+      // Try native WeatherKit first (iOS 16+, uses device location)
+      if (Platform.OS === 'ios') {
+        try {
+          // 10-second timeout to prevent hanging — falls back to edge function
+          const nativeData = await Promise.race([
+            this.fetchNativeWeather(),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000))
+          ]);
+          if (nativeData) {
+            this.cachedWeather = nativeData;
+            this.lastFetch = new Date();
+            return nativeData;
+          }
+          logger.info('Native WeatherKit timed out, falling back to edge function');
+        } catch (nativeError: unknown) {
+          const msg = nativeError instanceof Error ? nativeError.message : String(nativeError);
+          logger.info('Native WeatherKit unavailable, falling back to edge function:', msg);
+        }
+      }
+
+      // Fallback: Edge Function (Cairo weather)
       if (!SUPABASE_URL) {
         logger.warn('Supabase URL not configured');
         return this.getMockWeatherData();
       }
 
-      // 🔒 SECURE: Call weather via Edge Function (no API key exposed)
       const weatherData = await this.fetchWithRetry();
-      
-      // Cache successful response
+
       if (weatherData) {
         this.cachedWeather = weatherData;
         this.lastFetch = new Date();
       }
-      
+
       return weatherData;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.warn('Weather API temporarily unavailable, using fallback data:', errorMessage);
 
-      // Return cached data if available, otherwise mock data
       if (this.cachedWeather) {
         return this.cachedWeather;
       }
 
       return this.getMockWeatherData();
     }
+  }
+
+  /**
+   * Fetch weather via native Apple WeatherKit (uses device GPS location)
+   */
+  private static async fetchNativeWeather(): Promise<WeatherData> {
+    const result: NativeWeatherResult = await getNativeWeather();
+
+    const temp = result.temperature;
+    const humidity = result.humidity;
+    const condition = this.mapWeatherKitCondition(result.conditionCode);
+
+    return {
+      temperature: temp,
+      humidity,
+      condition,
+      description: result.description,
+      windSpeed: result.windSpeed,
+      lastUpdated: new Date(),
+      location: result.locationName,
+      careRecommendation: this.generateCareRecommendation(temp, humidity, condition)
+    };
+  }
+
+  /**
+   * Map WeatherKit condition codes to app's simplified conditions
+   */
+  private static mapWeatherKitCondition(conditionCode: string): 'sunny' | 'cloudy' | 'rainy' | 'hot' | 'mild' {
+    const code = conditionCode.toLowerCase();
+
+    // Rainy conditions
+    if (['rain', 'heavyrain', 'drizzle', 'thunderstorms', 'strongstorms',
+         'freezingrain', 'freezingdrizzle', 'hail', 'tropicalstorm', 'hurricane'].some(c => code.includes(c.toLowerCase()))) {
+      return 'rainy';
+    }
+
+    // Cloudy conditions
+    if (['cloudy', 'mostlycloudy', 'partlycloudy', 'foggy', 'haze', 'smoky',
+         'breezy', 'windy', 'blowingdust'].some(c => code.includes(c.toLowerCase()))) {
+      return 'cloudy';
+    }
+
+    // Sunny/clear conditions
+    if (['clear', 'mostlyclear', 'hot', 'sunflurries'].some(c => code.includes(c.toLowerCase()))) {
+      return 'sunny';
+    }
+
+    // Snow/wintry (unlikely in Egypt, but complete mapping)
+    if (['snow', 'flurries', 'sleet', 'blizzard', 'blowingsnow', 'frigid'].some(c => code.includes(c.toLowerCase()))) {
+      return 'mild';
+    }
+
+    return 'mild';
   }
 
   /**
@@ -164,7 +237,7 @@ export class WeatherService {
       description: data.weather[0]?.description || (i18n.language === 'ar' ? 'صافي' : 'Clear'),
       windSpeed: data.wind.speed,
       lastUpdated: new Date(),
-      location: i18n.language === 'ar' ? 'القاهرة' : 'Cairo',
+      location: i18n.language === 'ar' ? 'القاهرة' : 'Cairo', // Edge function fallback uses Cairo
       careRecommendation: this.generateCareRecommendation(tempAverage, humidity, condition)
     };
   }
@@ -188,7 +261,7 @@ export class WeatherService {
   }
 
   /**
-   * Generate care recommendations based on Cairo weather
+   * Generate care recommendations based on current weather
    */
   private static generateCareRecommendation(temp: number, humidity: number, condition: string): {
     type: 'increase' | 'normal' | 'reduce';
@@ -201,7 +274,7 @@ export class WeatherService {
     if (temp > 35) {
       return {
         type: 'increase',
-        message: isArabic ? 'الجو حار جداً في القاهرة - زود الري والرش' : 'Very hot weather in Cairo - increase watering and misting',
+        message: isArabic ? 'الجو حار جداً - زود الري والرش' : 'Very hot weather - increase watering and misting',
         adjustment: 1.5 // Increase watering by 50%
       };
     }
@@ -230,10 +303,10 @@ export class WeatherService {
       };
     }
 
-    // Normal Cairo weather
+    // Normal weather
     return {
       type: 'normal',
-      message: isArabic ? 'الجو معتدل في القاهرة - جدول ري عادي' : 'Pleasant weather in Cairo - normal watering schedule',
+      message: isArabic ? 'الجو معتدل - جدول ري عادي' : 'Pleasant weather - normal watering schedule',
       adjustment: 1.0 // Normal watering
     };
   }
@@ -289,7 +362,7 @@ export class WeatherService {
       description: isArabic ? 'صافي' : 'Clear',
       windSpeed: 10,
       lastUpdated: new Date(),
-      location: isArabic ? 'القاهرة' : 'Cairo',
+      location: isArabic ? 'القاهرة' : 'Cairo', // Fallback location for mock data
       careRecommendation: this.generateCareRecommendation(temp, humidity, 'clear')
     };
   }
@@ -354,7 +427,7 @@ export class WeatherService {
   }
 
   /**
-   * Get seasonal care tips for Cairo based on official astronomical dates
+   * Get seasonal care tips based on official astronomical dates
    */
   static getSeasonalTips(): string[] {
     const season = this.getOfficialSeason();
@@ -362,36 +435,36 @@ export class WeatherService {
 
     if (season === 'summer') {
       return isArabic ? [
-        'صيف القاهرة: اسقي أكتر في الشهور الحارة',
+        'الصيف: اسقي أكتر في الشهور الحارة',
         'تجنب الري وقت الضهر في الحر الشديد',
         'اعمل ظل للنباتات على البلكونة',
         'رش الأوراق في المساء عشان الرطوبة'
       ] : [
-        'Cairo Summer: Water more during hot months',
+        'Summer: Water more during hot months',
         'Avoid watering at noon during extreme heat',
         'Provide shade for balcony plants',
         'Mist leaves in the evening for humidity'
       ];
     } else if (season === 'winter') {
       return isArabic ? [
-        'شتا القاهرة: قلل الري في الشهور الباردة',
+        'الشتا: قلل الري في الشهور الباردة',
         'ادخل النباتات الحساسة من البرد',
         'تجنب الري الزيادة عشان العفن',
         'حط النباتات في أماكن مشمسة'
       ] : [
-        'Cairo Winter: Reduce watering in cold months',
+        'Winter: Reduce watering in cold months',
         'Bring cold-sensitive plants indoors',
         'Avoid overwatering to prevent root rot',
         'Place plants in sunny locations'
       ];
     } else { // Spring/Autumn
       return isArabic ? [
-        'الجو معتدل في القاهرة - وقت مثالي للنباتات',
+        'الجو معتدل - وقت مثالي للنباتات',
         'نضف الورق من التراب والغبار',
         'وقت كويس لنقل النباتات وتقليمها',
         'راقب النباتات عشان العواصف الترابية'
       ] : [
-        'Pleasant weather in Cairo - ideal time for plants',
+        'Pleasant weather - ideal time for plants',
         'Clean leaves from dust and dirt',
         'Good time to repot plants and prune',
         'Watch for dust storms affecting plants'

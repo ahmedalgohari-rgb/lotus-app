@@ -41,6 +41,8 @@
     },
     "plugins": [
       "./plugins/withAppIcon",
+      "./plugins/withWeatherKit",
+      "./plugins/withFmtFix",
       "expo-font",
       "expo-web-browser",
       "expo-localization",

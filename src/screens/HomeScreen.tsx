@@ -417,7 +417,7 @@ export default function HomeScreen() {
                       </Text>
                     </View>
                   </View>
-                  <Text style={[styles.weatherLocation, isRTL && styles.weatherLocationRTL]}>{isRTL ? 'القاهرة' : 'Cairo'}</Text>
+                  <Text style={[styles.weatherLocation, isRTL && styles.weatherLocationRTL]}>{weather.location}</Text>
                   <Text style={[styles.weatherDescription, isRTL && styles.weatherDescriptionRTL]}>{weather.description}</Text>
                   <Text style={[styles.weatherUV, isRTL && styles.weatherUVRTL]}>
                     {isRTL ? `${t('careMatrix.labels.humidity')}: ${weather.humidity}%` : `Humidity: ${weather.humidity}%`}
