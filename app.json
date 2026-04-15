@@ -44,6 +44,7 @@
       "./plugins/withAppIcon",
       "./plugins/withWeatherKit",
       "./plugins/withFmtFix",
+      "./plugins/withDisableSandbox",
       "expo-font",
       "expo-web-browser",
       "expo-localization",
