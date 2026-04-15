@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { LogBox, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Linking from 'expo-linking';
 import { useFonts } from 'expo-font';
@@ -10,6 +11,8 @@ import AppNavigator from './src/navigation/AppNavigator';
 import { initializeStore, useStore } from './src/store';
 import { authService, dbService, supabase } from './src/services/supabase';
 import * as NotificationService from './src/services/notifications';
+import NotificationPromptModal from './src/components/NotificationPromptModal';
+import GardenLocationModal from './src/components/GardenLocationModal';
 import './src/i18n'; // Initialize i18n
 
 // Ignore specific warnings for development
@@ -22,7 +25,9 @@ LogBox.ignoreLogs([
 ]);
 
 export default function App() {
-  const { setUser, setAuthenticated, setLoading, isRTL } = useStore();
+  const { setUser, setAuthenticated, setLoading, isRTL, setGardenLocation } = useStore();
+  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+  const [showGardenLocationPrompt, setShowGardenLocationPrompt] = useState(false);
 
   // Load Tharwat Emara Ruqaa font for bilingual compass
   const [fontsLoaded] = useFonts({
@@ -167,11 +172,79 @@ export default function App() {
       if (plants.length > 0) {
         NotificationService.rescheduleAll(plants);
       }
+
+      // Progressive engagement for existing users who missed the prompts
+      if (plants.length > 0) {
+        const notifPromptShown = await NotificationService.hasPromptBeenShown();
+        const notifEnabled = await NotificationService.isEnabled();
+        if (!notifPromptShown && !notifEnabled) {
+          // Delay slightly so the app UI loads first
+          setTimeout(() => setShowNotificationPrompt(true), 1500);
+        } else if (plants.length >= 3) {
+          const gardenLoc = useStore.getState().gardenLocation;
+          const gardenPromptShown = await AsyncStorage.getItem('garden_location_prompt_shown');
+          if (!gardenLoc && !gardenPromptShown) {
+            setTimeout(() => setShowGardenLocationPrompt(true), 1500);
+          }
+        }
+      }
     } catch (error) {
       console.error('Error initializing app:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleNotificationEnable = async () => {
+    setShowNotificationPrompt(false);
+    const granted = await NotificationService.requestPermission();
+    await NotificationService.markPromptShown();
+    if (granted) {
+      const plants = useStore.getState().plants;
+      await NotificationService.rescheduleAll(plants);
+    }
+    // After notification prompt, check if garden location prompt is needed
+    const plants = useStore.getState().plants;
+    if (plants.length >= 3) {
+      const gardenLoc = useStore.getState().gardenLocation;
+      const gardenPromptShown = await AsyncStorage.getItem('garden_location_prompt_shown');
+      if (!gardenLoc && !gardenPromptShown) {
+        setTimeout(() => setShowGardenLocationPrompt(true), 500);
+      }
+    }
+  };
+
+  const handleNotificationSkip = async () => {
+    setShowNotificationPrompt(false);
+    await NotificationService.markPromptShown();
+    // After notification prompt, check if garden location prompt is needed
+    const plants = useStore.getState().plants;
+    if (plants.length >= 3) {
+      const gardenLoc = useStore.getState().gardenLocation;
+      const gardenPromptShown = await AsyncStorage.getItem('garden_location_prompt_shown');
+      if (!gardenLoc && !gardenPromptShown) {
+        setTimeout(() => setShowGardenLocationPrompt(true), 500);
+      }
+    }
+  };
+
+  const handleGardenLocationSave = async (location: { lat: number; lon: number; name: string }) => {
+    setShowGardenLocationPrompt(false);
+    setGardenLocation(location);
+    const user = useStore.getState().user;
+    if (user) {
+      await dbService.updateProfile(user.id, {
+        garden_lat: location.lat,
+        garden_lon: location.lon,
+        garden_name: location.name,
+      });
+    }
+    await AsyncStorage.setItem('garden_location_prompt_shown', 'true');
+  };
+
+  const handleGardenLocationSkip = async () => {
+    setShowGardenLocationPrompt(false);
+    await AsyncStorage.setItem('garden_location_prompt_shown', 'true');
   };
 
   // Wait for fonts to load before rendering app
@@ -184,6 +257,16 @@ export default function App() {
       <View style={{ flex: 1 }}>
         <StatusBar style="auto" />
         <AppNavigator />
+        <NotificationPromptModal
+          visible={showNotificationPrompt}
+          onEnable={handleNotificationEnable}
+          onSkip={handleNotificationSkip}
+        />
+        <GardenLocationModal
+          visible={showGardenLocationPrompt}
+          onSave={handleGardenLocationSave}
+          onSkip={handleGardenLocationSkip}
+        />
       </View>
     </SafeAreaProvider>
   );
