@@ -9,6 +9,7 @@ import { PlusJakartaSans_400Regular, PlusJakartaSans_700Bold } from '@expo-googl
 import AppNavigator from './src/navigation/AppNavigator';
 import { initializeStore, useStore } from './src/store';
 import { authService, dbService, supabase } from './src/services/supabase';
+import * as NotificationService from './src/services/notifications';
 import './src/i18n'; // Initialize i18n
 
 // Ignore specific warnings for development
@@ -150,6 +151,21 @@ export default function App() {
 
         setUser(userData);
         setAuthenticated(true);
+
+        // Load garden location from profile if available
+        if (profileData?.garden_lat && profileData?.garden_lon) {
+          useStore.getState().setGardenLocation({
+            lat: profileData.garden_lat,
+            lon: profileData.garden_lon,
+            name: profileData.garden_name || '',
+          });
+        }
+      }
+
+      // Reschedule notifications on launch (uses plants loaded from store)
+      const plants = useStore.getState().plants;
+      if (plants.length > 0) {
+        NotificationService.rescheduleAll(plants);
       }
     } catch (error) {
       console.error('Error initializing app:', error);

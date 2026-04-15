@@ -9,6 +9,9 @@ export interface User {
   avatar_url?: string;
   language?: 'en' | 'ar';
   created_at: string;
+  garden_lat?: number;
+  garden_lon?: number;
+  garden_name?: string;
 }
 
 export interface Plant {
@@ -312,4 +315,5 @@ export interface AppState {
   isRTL: boolean;
   weather: WeatherData | null;
   careRecommendations: SmartCareRecommendation[];
+  gardenLocation: { lat: number; lon: number; name: string } | null;
 }

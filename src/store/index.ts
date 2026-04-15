@@ -43,6 +43,10 @@ interface AppStore extends AppState {
   setLastKnownSeason: (season: Season) => void;
   checkSeasonChange: () => Promise<boolean>;  // Returns true if season changed
 
+  // Garden location
+  gardenLocation: { lat: number; lon: number; name: string } | null;
+  setGardenLocation: (location: { lat: number; lon: number; name: string } | null) => void;
+
   // Persistence
   loadFromStorage: () => Promise<void>;
   saveToStorage: () => Promise<void>;
@@ -87,6 +91,7 @@ export const useStore = create<AppStore>((set, get) => ({
   careRecommendations: [],
   isFirstVisit: true, // Default to true for new users
   lastKnownSeason: null,  // Will be set on first app open
+  gardenLocation: null,
 
   // User actions
   setUser: (user) => {
@@ -251,6 +256,16 @@ export const useStore = create<AppStore>((set, get) => ({
     return false;  // No change
   },
 
+  // Garden location
+  setGardenLocation: (location) => {
+    set({ gardenLocation: location });
+    if (location) {
+      AsyncStorage.setItem('garden_location', JSON.stringify(location));
+    } else {
+      AsyncStorage.removeItem('garden_location');
+    }
+  },
+
   // Persistence
   loadFromStorage: async () => {
     try {
@@ -271,13 +286,14 @@ export const useStore = create<AppStore>((set, get) => ({
         return;
       }
 
-      const [userPlantsData, userProfileData, speciesData, languageData, hasVisitedBefore, lastSeasonData] = await Promise.all([
+      const [userPlantsData, userProfileData, speciesData, languageData, hasVisitedBefore, lastSeasonData, gardenLocationData] = await Promise.all([
         AsyncStorage.getItem(CACHE_KEYS.USER_PLANTS),
         AsyncStorage.getItem(CACHE_KEYS.USER_PROFILE),
         AsyncStorage.getItem(CACHE_KEYS.PLANT_SPECIES),
         AsyncStorage.getItem('user-language'),
         AsyncStorage.getItem('has_visited_before'),
         AsyncStorage.getItem('last_known_season'),
+        AsyncStorage.getItem('garden_location'),
       ]);
 
       if (userPlantsData) {
@@ -313,6 +329,13 @@ export const useStore = create<AppStore>((set, get) => ({
       if (lastSeasonData) {
         set({ lastKnownSeason: lastSeasonData as Season });
       }
+
+      // Load garden location
+      if (gardenLocationData) {
+        try {
+          set({ gardenLocation: JSON.parse(gardenLocationData) });
+        } catch { /* ignore parse errors */ }
+      }
     } catch (error) {
       logger.error('Error loading from storage:', error);
     }
@@ -345,6 +368,7 @@ export const useStore = create<AppStore>((set, get) => ({
         AsyncStorage.removeItem('user-language'),
         AsyncStorage.removeItem('has_visited_before'),
         AsyncStorage.removeItem('last_known_season'),
+        AsyncStorage.removeItem('garden_location'),
       ]);
 
       set({
@@ -359,6 +383,7 @@ export const useStore = create<AppStore>((set, get) => ({
         careRecommendations: [],
         isFirstVisit: true, // Reset to first visit on logout
         lastKnownSeason: null,  // Reset season on logout
+        gardenLocation: null,
       });
     } catch (error) {
       logger.error('Error clearing storage:', error);

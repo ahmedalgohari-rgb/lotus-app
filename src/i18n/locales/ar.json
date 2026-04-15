@@ -359,6 +359,22 @@
     "signOutConfirm": "متأكد إنك عايز تسجل خروج؟",
     "aboutMessage": "تطبيق لوتس للعناية بالنباتات\\nالإصدار 2.0.0\\nمصنوع بحب لمحبي النباتات المصريين 🌿🇪🇬"
   },
+  "notifications": {
+    "promptTitle": "ما تنساش تسقي",
+    "promptSubtitle": "هنفكرك بلطف لما ييجي وقت تشيك على نباتاتك. بدون إزعاج، بس رعاية.",
+    "enable": "فعّل التذكيرات",
+    "skip": "ممكن بعدين",
+    "reminderTitle": "وقت تشيك على نباتك!",
+    "reminderBody": "شيك على تربة {{name}} — ممكن تحتاج مية قريب."
+  },
+  "gardenLocation": {
+    "promptTitle": "حديقتك بتكبر!",
+    "promptSubtitle": "احفظ موقعك عشان نصايح عناية أدق حسب الجو في منطقتك.",
+    "save": "احفظ كحديقتي",
+    "notNow": "مش دلوقتي",
+    "myGarden": "حديقتي",
+    "changeLocation": "غيّر"
+  },
   "errors": {
     "networkError": "مفيش نت",
     "imageError": "مشكلة في الصورة",

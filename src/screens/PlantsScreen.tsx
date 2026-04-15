@@ -17,13 +17,14 @@ import PlantImage from '../components/PlantImage';
 import { Plant } from '../types';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRTL } from '../utils/rtl';
+import * as NotificationService from '../services/notifications';
 
 export default function PlantsScreen() {
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
   const isRTL = useRTL();
 
-  const { plants, user, setPlants, deletePlant } = useStore();
+  const { plants, user, setPlants, deletePlant, gardenLocation } = useStore();
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -71,6 +72,7 @@ export default function PlantsScreen() {
               const { error } = await dbService.deletePlant(plantId);
               if (error) throw error;
               deletePlant(plantId);
+              NotificationService.cancelForPlant(plantId);
             } catch (error) {
               logger.error('Error deleting plant:', error);
               Alert.alert(t('common.error'), t('errors.saveError'));
@@ -159,6 +161,16 @@ export default function PlantsScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Garden Location Pill */}
+      {gardenLocation && (
+        <View style={[styles.gardenPill, isRTL && styles.gardenPillRTL]}>
+          <Ionicons name="location" size={14} color={COLORS.primary} />
+          <Text style={styles.gardenPillText}>
+            {t('gardenLocation.myGarden')}: {gardenLocation.name}
+          </Text>
+        </View>
+      )}
+
       {/* Plant Grid */}
       <ScrollView
         contentContainerStyle={styles.grid}
@@ -239,6 +251,31 @@ const styles = StyleSheet.create({
   },
   titleRTL: {
     textAlign: 'right',
+  },
+  gardenPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginHorizontal: 16,
+    marginBottom: 4,
+    gap: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  gardenPillRTL: {
+    flexDirection: 'row-reverse',
+    alignSelf: 'flex-end',
+  },
+  gardenPillText: {
+    fontSize: 13,
+    color: COLORS.primary,
+    fontWeight: '500',
   },
   grid: {
     flexDirection: 'row',

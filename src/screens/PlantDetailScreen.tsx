@@ -35,12 +35,14 @@ import { useRTL } from '../utils/rtl';
 import { logger } from '../utils/logger';
 import {
   extractMaxWateringDays,
+  extractCheckSoilDays,
   formatWateringSchedule,
   formatLightValue,
   translateWateringTip,
   translateCheckSoilTip,
   translateSeasonalTip,
 } from '../utils/careTextUtils';
+import * as NotificationService from '../services/notifications';
 
 interface RouteParams {
   plantId: string;
@@ -255,6 +257,13 @@ export default function PlantDetailScreen() {
 
         updatePlant(plant.id, updatedPlant);
         setPlant(updatedPlant);
+
+        // Reschedule notification for this plant
+        const checkDays = extractCheckSoilDays(
+          enhancedCare?.adjusted?.wateringFrequency || '',
+          enhancedCare?.adjusted?.watering || ''
+        );
+        NotificationService.scheduleForPlant(updatedPlant, checkDays);
       }
 
       // Refresh care history

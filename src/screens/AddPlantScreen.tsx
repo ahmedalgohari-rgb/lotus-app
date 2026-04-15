@@ -29,6 +29,7 @@ import {
   ELEMENT_SIZES,
   GOLDEN_RECTANGLES,
 } from '../constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useStore } from '../store';
 import { dbService } from '../services/supabase';
 import { IdentificationResult, EnhancedCareRecommendation, Plant } from '../types';
@@ -36,14 +37,18 @@ import { getPersonalizedCareRecommendations } from '../utils/careMap';
 import { plantDatabaseService } from '../services/plantDatabase';
 import { useRTL } from '../utils/rtl';
 import AuthModal from '../components/AuthModal';
+import NotificationPromptModal from '../components/NotificationPromptModal';
+import GardenLocationModal from '../components/GardenLocationModal';
 import { logger } from '../utils/logger';
 import PlantImage from '../components/PlantImage';
 import {
   extractMaxWateringDays,
+  extractCheckSoilDays,
   translateWateringTip,
   translateCheckSoilTip,
   translateSeasonalTip,
 } from '../utils/careTextUtils';
+import * as NotificationService from '../services/notifications';
 
 const getScoreGradient = (score: number): [string, string] => {
   switch (score) {
@@ -94,8 +99,13 @@ export default function AddPlantScreen() {
     processedImageUri: preProcessedImageUri,
     cloudImageUrl: preUploadedCloudUrl
   } = (route.params as RouteParams) || {};
-  const { user, addPlant } = useStore();
+  const { user, plants, addPlant, gardenLocation, setGardenLocation } = useStore();
   const isRTL = useRTL();
+
+  // Modal states for progressive engagement prompts
+  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+  const [showGardenLocationPrompt, setShowGardenLocationPrompt] = useState(false);
+  const [savedPlantData, setSavedPlantData] = useState<Plant | null>(null);
 
   // ⚡ OPTIMIZATION: Image processing & upload now happens on PlantResultScreen (background)
   // This screen receives pre-processed images, so no processing needed here!
@@ -404,36 +414,44 @@ export default function AddPlantScreen() {
         match_type: matchType,
       };
 
+      const plantCountBefore = plants.length;
+
       const { data, error } = await dbService.addPlant(newPlant as any);
-      
+
       if (error) throw error;
       if (data) {
         addPlant(data);
-        Alert.alert(
-          t('addPlant.plantAddedTitle'),
-          t('addPlant.plantAddedMessage', { name: finalNickname }),
-          [
-            {
-              text: t('common.ok'),
-              onPress: () => {
-                navigation.reset({
-                  index: 0,
-                  routes: [{
-                    name: 'MainTabs' as never,
-                    state: {
-                      routes: [
-                        { name: 'Home' },
-                        { name: 'Scan' },
-                        { name: 'Plants' }
-                      ],
-                      index: 2,
-                    }
-                  }],
-                });
-              },
-            },
-          ]
-        );
+        setSavedPlantData(data);
+
+        // Schedule notification for this plant (if already enabled)
+        const notificationsEnabled = await NotificationService.isEnabled();
+        if (notificationsEnabled) {
+          const checkDays = extractCheckSoilDays(
+            enhancedCareRec?.adjusted?.wateringFrequency || '',
+            enhancedCareRec?.adjusted?.watering || ''
+          );
+          await NotificationService.scheduleForPlant(data, checkDays);
+        }
+
+        // Progressive engagement: show prompt based on plant count
+        if (plantCountBefore === 0) {
+          // 1st plant — offer notifications
+          const promptShown = await NotificationService.hasPromptBeenShown();
+          if (!promptShown) {
+            setShowNotificationPrompt(true);
+            return; // Don't show success alert yet — modal handles flow
+          }
+        } else if (plantCountBefore === 2 && !gardenLocation) {
+          // 3rd plant — offer garden location
+          const gardenPromptShown = await AsyncStorage.getItem('garden_location_prompt_shown');
+          if (!gardenPromptShown) {
+            setShowGardenLocationPrompt(true);
+            return; // Don't show success alert yet — modal handles flow
+          }
+        }
+
+        // Default: show success alert directly
+        showSuccessAndNavigate(finalNickname);
       }
     } catch (error) {
       logger.error('Error saving plant:', error);
@@ -441,6 +459,75 @@ export default function AddPlantScreen() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const showSuccessAndNavigate = (plantName: string) => {
+    Alert.alert(
+      t('addPlant.plantAddedTitle'),
+      t('addPlant.plantAddedMessage', { name: plantName }),
+      [
+        {
+          text: t('common.ok'),
+          onPress: () => {
+            navigation.reset({
+              index: 0,
+              routes: [{
+                name: 'MainTabs' as never,
+                state: {
+                  routes: [
+                    { name: 'Home' },
+                    { name: 'Scan' },
+                    { name: 'Plants' }
+                  ],
+                  index: 2,
+                }
+              }],
+            });
+          },
+        },
+      ]
+    );
+  };
+
+  const handleNotificationEnable = async () => {
+    setShowNotificationPrompt(false);
+    const granted = await NotificationService.requestPermission();
+    await NotificationService.markPromptShown();
+    if (granted && savedPlantData) {
+      const checkDays = extractCheckSoilDays(
+        enhancedCareRec?.adjusted?.wateringFrequency || '',
+        enhancedCareRec?.adjusted?.watering || ''
+      );
+      await NotificationService.scheduleForPlant(savedPlantData, checkDays);
+    }
+    showSuccessAndNavigate(savedPlantData?.nickname || nickname);
+  };
+
+  const handleNotificationSkip = async () => {
+    setShowNotificationPrompt(false);
+    await NotificationService.markPromptShown();
+    showSuccessAndNavigate(savedPlantData?.nickname || nickname);
+  };
+
+  const handleGardenLocationSave = async (location: { lat: number; lon: number; name: string }) => {
+    setShowGardenLocationPrompt(false);
+    setGardenLocation(location);
+    // Save to Supabase profile
+    if (user) {
+      await dbService.updateProfile(user.id, {
+        garden_lat: location.lat,
+        garden_lon: location.lon,
+        garden_name: location.name,
+      });
+    }
+    await AsyncStorage.setItem('garden_location_prompt_shown', 'true');
+    showSuccessAndNavigate(savedPlantData?.nickname || nickname);
+  };
+
+  const handleGardenLocationSkip = async () => {
+    setShowGardenLocationPrompt(false);
+    await AsyncStorage.setItem('garden_location_prompt_shown', 'true');
+    showSuccessAndNavigate(savedPlantData?.nickname || nickname);
   };
 
   const renderStepContent = () => {
@@ -590,6 +677,16 @@ export default function AddPlantScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <AuthModal visible={isAuthModalVisible} onClose={() => setAuthModalVisible(false)} />
+      <NotificationPromptModal
+        visible={showNotificationPrompt}
+        onEnable={handleNotificationEnable}
+        onSkip={handleNotificationSkip}
+      />
+      <GardenLocationModal
+        visible={showGardenLocationPrompt}
+        onSave={handleGardenLocationSave}
+        onSkip={handleGardenLocationSkip}
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}

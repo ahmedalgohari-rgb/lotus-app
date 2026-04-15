@@ -2,7 +2,7 @@
   "expo": {
     "name": "Lotus",
     "slug": "lotus-app",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -15,6 +15,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.lotus.plantcare",
+      "buildNumber": "57",
       "icon": "./assets/icon.png",
       "config": {
         "usesNonExemptEncryption": false
@@ -56,6 +57,13 @@
         "expo-image-picker",
         {
           "photosPermission": "Lotus needs access to your photo library to save and retrieve photos of your plants."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#2D5F3F"
         }
       ]
     ],

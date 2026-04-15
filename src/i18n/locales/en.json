@@ -448,6 +448,22 @@
     "thankYouMessage": "Your feedback has been received. We appreciate you taking the time to help us improve Lotus!",
     "submitError": "Failed to send feedback. Please try again."
   },
+  "notifications": {
+    "promptTitle": "Never Miss a Watering",
+    "promptSubtitle": "We'll gently remind you when it's time to check on your plants. No spam, just care.",
+    "enable": "Enable Reminders",
+    "skip": "Maybe Later",
+    "reminderTitle": "Time to check your plant!",
+    "reminderBody": "Check the soil on {{name}} — it might need water soon."
+  },
+  "gardenLocation": {
+    "promptTitle": "Your Garden is Growing!",
+    "promptSubtitle": "Save your location for more accurate weather-based care tips for all your plants.",
+    "save": "Save as My Garden",
+    "notNow": "Not Now",
+    "myGarden": "My Garden",
+    "changeLocation": "Change"
+  },
   "errors": {
     "notAPlant": {
       "title": "Not a Plant",

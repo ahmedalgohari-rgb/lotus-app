@@ -60,24 +60,14 @@ target 'Lotus' do
         end
       end
     end
-
-    # Fix fmt library consteval compatibility with Xcode 16+/26
-    fmt_base = File.join(installer.sandbox.root, 'fmt', 'include', 'fmt', 'base.h')
-    if File.exist?(fmt_base) && !File.read(fmt_base).include?('Fix for Xcode consteval')
-      content = File.read(fmt_base)
-      patch = <<~PATCH
-
-        // Fix for Xcode consteval compatibility - override after detection
-        #undef FMT_USE_CONSTEVAL
-        #undef FMT_CONSTEVAL
-        #undef FMT_CONSTEXPR20
-        #define FMT_USE_CONSTEVAL 0
-        #define FMT_CONSTEVAL
-        #define FMT_CONSTEXPR20
-      PATCH
-      content.sub!(/^#  define FMT_CONSTEXPR20$.*?^#endif$/m) { |match| "#{match}\n#{patch}" }
-      File.write(fmt_base, content)
-      Pod::UI.puts "Patched fmt library for Xcode 16+/26 consteval compatibility"
+    # Fix fmt library build error on Xcode 16+
+    installer.pods_project.targets.each do |target|
+      if target.name == 'fmt'
+        target.build_configurations.each do |config|
+          config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+        end
+      end
     end
+
   end
 end

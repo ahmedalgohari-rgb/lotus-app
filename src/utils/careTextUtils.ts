@@ -103,6 +103,41 @@ export function translateSeasonalTip(tip: string, t: TFunction): string {
 }
 
 /**
+ * Extract check soil interval from text like "Check soil every 8 days"
+ *
+ * @param checkSoilText - Text containing soil check interval
+ * @param fallbackWateringText - Optional watering text to derive soil check from (watering days - 2)
+ * @returns Number of days for soil check interval
+ *
+ * @example
+ * extractCheckSoilDays("Check soil every 8 days") // returns 8
+ * extractCheckSoilDays("", "Water every 10-14 days") // returns 8 (10-2)
+ * extractCheckSoilDays("") // returns 5 (default)
+ */
+export function extractCheckSoilDays(checkSoilText: string, fallbackWateringText?: string): number {
+  if (checkSoilText) {
+    const match = checkSoilText.match(/check soil every (\d+) days?/i);
+    if (match) {
+      return parseInt(match[1], 10);
+    }
+  }
+
+  // Derive from watering text: soil check = min watering days - 2
+  if (fallbackWateringText) {
+    const rangeMatch = fallbackWateringText.match(/(\d+)-(\d+)\s*days?/i);
+    if (rangeMatch) {
+      return Math.max(1, parseInt(rangeMatch[1], 10) - 2);
+    }
+    const singleMatch = fallbackWateringText.match(/(\d+)\s*days?/i);
+    if (singleMatch) {
+      return Math.max(1, parseInt(singleMatch[1], 10) - 2);
+    }
+  }
+
+  return 5; // safe default
+}
+
+/**
  * Format watering schedule (100_dry -> 100% dry, 100%dry -> 100% dry)
  *
  * @param schedule - Raw watering schedule string
