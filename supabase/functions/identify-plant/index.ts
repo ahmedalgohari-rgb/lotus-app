@@ -1,122 +1,171 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-dev-mode',
 }
 
+type ApiConfig = {
+  api_name: string
+  enabled: boolean
+  rate_limit_per_hour: number
+  max_calls_per_day: number | null
+  maintenance_message: string | null
+}
+
+// Module-scope cache survives across invocations on a warm Deno isolate.
+// One DB read per minute per warm instance instead of per request.
+const CONFIG_TTL_MS = 60_000
+let configCache: { value: ApiConfig; expiresAt: number } | null = null
+
+async function getConfig(supabase: SupabaseClient, apiName: string): Promise<ApiConfig | null> {
+  const now = Date.now()
+  if (configCache && configCache.value.api_name === apiName && configCache.expiresAt > now) {
+    return configCache.value
+  }
+  const { data, error } = await supabase
+    .from('api_config')
+    .select('api_name, enabled, rate_limit_per_hour, max_calls_per_day, maintenance_message')
+    .eq('api_name', apiName)
+    .single()
+  if (error || !data) {
+    console.warn(`api_config row missing for ${apiName}; falling through with permissive defaults`)
+    return null
+  }
+  configCache = { value: data as ApiConfig, expiresAt: now + CONFIG_TTL_MS }
+  return data as ApiConfig
+}
+
+function currentHourBucket(): string {
+  const d = new Date()
+  d.setUTCMinutes(0, 0, 0)
+  return d.toISOString()
+}
+
+function secondsUntilNextUtcMidnight(): number {
+  const now = new Date()
+  const tomorrow = new Date(Date.UTC(
+    now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1
+  ))
+  return Math.floor((tomorrow.getTime() - now.getTime()) / 1000)
+}
+
+function jsonResponse(status: number, body: unknown) {
+  return new Response(
+    JSON.stringify(body),
+    { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  )
+}
+
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // Get environment variables (secure - not exposed to client)
     const PLANTNET_API_KEY = Deno.env.get('PLANTNET_API_KEY')
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
     const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')
 
     if (!PLANTNET_API_KEY) {
       console.error('PLANTNET_API_KEY not configured')
-      return new Response(
-        JSON.stringify({ error: 'API key not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return jsonResponse(500, { error: 'API key not configured' })
     }
 
-    // Verify user authentication
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized - No auth header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return jsonResponse(401, { error: 'Unauthorized - No auth header' })
     }
 
-    // Create Supabase client with user's auth token
     const supabase = createClient(
       SUPABASE_URL!,
       SUPABASE_ANON_KEY!,
       { global: { headers: { Authorization: authHeader } } }
     )
 
-    // Get authenticated user
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     if (userError || !user) {
       console.error('User authentication failed:', userError)
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized - Invalid token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return jsonResponse(401, { error: 'Unauthorized - Invalid token' })
     }
 
     console.log(`PlantNet request from user: ${user.id}`)
 
-    // 🧪 DEV MODE: Check for development bypass header
     const isDevMode = req.headers.get('X-Dev-Mode') === 'true'
     if (isDevMode) {
-      console.log('🧪 DEV MODE: Rate limiting disabled for testing')
+      console.log('🧪 DEV MODE: rate limiting + caps disabled')
     }
 
-    // RATE LIMITING: Check API usage per user (skip in dev mode)
-    // NOTE: Each scan tries up to 3 organs (leaf, flower, fruit), so multiply scans × 3
-    // TESTING: 30 requests/hour (~10 scans). PRODUCTION: reduce to 15 (~5 scans)
-    if (!isDevMode) {
-      const RATE_LIMIT = 30 // TODO: Reduce to 15 for production launch
-      const oneHourAgo = new Date(Date.now() - 3600000).toISOString()
+    // ── Live-tunable governance (cached 60s in module scope) ───────────
+    const config = await getConfig(supabase, 'plantnet')
 
-      const { count, error: countError } = await supabase
-        .from('api_usage')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('api_name', 'plantnet')
-        .gte('created_at', oneHourAgo)
+    // 1. Kill switch — flip api_config.enabled = FALSE in dashboard to pause
+    if (config && !config.enabled && !isDevMode) {
+      console.warn('PlantNet paused via api_config.enabled = FALSE')
+      return jsonResponse(503, {
+        error: 'Service paused',
+        message: config.maintenance_message ?? 'Plant identification is temporarily unavailable.',
+      })
+    }
 
-      if (countError) {
-        console.error('Rate limit check failed:', countError)
-        // Don't block on rate limit check failure - continue
-      } else if (count && count >= RATE_LIMIT) {
-        console.warn(`Rate limit exceeded for user ${user.id}: ${count} requests in last hour (limit: ${RATE_LIMIT})`)
-        return new Response(
-          JSON.stringify({
-            error: 'Rate limit exceeded',
-            message: `Maximum ${Math.floor(RATE_LIMIT / 3)} plant scans per hour. Please try again later.`,
-            retryAfter: 3600 - Math.floor((Date.now() - new Date(oneHourAgo).getTime()) / 1000)
-          }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+    // 2. Global daily cap — protects from runaway usage across all users
+    if (config?.max_calls_per_day && !isDevMode) {
+      const { data: globalCount, error: globalErr } = await supabase
+        .rpc('get_api_global_daily_count', { p_api_name: 'plantnet' })
+
+      if (globalErr) {
+        console.error('Global count RPC failed (failing open):', globalErr)
+      } else if (typeof globalCount === 'number' && globalCount >= config.max_calls_per_day) {
+        console.warn(`Global daily cap hit: ${globalCount}/${config.max_calls_per_day}`)
+        return jsonResponse(429, {
+          error: 'Daily quota exhausted',
+          message: 'Plant identification limit reached for today. Please try again tomorrow.',
+          retryAfter: secondsUntilNextUtcMidnight(),
+        })
       }
     }
 
-    // Parse request body
+    // 3. Per-user hourly limit — fast PK lookup against own bucket row
+    if (config && !isDevMode) {
+      const hourBucket = currentHourBucket()
+      const { data: bucket, error: bucketErr } = await supabase
+        .from('api_usage_buckets')
+        .select('count')
+        .eq('api_name', 'plantnet')
+        .eq('user_id', user.id)
+        .eq('hour_bucket', hourBucket)
+        .maybeSingle()
+
+      if (bucketErr) {
+        console.error('Bucket read failed (failing open):', bucketErr)
+      } else if (bucket && bucket.count >= config.rate_limit_per_hour) {
+        console.warn(`User ${user.id} hit hourly limit: ${bucket.count}/${config.rate_limit_per_hour}`)
+        return jsonResponse(429, {
+          error: 'Rate limit exceeded',
+          message: `Maximum ${Math.floor(config.rate_limit_per_hour / 3)} plant scans per hour. Please try again later.`,
+          retryAfter: 3600 - Math.floor((Date.now() % 3600000) / 1000),
+        })
+      }
+    }
+
+    // ── PlantNet call ─────────────────────────────────────────────────
     const { imageBase64, imageUri, organ = 'leaf', language = 'en' } = await req.json()
 
     if (!imageBase64 && !imageUri) {
-      return new Response(
-        JSON.stringify({ error: 'imageBase64 or imageUri is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return jsonResponse(400, { error: 'imageBase64 or imageUri is required' })
     }
 
     console.log(`Calling PlantNet API: organ=${organ}, language=${language}`)
 
-    // Call PlantNet API with secure key
     const formData = new FormData()
-
-    // Convert base64 to blob, or fetch from URI (fallback)
     let imageBlob: Blob
     if (imageBase64) {
-      // NEW: Accept base64-encoded image (works with local file:// URIs)
-      console.log('🔍 Converting base64 to blob...')
       const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '')
       const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0))
       imageBlob = new Blob([binaryData], { type: 'image/jpeg' })
       console.log(`✅ Base64 converted: blob size=${imageBlob.size} bytes`)
     } else {
-      // FALLBACK: Fetch image from URI (only works for http:// URLs)
-      console.log('🔍 Fetching image from URI (fallback)...')
       const imageResponse = await fetch(imageUri!)
       imageBlob = await imageResponse.blob()
       console.log(`✅ Image fetched: blob size=${imageBlob.size} bytes`)
@@ -126,12 +175,8 @@ serve(async (req) => {
     formData.append('organs', organ)
 
     const plantNetUrl = `https://my-api.plantnet.org/v2/identify/all?api-key=${PLANTNET_API_KEY}&lang=${language}`
-
     console.log(`📤 Sending request to PlantNet... (blob size: ${imageBlob.size} bytes)`)
-    const plantNetResponse = await fetch(plantNetUrl, {
-      method: 'POST',
-      body: formData,
-    })
+    const plantNetResponse = await fetch(plantNetUrl, { method: 'POST', body: formData })
 
     console.log(`📥 PlantNet response: status=${plantNetResponse.status}`)
 
@@ -141,77 +186,48 @@ serve(async (req) => {
         status: plantNetResponse.status,
         statusText: plantNetResponse.statusText,
         errorBody: errorText,
-        blobSize: imageBlob.size
+        blobSize: imageBlob.size,
       })
-      return new Response(
-        JSON.stringify({
-          error: 'PlantNet API error',
-          status: plantNetResponse.status,
-          statusText: plantNetResponse.statusText,
-          message: errorText,
-          details: {
-            blobSize: imageBlob.size,
-            organ,
-            language
-          }
-        }),
-        { status: plantNetResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      return jsonResponse(plantNetResponse.status, {
+        error: 'PlantNet API error',
+        status: plantNetResponse.status,
+        statusText: plantNetResponse.statusText,
+        message: errorText,
+        details: { blobSize: imageBlob.size, organ, language },
+      })
     }
 
     const plantNetData = await plantNetResponse.json()
 
-    // 🔒 Log confidence scores for monitoring
     if (plantNetData.results && plantNetData.results.length > 0) {
       const topResult = plantNetData.results[0]
       const confidence = Math.round(topResult.score * 100)
       console.log(`✅ Plant identified: ${topResult.species?.scientificNameWithoutAuthor || 'unknown'} (${confidence}% confidence)`)
-
-      // Warn if confidence is low
       if (confidence < 60) {
-        console.warn(`⚠️ Low confidence result: ${confidence}% - may be rejected by client`)
+        console.warn(`⚠️ Low confidence result: ${confidence}% — may be rejected by client`)
       }
     } else {
-      console.warn('⚠️ PlantNet returned no results - likely not a plant')
+      console.warn('⚠️ PlantNet returned no results — likely not a plant')
     }
 
-    // Log API usage for rate limiting
-    const { error: insertError } = await supabase
-      .from('api_usage')
-      .insert({
-        user_id: user.id,
-        api_name: 'plantnet',
-        created_at: new Date().toISOString(),
-        metadata: {
-          confidence: plantNetData.results?.[0]?.score ? Math.round(plantNetData.results[0].score * 100) : 0,
-          resultsCount: plantNetData.results?.length || 0
-        }
+    // ── Increment counter atomically (UPSERT into bucket via SQL function) ─
+    if (!isDevMode) {
+      const { error: upsertErr } = await supabase.rpc('increment_api_usage_bucket', {
+        p_api_name: 'plantnet',
+        p_hour_bucket: currentHourBucket(),
       })
-
-    if (insertError) {
-      console.error('Failed to log API usage:', insertError)
-      // Don't fail the request, just log the error
+      if (upsertErr) {
+        console.error('Bucket UPSERT failed (non-fatal):', upsertErr)
+      }
     }
 
-    console.log('PlantNet identification successful')
-
-    // Return PlantNet response
-    return new Response(
-      JSON.stringify(plantNetData),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    )
+    return jsonResponse(200, plantNetData)
 
   } catch (error) {
     console.error('Edge Function error:', error)
-    return new Response(
-      JSON.stringify({
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return jsonResponse(500, {
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    })
   }
 })
