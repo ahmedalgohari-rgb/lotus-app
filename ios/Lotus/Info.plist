@@ -41,7 +41,7 @@
       </dict>
     </array>
     <key>CFBundleVersion</key>
-    <string>57</string>
+    <string>58</string>
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
     <key>LSMinimumSystemVersion</key>
@@ -61,6 +61,8 @@
     <string>Lotus uses your location to provide accurate weather-based plant care recommendations for your area.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your microphone</string>
+    <key>NSMotionUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to access your device motion</string>
     <key>NSPhotoLibraryAddUsageDescription</key>
     <string>Lotus needs permission to save plant photos to your photo library.</string>
     <key>NSPhotoLibraryUsageDescription</key>

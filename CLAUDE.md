@@ -36,7 +36,7 @@ Cairo Suitability, Summer Care, Winter Care, Image URL
        ↓
 🌿 PlantNet Edge Function (secure, rate-limited)
        ↓
-📚 Match against local database (135 curated plants)
+📚 Match against local database (~720 curated plants)
        ↓
 🔍 If not found → Research Service (Perenual API)
        ↓
@@ -45,9 +45,19 @@ Cairo Suitability, Summer Care, Winter Care, Image URL
 
 ### Security Model
 - **API Keys**: Stored as Supabase secrets (not in app bundle)
-- **Rate Limiting**: 10 PlantNet requests/hour per user
+- **Rate Limiting**: Live-tunable via `api_config` table (default: 30/hr per user, 400/day global)
 - **RLS**: Users can only access their own plants
 - **Edge Functions**: `/supabase/functions/identify-plant/`, `/supabase/functions/get-weather-apple/`
+
+### Live API Governance (`api_config` + `api_usage_buckets`)
+- **Knobs**: Edit rows in `api_config` table to change rate limits, pause APIs, or set daily caps — **no Edge Function redeploy needed**
+- **Kill switch**: `UPDATE api_config SET enabled = FALSE WHERE api_name = 'plantnet'` → clients get 503 immediately (effective within 60s due to module-scope cache TTL)
+- **Per-user limit**: `rate_limit_per_hour` (per user, sliding fixed-window by hour)
+- **Global circuit breaker**: `max_calls_per_day` — total across all users; protects against runaway usage / hitting PlantNet's free-tier 500/day ceiling
+- **Counter pattern**: `api_usage_buckets` stores one row per `(api_name, user_id, hour_bucket)` via UPSERT — replaces per-event logging in old `api_usage` table (~30x fewer rows)
+- **Aggregation helpers** (SECURITY DEFINER, bypass RLS): `increment_api_usage_bucket(api, hour)`, `get_api_global_daily_count(api)`
+- **Alerts** (optional, requires pg_cron): `check_api_thresholds()` writes to `api_alerts` when usage ≥80% of daily cap. Schedule with `cron.schedule('check_api_thresholds', '*/15 * * * *', ...)`
+- **Migrations**: `supabase/migrations/005_api_config_and_buckets.sql`, `006_api_alerts.sql`
 
 ### Database Sync Pipeline
 - **Source of Truth**: `docs/database_complete_detailed.csv`
@@ -129,6 +139,35 @@ Cairo Suitability, Summer Care, Winter Care, Image URL
 
 ## Key Learnings (Historical)
 
+### Session: April 13-14, 2026 - Native WeatherKit + TestFlight Pipeline
+
+**Native WeatherKit (Option B - On-Device):**
+- Replaced Supabase Edge Function weather with native Apple WeatherKit + CoreLocation
+- Module: `modules/lotus-weather/` (Expo Modules API, Swift-first)
+- CLLocationManager MUST be created on main thread (`DispatchQueue.main.async`) or delegate callbacks never fire
+- Fallback chain: Native WeatherKit (10s timeout) → Edge Function (Cairo) → Cache → Mock seasonal
+- WeatherKit capability must be enabled in Apple Developer Portal for `com.lotus.plantcare`
+- After enabling WeatherKit in portal, toggle auto-signing off/on in Xcode to regenerate provisioning profile
+
+**Config Plugins (survive `prebuild --clean`):**
+- `plugins/withWeatherKit.js` — adds WeatherKit entitlement + `NSLocationWhenInUseUsageDescription`
+- `plugins/withFmtFix.js` — fixes fmt library C++17 build error on Xcode 16+ (was previously lost on every prebuild)
+- Expo local modules need BOTH `expo-module.config.json` AND `package.json` to be discovered by autolinking
+
+**TestFlight Pipeline (Local Xcode):**
+1. `npx expo prebuild --clean` (press Y)
+2. `open ios/Lotus.xcworkspace`
+3. Xcode: Lotus target → General → verify Version + bump Build number
+4. Product → Clean Build Folder (Shift+Cmd+K)
+5. Select "Any iOS Device (arm64)"
+6. Product → Archive → Validate App → Distribute App → App Store Connect → Upload
+
+**Critical Versioning Rules:**
+- `prebuild --clean` resets Version and Build from `app.json` — ALWAYS verify in Xcode after prebuild
+- Once a version is released (e.g., 1.0.0), Apple closes that "train" — must increment to 1.1.0+
+- Build number must be strictly increasing (higher than last uploaded)
+- Current: Version 1.1.0, Build 56 (app.json updated to 1.1.0)
+
 ### Session: April 5, 2026 - SDK 53 Downgrade & Image Loading Fix
 
 **Build Issues Fixed:**
@@ -193,7 +232,7 @@ eas submit --platform ios --latest
 ### Data Architecture (Jan 2026)
 - **Problem**: CSV and JSON drifted → genus extraction failed → misidentification bugs
 - **Solution**: Single source of truth (CSV) with automated sync pipeline
-- **Result**: 135 plants with 100% genus coverage, automated validation
+- **Result**: ~720 plants with 100% genus coverage, automated validation
 
 ### TestFlight Issues (Feb 2026)
 - **Session Expiry**: RLS policies need active Supabase session, not just Zustand user object
@@ -275,9 +314,23 @@ scripts/
 ├── sync-csv-to-json.js      # CSV → JSON pipeline
 └── validate-database.js     # Data quality checks
 
+modules/
+└── lotus-weather/           # Native WeatherKit + CoreLocation (Expo Module)
+    ├── expo-module.config.json
+    ├── index.ts             # TS bindings (getNativeWeather)
+    ├── package.json
+    └── ios/
+        ├── LotusWeatherModule.swift  # Swift native module
+        └── LotusWeather.podspec
+
+plugins/
+├── withAppIcon.js           # App Store icon fix
+├── withWeatherKit.js        # WeatherKit entitlement + location permission
+└── withFmtFix.js            # Xcode 16+ fmt build fix
+
 supabase/functions/
 ├── identify-plant/          # Secure PlantNet proxy
-├── get-weather-apple/       # Apple WeatherKit API (primary)
-├── get-weather/             # OpenWeatherMap API (fallback/deprecated)
+├── get-weather-apple/       # Apple WeatherKit REST API (fallback for native)
+├── get-weather/             # OpenWeatherMap API (deprecated)
 └── research-plant/          # Unknown plant research
 ```

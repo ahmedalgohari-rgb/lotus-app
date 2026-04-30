@@ -3,6 +3,7 @@ import { WeatherData } from '../types';
 import i18n from '../i18n';
 import { logger } from '../utils/logger';
 import { getNativeWeather, NativeWeatherResult } from '../../modules/lotus-weather';
+import { getCurrentSeason } from '../utils/season';
 
 // 🔒 SECURITY: Weather data fetched via secure Edge Function (Apple WeatherKit)
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
@@ -23,6 +24,65 @@ interface WeatherApiResponse {
   wind: {
     speed: number;
   };
+}
+
+/**
+ * Localized weather condition descriptions
+ * Maps WeatherKit condition codes → Arabic & English
+ */
+const WEATHER_CONDITIONS: Record<string, { en: string; ar: string }> = {
+  // Clear / Sunny
+  clear:           { en: 'Clear',              ar: 'صافي' },
+  mostlyclear:     { en: 'Mostly Clear',       ar: 'صافي غالباً' },
+  hot:             { en: 'Hot',                 ar: 'حر' },
+
+  // Cloudy
+  partlycloudy:    { en: 'Partly Cloudy',      ar: 'غيوم جزئية' },
+  mostlycloudy:    { en: 'Mostly Cloudy',      ar: 'غائم غالباً' },
+  cloudy:          { en: 'Cloudy',              ar: 'غائم' },
+  foggy:           { en: 'Foggy',              ar: 'ضباب' },
+  haze:            { en: 'Hazy',               ar: 'شبورة' },
+  smoky:           { en: 'Smoky',              ar: 'دخان' },
+
+  // Wind / Dust
+  breezy:          { en: 'Breezy',             ar: 'نسيم' },
+  windy:           { en: 'Windy',              ar: 'رياح' },
+  blowingdust:     { en: 'Dusty',              ar: 'تراب' },
+
+  // Rain
+  drizzle:         { en: 'Drizzle',            ar: 'رذاذ' },
+  rain:            { en: 'Rain',               ar: 'مطر' },
+  heavyrain:       { en: 'Heavy Rain',         ar: 'مطر غزير' },
+  thunderstorms:   { en: 'Thunderstorms',      ar: 'رعد وبرق' },
+  strongstorms:    { en: 'Strong Storms',      ar: 'عواصف قوية' },
+  hail:            { en: 'Hail',               ar: 'بَرَد' },
+  tropicalstorm:   { en: 'Tropical Storm',     ar: 'عاصفة استوائية' },
+  hurricane:       { en: 'Hurricane',          ar: 'إعصار' },
+
+  // Wintry (rare in Egypt)
+  freezingrain:    { en: 'Freezing Rain',      ar: 'مطر متجمد' },
+  freezingdrizzle: { en: 'Freezing Drizzle',   ar: 'رذاذ متجمد' },
+  snow:            { en: 'Snow',               ar: 'ثلج' },
+  flurries:        { en: 'Flurries',           ar: 'رقاقات ثلج' },
+  sleet:           { en: 'Sleet',              ar: 'مطر ثلجي' },
+  blizzard:        { en: 'Blizzard',           ar: 'عاصفة ثلجية' },
+  blowingsnow:     { en: 'Blowing Snow',       ar: 'ثلوج عاصفة' },
+  frigid:          { en: 'Frigid',             ar: 'برد شديد' },
+  sunflurries:     { en: 'Sun Flurries',       ar: 'صافي مع رقاقات' },
+};
+
+/**
+ * Get localized weather description from condition code
+ */
+function getLocalizedCondition(conditionCode: string): string {
+  const isArabic = i18n.language === 'ar';
+  const code = conditionCode.toLowerCase();
+  const match = WEATHER_CONDITIONS[code];
+  if (match) {
+    return isArabic ? match.ar : match.en;
+  }
+  // Fallback: return the raw code prettified
+  return isArabic ? 'صافي' : 'Clear';
 }
 
 export class WeatherService {
@@ -102,10 +162,16 @@ export class WeatherService {
 
     return {
       temperature: temp,
+      tempMin: result.temperatureMin,
+      tempMax: result.temperatureMax,
       humidity,
       condition,
-      description: result.description,
+      description: getLocalizedCondition(result.conditionCode),
       windSpeed: result.windSpeed,
+      windGust: result.windGust,
+      uvIndex: result.uvIndex,
+      uvCategory: result.uvCategory,
+      pressure: result.pressure,
       lastUpdated: new Date(),
       location: result.locationName,
       careRecommendation: this.generateCareRecommendation(temp, humidity, condition)
@@ -232,9 +298,11 @@ export class WeatherService {
 
     return {
       temperature: tempAverage,
+      tempMin: tempLow,
+      tempMax: tempHigh,
       humidity,
       condition: this.mapWeatherCondition(condition),
-      description: data.weather[0]?.description || (i18n.language === 'ar' ? 'صافي' : 'Clear'),
+      description: getLocalizedCondition(data.weather[0]?.main || 'clear'),
       windSpeed: data.wind.speed,
       lastUpdated: new Date(),
       location: i18n.language === 'ar' ? 'القاهرة' : 'Cairo', // Edge function fallback uses Cairo
@@ -312,57 +380,44 @@ export class WeatherService {
   }
 
   /**
-   * Helper to get official astronomical season
-   */
-  private static getOfficialSeason(): 'winter' | 'spring' | 'summer' | 'autumn' {
-    const now = new Date();
-    const month = now.getMonth();
-    const day = now.getDate();
-
-    // Official astronomical season dates (Egypt/Northern Hemisphere)
-    if ((month === 11 && day >= 21) || month === 0 || month === 1 || (month === 2 && day <= 20)) {
-      return 'winter'; // Dec 21 - Mar 20
-    }
-    if ((month === 2 && day >= 21) || month === 3 || month === 4 || (month === 5 && day <= 20)) {
-      return 'spring'; // Mar 21 - Jun 20
-    }
-    if ((month === 5 && day >= 21) || month === 6 || month === 7 || (month === 8 && day <= 22)) {
-      return 'summer'; // Jun 21 - Sep 22
-    }
-    return 'autumn'; // Sep 23 - Dec 20
-  }
-
-  /**
    * Get mock weather data for development/fallback
    * Uses seasonal temperatures for Cairo based on official astronomical dates
    */
   private static getMockWeatherData(): WeatherData {
-    const season = this.getOfficialSeason();
+    const season = getCurrentSeason();
     let temp: number;
+    let tempMin: number;
+    let tempMax: number;
     let humidity: number;
 
     if (season === 'summer') {
-      temp = 35;
+      temp = 35; tempMin = 28; tempMax = 42;
       humidity = 35;
     } else if (season === 'winter') {
-      temp = 18;
+      temp = 18; tempMin = 10; tempMax = 22;
       humidity = 60;
     } else {
       // Spring/Autumn: Pleasant
-      temp = 25;
+      temp = 25; tempMin = 18; tempMax = 32;
       humidity = 45;
     }
 
     const isArabic = i18n.language === 'ar';
-    
+
     return {
       temperature: temp,
+      tempMin,
+      tempMax,
       humidity: humidity,
       condition: 'sunny',
-      description: isArabic ? 'صافي' : 'Clear',
+      description: getLocalizedCondition('clear'),
       windSpeed: 10,
+      windGust: 15,
+      uvIndex: season === 'summer' ? 8 : season === 'winter' ? 2 : 5,
+      uvCategory: season === 'summer' ? 'veryHigh' : season === 'winter' ? 'low' : 'moderate',
+      pressure: 1013,
       lastUpdated: new Date(),
-      location: isArabic ? 'القاهرة' : 'Cairo', // Fallback location for mock data
+      location: isArabic ? 'القاهرة' : 'Cairo',
       careRecommendation: this.generateCareRecommendation(temp, humidity, 'clear')
     };
   }
@@ -430,7 +485,7 @@ export class WeatherService {
    * Get seasonal care tips based on official astronomical dates
    */
   static getSeasonalTips(): string[] {
-    const season = this.getOfficialSeason();
+    const season = getCurrentSeason();
     const isArabic = i18n.language === 'ar';
 
     if (season === 'summer') {

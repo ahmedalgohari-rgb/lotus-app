@@ -1,43 +1,301 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Alert } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  Animated,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  Alert,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '../utils/logger';
+import { calculateHealthStatus, getHealthColor } from '../utils/plantHealth';
 
 import {
   COLORS,
   PLANT_LOCATIONS,
   FIBONACCI,
   TYPOGRAPHY,
+  ELEMENT_SIZES,
 } from '../constants';
 import { useStore } from '../store';
 import { dbService } from '../services/supabase';
 import PlantImage from '../components/PlantImage';
+import GardenLocationModal from '../components/GardenLocationModal';
 import { Plant } from '../types';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRTL } from '../utils/rtl';
 import * as NotificationService from '../services/notifications';
 
+// ---------------------------------------------------------------------------
+// AnimatedPlantCard
+// Handles stagger fade-in (opacity + translateY) and press scale feedback.
+// ---------------------------------------------------------------------------
+interface AnimatedPlantCardProps {
+  plant: Plant;
+  index: number;
+  onPress: () => void;
+  onLongPress: () => void;
+  isRTL: boolean;
+  getLocationLabel: (location: string) => string;
+  getDaysUntilWatering: (nextWatering?: string) => string;
+}
+
+function AnimatedPlantCard({
+  plant,
+  index,
+  onPress,
+  onLongPress,
+  isRTL,
+  getLocationLabel,
+  getDaysUntilWatering,
+}: AnimatedPlantCardProps) {
+  const enterAnim = useRef(new Animated.Value(0)).current; // 0 = invisible/shifted
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.timing(enterAnim, {
+      toValue: 1,
+      duration: 300,
+      delay: index * 60,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.97,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 30,
+      bounciness: 6,
+    }).start();
+  };
+
+  const opacity = enterAnim;
+  const translateY = enterAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [8, 0],
+  });
+
+  return (
+    <Animated.View style={{ opacity, transform: [{ translateY }, { scale: scaleAnim }], width: '48%' }}>
+      <TouchableOpacity
+        style={styles.card}
+        onPress={onPress}
+        onLongPress={onLongPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={1}
+      >
+        <View style={styles.imageWrapper}>
+          <PlantImage
+            plantId={plant.plant_id}
+            imageUrl={plant.image_url}
+            capturedImageUri={plant.captured_image_uri}
+            plantName={plant.nickname}
+            size={FIBONACCI.HUGE}
+            style={styles.image}
+          />
+        </View>
+        <View style={styles.textBlock}>
+          <Text style={[styles.plantName, isRTL && styles.plantNameRTL]}>{plant.nickname}</Text>
+          <Text style={[styles.location, isRTL && styles.locationRTL]}>{getLocationLabel(plant.location)}</Text>
+        </View>
+
+        <View style={styles.infoRowWrapper}>
+          <View style={styles.infoRow}>
+            {/* Left: Watering */}
+            <View style={styles.infoItem}>
+              <Ionicons name="water-outline" size={16} color="#3B82F6" />
+              <Text style={styles.infoText}>{getDaysUntilWatering(plant.next_watering_at)}</Text>
+            </View>
+
+            {/* Center: Orientation */}
+            <View style={styles.infoItem}>
+              <Ionicons name="navigate-outline" size={16} color={COLORS.textSecondary} />
+              <Text style={styles.infoText}>{plant.window_direction.charAt(0).toUpperCase()}</Text>
+            </View>
+
+            {/* Right: Health Indicator */}
+            <View style={[styles.statusDot, { backgroundColor: getHealthColor(calculateHealthStatus(plant)) }]} />
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// AnimatedAddCard
+// Press scale feedback on the dashed "Add Plant" card.
+// ---------------------------------------------------------------------------
+interface AnimatedAddCardProps {
+  onPress: () => void;
+  isRTL: boolean;
+  label: string;
+  // Stagger after last plant card
+  index: number;
+}
+
+function AnimatedAddCard({ onPress, isRTL, label, index }: AnimatedAddCardProps) {
+  const enterAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.timing(enterAnim, {
+      toValue: 1,
+      duration: 300,
+      delay: index * 60,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, { toValue: 0.97, useNativeDriver: true, speed: 50, bounciness: 4 }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, speed: 30, bounciness: 6 }).start();
+  };
+
+  const opacity = enterAnim;
+  const translateY = enterAnim.interpolate({ inputRange: [0, 1], outputRange: [8, 0] });
+
+  return (
+    <Animated.View style={{ opacity, transform: [{ translateY }, { scale: scaleAnim }], width: '48%' }}>
+      <TouchableOpacity
+        style={styles.addCard}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={1}
+      >
+        <View style={styles.addCircle}>
+          <Ionicons name="add" size={36} color={COLORS.primary} />
+        </View>
+        <Text style={[styles.addText, isRTL && styles.addTextRTL]}>{label}</Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// EmptyState
+// Shown when a signed-in user has no plants yet. Gentle pulse on the icon.
+// ---------------------------------------------------------------------------
+function EmptyState({ isRTL, onAddPress, t }: { isRTL: boolean; onAddPress: () => void; t: (key: string) => string }) {
+  const pulse = useRef(new Animated.Value(1)).current;
+  const fadeIn = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Fade the whole empty state in
+    Animated.timing(fadeIn, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+
+    // Slow pulse on the leaf icon
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1.08, duration: 1200, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 1200, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
+  return (
+    <Animated.View style={[styles.emptyContainer, { opacity: fadeIn }]}>
+      <Animated.View style={{ transform: [{ scale: pulse }] }}>
+        <Ionicons name="leaf-outline" size={72} color={COLORS.primary} style={{ opacity: 0.35 }} />
+      </Animated.View>
+      <Text style={[styles.emptyTitle, isRTL && { textAlign: 'right' }]}>
+        {t('plants.noPlantsTitle')}
+      </Text>
+      <Text style={[styles.emptySubtitle, isRTL && { textAlign: 'right' }]}>
+        {t('plants.noPlantsSubtitle')}
+      </Text>
+      <TouchableOpacity
+        style={styles.emptyButton}
+        onPress={onAddPress}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Ionicons name="add" size={18} color={COLORS.white} />
+        <Text style={styles.emptyButtonText}>{t('plants.addPlant')}</Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// PlantsScreen
+// ---------------------------------------------------------------------------
 export default function PlantsScreen() {
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
   const isRTL = useRTL();
 
-  const { plants, user, setPlants, deletePlant, gardenLocation } = useStore();
+  const { plants, user, setPlants, deletePlant, gardenLocation, setGardenLocation } = useStore();
   const navigation = useNavigation();
+  const [showGardenLocationPrompt, setShowGardenLocationPrompt] = useState(false);
 
   useEffect(() => {
     loadPlants();
   }, [user]);
 
+  // Show the garden location prompt when this tab is opened, if conditions are met.
+  // This replaces the old launch-time trigger so the prompt's "save your location"
+  // ask happens in-context, on the My Garden screen the user is actually looking at.
+  useFocusEffect(
+    useCallback(() => {
+      const checkGardenPrompt = async () => {
+        if (!user || user.id.startsWith('guest-')) return;
+        if (gardenLocation) return;
+        if (plants.length < 3) return;
+        const promptShown = await AsyncStorage.getItem('garden_location_prompt_shown');
+        if (!promptShown) {
+          setShowGardenLocationPrompt(true);
+        }
+      };
+      checkGardenPrompt();
+    }, [user, gardenLocation, plants.length])
+  );
+
+  const handleGardenLocationSave = async (location: { lat: number; lon: number; name: string }) => {
+    setShowGardenLocationPrompt(false);
+    setGardenLocation(location);
+    if (user) {
+      await dbService.updateProfile(user.id, {
+        garden_lat: location.lat,
+        garden_lon: location.lon,
+        garden_name: location.name,
+      });
+    }
+    await AsyncStorage.setItem('garden_location_prompt_shown', 'true');
+  };
+
+  const handleGardenLocationSkip = async () => {
+    setShowGardenLocationPrompt(false);
+    await AsyncStorage.setItem('garden_location_prompt_shown', 'true');
+  };
+
   const loadPlants = async () => {
     if (!user) return;
-    
+
     if (user.id.startsWith('guest-')) {
       return;
     }
-    
+
     try {
       const { data, error } = await dbService.getPlants(user.id);
       if (error) throw error;
@@ -68,7 +326,7 @@ export default function PlantsScreen() {
                 deletePlant(plantId);
                 return;
               }
-              
+
               const { error } = await dbService.deletePlant(plantId);
               if (error) throw error;
               deletePlant(plantId);
@@ -106,46 +364,14 @@ export default function PlantsScreen() {
     if (diffDays === 1) return '1d';
     return `${diffDays}d`;
   };
-  
-  const calculateHealthStatus = (plant: Plant): 'healthy' | 'needs_attention' | 'critical' => {
-    const placementScore = plant.placement_score || 0;
-    const hasBeenWatered = !!plant.last_watered_at; // Plant MUST have been watered before
-    const isWateringOverdue = plant.next_watering_at
-      ? new Date(plant.next_watering_at) < new Date()
-      : false;
-
-    // 🔴 CRITICAL: Poor placement (< 3 stars) - takes priority
-    if (placementScore < 3) {
-      return 'critical';
-    }
-
-    // 🟢 HEALTHY (THRIVING): Good placement (>= 3) AND has been watered AND on schedule
-    // A plant CANNOT be thriving if it's never been watered!
-    if (placementScore >= 3 && hasBeenWatered && !isWateringOverdue) {
-      return 'healthy';
-    }
-
-    // 🟡 NEEDS ATTENTION: Everything else
-    // - Never watered (even with good placement >= 3)
-    // - Good placement but overdue for watering
-    // - Any other case
-    return 'needs_attention';
-  };
-
-  const getHealthColor = (status: string) => {
-    switch (status) {
-      case 'healthy': return COLORS.success;
-      case 'needs_attention': return COLORS.warning;
-      case 'critical': return COLORS.error;
-      default: return COLORS.textSecondary;
-    }
-  };
 
   if (!user) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-          <Text style={[{fontSize: 18, color: COLORS.textSecondary}, isRTL && {textAlign: 'right'}]}>{t('plants.signInRequired')}</Text>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={[{ fontSize: 18, color: COLORS.textSecondary }, isRTL && { textAlign: 'right' }]}>
+            {t('plants.signInRequired')}
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -156,7 +382,11 @@ export default function PlantsScreen() {
       {/* Header */}
       <View style={[styles.header, isRTL && styles.headerRTL]}>
         <Text style={[styles.title, isRTL && styles.titleRTL]}>{t('plants.myGarden')}</Text>
-        <TouchableOpacity onPress={navigateToAddPlant}>
+        {/* hitSlop ensures the 32px icon has a 44px touch target */}
+        <TouchableOpacity
+          onPress={navigateToAddPlant}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+        >
           <Ionicons name="add-circle-outline" size={32} color={COLORS.primary} />
         </TouchableOpacity>
       </View>
@@ -165,67 +395,50 @@ export default function PlantsScreen() {
       {gardenLocation && (
         <View style={[styles.gardenPill, isRTL && styles.gardenPillRTL]}>
           <Ionicons name="location" size={14} color={COLORS.primary} />
-          <Text style={styles.gardenPillText}>
-            {t('gardenLocation.myGarden')}: {gardenLocation.name}
-          </Text>
+          <Text style={styles.gardenPillText}>{gardenLocation.name}</Text>
         </View>
       )}
 
       {/* Plant Grid */}
       <ScrollView
-        contentContainerStyle={styles.grid}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        contentContainerStyle={plants.length === 0 ? styles.gridEmpty : styles.grid}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         contentInset={{ bottom: 0 }}
         contentInsetAdjustmentBehavior="never"
       >
-        {plants.map((plant) => (
-          <TouchableOpacity key={plant.id} style={styles.card} onPress={() => navigateToPlantDetail(plant)} onLongPress={() => handleDeletePlant(plant.id, plant.nickname)}>
-            <View style={styles.imageWrapper}>
-              <PlantImage
-                plantId={plant.plant_id}
-                imageUrl={plant.image_url}
-                capturedImageUri={plant.captured_image_uri}
-                plantName={plant.nickname}
-                size={FIBONACCI.HUGE}
-                style={styles.image}
+        {plants.length === 0 ? (
+          <EmptyState isRTL={isRTL} onAddPress={navigateToAddPlant} t={t} />
+        ) : (
+          <>
+            {plants.map((plant, index) => (
+              <AnimatedPlantCard
+                key={plant.id}
+                plant={plant}
+                index={index}
+                onPress={() => navigateToPlantDetail(plant)}
+                onLongPress={() => handleDeletePlant(plant.id, plant.nickname)}
+                isRTL={isRTL}
+                getLocationLabel={getLocationLabel}
+                getDaysUntilWatering={getDaysUntilWatering}
               />
-            </View>
-            <View style={styles.textBlock}>
-              <Text style={[styles.plantName, isRTL && styles.plantNameRTL]}>{plant.nickname}</Text>
-              <Text style={[styles.location, isRTL && styles.locationRTL]}>{getLocationLabel(plant.location)}</Text>
-            </View>
+            ))}
 
-            <View style={styles.infoRowWrapper}>
-              <View style={styles.infoRow}>
-                {/* Left: Watering */}
-                <View style={styles.infoItem}>
-                  <Ionicons name="water-outline" size={16} color="#3B82F6" />
-                  <Text style={styles.infoText}>{getDaysUntilWatering(plant.next_watering_at)}</Text>
-                </View>
-
-                {/* Center: Orientation */}
-                <View style={styles.infoItem}>
-                  <Ionicons name="navigate-outline" size={16} color={COLORS.textSecondary} />
-                  <Text style={styles.infoText}>{plant.window_direction.charAt(0).toUpperCase()}</Text>
-                </View>
-
-                {/* Right: Health Indicator */}
-                <View style={[styles.statusDot, { backgroundColor: getHealthColor(calculateHealthStatus(plant)) }]} />
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
-
-        {/* Add Plant Card */}
-        <TouchableOpacity style={styles.addCard} onPress={navigateToAddPlant}>
-          <View style={styles.addCircle}>
-            <Ionicons name="add" size={36} color={COLORS.primary} />
-          </View>
-          <Text style={[styles.addText, isRTL && styles.addTextRTL]}>{t('plants.addPlant')}</Text>
-        </TouchableOpacity>
+            {/* Add Plant Card — staggered after the last plant */}
+            <AnimatedAddCard
+              onPress={navigateToAddPlant}
+              isRTL={isRTL}
+              label={t('plants.addPlant')}
+              index={plants.length}
+            />
+          </>
+        )}
       </ScrollView>
+
+      <GardenLocationModal
+        visible={showGardenLocationPrompt}
+        onSave={handleGardenLocationSave}
+        onSkip={handleGardenLocationSkip}
+      />
     </SafeAreaView>
   );
 }
@@ -236,7 +449,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   header: {
-    padding: 16,
+    padding: FIBONACCI.MD,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -257,12 +470,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'flex-start',
     backgroundColor: COLORS.white,
-    borderRadius: 16,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    marginHorizontal: 16,
-    marginBottom: 4,
-    gap: 4,
+    borderRadius: FIBONACCI.MD,
+    paddingVertical: FIBONACCI.XS,
+    paddingHorizontal: FIBONACCI.MD,
+    marginHorizontal: FIBONACCI.MD,
+    marginBottom: FIBONACCI.XXS,
+    gap: FIBONACCI.XXS,
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -273,68 +486,70 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
   },
   gardenPillText: {
-    fontSize: 13,
+    fontSize: TYPOGRAPHY.SM,
     color: COLORS.primary,
     fontWeight: '500',
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between', // Distribute cards evenly (automatic gap)
-    paddingHorizontal: FIBONACCI.SM, // 8px - Fibonacci side margins
-    paddingTop: FIBONACCI.SM, // 8px - Fibonacci top margin
-    paddingBottom: FIBONACCI.SM, // 8px - Minimal bottom padding
+    justifyContent: 'space-between',
+    paddingHorizontal: FIBONACCI.SM,
+    paddingTop: FIBONACCI.SM,
+    paddingBottom: FIBONACCI.SM,
+  },
+  gridEmpty: {
+    flexGrow: 1,
   },
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: FIBONACCI.MD, // 13px - Fibonacci border radius
+    borderRadius: FIBONACCI.MD,
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    padding: FIBONACCI.SM, // 8px - Fibonacci padding (tighter cards, more photo-focused)
-    width: '48%', // 48% width with space-between = automatic balanced gaps
-    marginBottom: FIBONACCI.MD, // 13px - Fibonacci vertical spacing
-    alignItems: 'center', // Center all content horizontally for balanced composition
+    padding: FIBONACCI.SM,
+    // width is set on the Animated.View wrapper (48%)
+    marginBottom: FIBONACCI.MD,
+    alignItems: 'center',
   },
   imageWrapper: {
     width: '100%',
-    alignItems: 'center', // Center image within wrapper for balanced card layout
+    alignItems: 'center',
   },
   image: {
-    // size prop handles dimensions (144×144 via FIBONACCI.HUGE)
-    borderRadius: FIBONACCI.SM, // 8px
+    borderRadius: FIBONACCI.SM,
   },
   textBlock: {
-    width: FIBONACCI.HUGE, // 144px - same as photo width
-    alignSelf: 'center', // Center the text block within card
-    marginTop: FIBONACCI.MD, // 13px gap between image and text
+    width: FIBONACCI.HUGE,
+    alignSelf: 'center',
+    marginTop: FIBONACCI.MD,
   },
   plantName: {
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.BASE,
     fontWeight: '600',
     color: COLORS.text,
-    textAlign: 'left', // Left-align for better readability
+    textAlign: 'left',
   },
   plantNameRTL: {
-    textAlign: 'right', // Right-align for RTL languages
+    textAlign: 'right',
   },
   location: {
-    fontSize: 13,
+    fontSize: TYPOGRAPHY.XS,
     color: COLORS.textSecondary,
-    textAlign: 'left', // Left-align for consistency
+    textAlign: 'left',
   },
   locationRTL: {
-    textAlign: 'right', // Right-align for RTL languages
+    textAlign: 'right',
   },
   infoRowWrapper: {
     width: '100%',
-    alignItems: 'center', // Center the infoRow horizontally within card
-    marginTop: 6,
+    alignItems: 'center',
+    marginTop: FIBONACCI.XS,
   },
   infoRow: {
-    width: FIBONACCI.HUGE, // 144px - same as photo width for visual alignment
+    width: FIBONACCI.HUGE,
     flexDirection: 'row',
-    justifyContent: 'space-between', // Distribute: Left (water) | Center (orientation) | Right (health)
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
   infoItem: {
@@ -342,9 +557,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   infoText: {
-    fontSize: 13,
+    fontSize: TYPOGRAPHY.XS,
     color: COLORS.textSecondary,
-    marginLeft: 4,
+    marginLeft: FIBONACCI.XXS,
   },
   statusDot: {
     width: 8,
@@ -352,20 +567,20 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   addCard: {
-    backgroundColor: '#E8F5E9', // accentGreen
+    backgroundColor: '#E8F5E9',
     borderStyle: 'dashed',
     borderColor: COLORS.primary,
     borderWidth: 2,
-    borderRadius: FIBONACCI.MD, // 13px - Fibonacci border radius (matches plant cards)
+    borderRadius: FIBONACCI.MD,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: FIBONACCI.LG, // 21px - Fibonacci vertical padding
-    width: '48%', // Match plant card width
+    paddingVertical: FIBONACCI.LG,
+    // width is set on the Animated.View wrapper (48%)
   },
   addCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: FIBONACCI.XXL,
+    height: FIBONACCI.XXL,
+    borderRadius: FIBONACCI.XXL / 2,
     backgroundColor: '#FFF',
     alignItems: 'center',
     justifyContent: 'center',
@@ -373,9 +588,48 @@ const styles = StyleSheet.create({
   addText: {
     color: COLORS.primary,
     fontWeight: '600',
-    marginTop: 8,
+    marginTop: FIBONACCI.SM,
   },
   addTextRTL: {
     textAlign: 'center',
+  },
+
+  // Empty state
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: FIBONACCI.XL,
+    paddingBottom: FIBONACCI.XXL,
+  },
+  emptyTitle: {
+    fontSize: TYPOGRAPHY.LG,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginTop: FIBONACCI.LG,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: TYPOGRAPHY.SM,
+    color: COLORS.textSecondary,
+    marginTop: FIBONACCI.SM,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  emptyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    borderRadius: FIBONACCI.MD,
+    paddingVertical: FIBONACCI.SM,
+    paddingHorizontal: FIBONACCI.LG,
+    marginTop: FIBONACCI.XL,
+    gap: FIBONACCI.XS,
+    minHeight: 44,
+  },
+  emptyButtonText: {
+    color: COLORS.white,
+    fontWeight: '600',
+    fontSize: TYPOGRAPHY.BASE,
   },
 });

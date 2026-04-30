@@ -49,7 +49,7 @@ export default function PlantImage({
     setImageError(false);
   }, [capturedImageUri, imageUrl]);
 
-  // Timeout for remote image loading (2 seconds - very fast fallback)
+  // Timeout for remote image loading (8 seconds - enough for cellular)
   React.useEffect(() => {
     if (!isLoading) return;
 
@@ -67,7 +67,7 @@ export default function PlantImage({
       } else {
         setImageError(true);
       }
-    }, 2000);
+    }, 8000);
 
     return () => clearTimeout(timeout);
   }, [isLoading, hasCapturedImage, hasCloudImage, hasLocalImage, capturedImageFailed, cloudImageFailed, plantName]);
@@ -150,7 +150,7 @@ export default function PlantImage({
       <Image
         source={source}
         style={[styles.image, { width: size, height: size }]}
-        cachePolicy="none"
+        cachePolicy="disk"
         transition={type === 'database' ? 0 : 200}
         contentFit="cover"
         onLoadStart={handleLoadStart}

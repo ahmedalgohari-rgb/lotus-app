@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.lotus.plantcare",
-      "buildNumber": "57",
+      "buildNumber": "58",
       "icon": "./assets/icon.png",
       "config": {
         "usesNonExemptEncryption": false
@@ -48,6 +48,7 @@
       "expo-font",
       "expo-web-browser",
       "expo-localization",
+      "expo-sensors",
       [
         "expo-camera",
         {

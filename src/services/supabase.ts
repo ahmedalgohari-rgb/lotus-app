@@ -5,6 +5,7 @@ import * as WebBrowser from 'expo-web-browser';
 import * as FileSystem from 'expo-file-system';
 import { Plant, PlantSpecies, CareEvent, User } from '../types';
 import { logger } from '../utils/logger';
+import { trackAuthCompleted, identifyUser } from './analytics';
 
 // NOTE: For production builds with native Apple Sign-In:
 // 1. npm install expo-apple-authentication
@@ -128,9 +129,12 @@ export const authService = {
 
             if (!sessionResult.error && sessionResult.data.session) {
               logger.debug(`${provider} OAuth successful via URL token extraction`);
+              const authUser = sessionResult.data.session.user;
+              trackAuthCompleted({ method: provider });
+              identifyUser(authUser.id, { name: authUser.user_metadata?.name, email: authUser.email });
               return {
                 data: {
-                  user: sessionResult.data.session.user,
+                  user: authUser,
                   session: sessionResult.data.session
                 },
                 error: null
@@ -175,9 +179,12 @@ export const authService = {
           }
 
           logger.debug(`${provider} OAuth successful, session retrieved via polling`);
+          const polledUser = sessionData.data.session.user;
+          trackAuthCompleted({ method: provider });
+          identifyUser(polledUser.id, { name: polledUser.user_metadata?.name, email: polledUser.email });
           return {
             data: {
-              user: sessionData.data.session.user,
+              user: polledUser,
               session: sessionData.data.session
             },
             error: null
@@ -219,9 +226,12 @@ export const authService = {
 
             if (!sessionResult.error && sessionResult.data.session) {
               logger.success(`${provider} OAuth successful via URL extraction (despite browser ${result.type})`);
+              const cancelUser = sessionResult.data.session.user;
+              trackAuthCompleted({ method: provider });
+              identifyUser(cancelUser.id, { name: cancelUser.user_metadata?.name, email: cancelUser.email });
               return {
                 data: {
-                  user: sessionResult.data.session.user,
+                  user: cancelUser,
                   session: sessionResult.data.session
                 },
                 error: null
@@ -248,9 +258,12 @@ export const authService = {
 
           if (sessionData?.data?.session) {
             logger.success(`${provider} OAuth successful via polling despite browser ${result.type}`);
+            const pollUser = sessionData.data.session.user;
+            trackAuthCompleted({ method: provider });
+            identifyUser(pollUser.id, { name: pollUser.user_metadata?.name, email: pollUser.email });
             return {
               data: {
-                user: sessionData.data.session.user,
+                user: pollUser,
                 session: sessionData.data.session
               },
               error: null
@@ -297,6 +310,91 @@ export const authService = {
       useSessionPolling: false, // Facebook uses URL token extraction
     });
   },
+
+  /**
+   * Link an OAuth identity to the currently signed-in (anonymous) user.
+   * Preserves user_id and all data — used when an anonymous guest upgrades to a permanent account.
+   */
+  _linkIdentity: async (provider: 'google' | 'apple' | 'facebook') => {
+    try {
+      const { data, error } = await supabase.auth.linkIdentity({
+        provider,
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true,
+        },
+      });
+
+      if (error) {
+        logger.error(`${provider} linkIdentity URL generation failed:`, error);
+        return { data: null, error };
+      }
+
+      if (!data?.url) {
+        return createOAuthError('No OAuth URL returned for link', 'OAuthError', 500);
+      }
+
+      logger.debug(`Opening ${provider} link browser`);
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+
+      const tryExtractTokens = (url?: string) => {
+        if (!url) return null;
+        const fragment = url.split('#')[1];
+        if (!fragment) return null;
+        const tokenParams: Record<string, string> = {};
+        fragment.split('&').forEach(part => {
+          const [key, value] = part.split('=');
+          if (key && value) tokenParams[key] = decodeURIComponent(value);
+        });
+        const access = tokenParams['access_token'];
+        const refresh = tokenParams['refresh_token'];
+        return access && refresh ? { access, refresh } : null;
+      };
+
+      const tokens = ('url' in result && result.url) ? tryExtractTokens(result.url) : null;
+
+      if (tokens) {
+        const sessionResult = await supabase.auth.setSession({
+          access_token: tokens.access,
+          refresh_token: tokens.refresh,
+        });
+        if (!sessionResult.error && sessionResult.data.session) {
+          const linkedUser = sessionResult.data.session.user;
+          logger.success(`${provider} identity linked — user_id preserved: ${linkedUser.id}`);
+          trackAuthCompleted({ method: provider });
+          identifyUser(linkedUser.id, { name: linkedUser.user_metadata?.name, email: linkedUser.email });
+          return { data: { user: linkedUser, session: sessionResult.data.session }, error: null };
+        }
+      }
+
+      // Fallback: poll for refreshed session (Apple often delivers tokens out-of-band)
+      for (let i = 0; i < SESSION_POLL_MAX_ATTEMPTS; i++) {
+        await new Promise(resolve => setTimeout(resolve, SESSION_POLL_INTERVAL_MS));
+        const { data: refreshedUser } = await supabase.auth.getUser();
+        if (refreshedUser?.user && !refreshedUser.user.is_anonymous) {
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (sessionData.session) {
+            logger.success(`${provider} identity linked via session poll`);
+            trackAuthCompleted({ method: provider });
+            identifyUser(refreshedUser.user.id, { name: refreshedUser.user.user_metadata?.name, email: refreshedUser.user.email });
+            return { data: { user: refreshedUser.user, session: sessionData.session }, error: null };
+          }
+        }
+      }
+
+      if (result.type === 'cancel' || result.type === 'dismiss') {
+        return createOAuthError('User cancelled link', 'UserCancelled', 400);
+      }
+      return createOAuthError('Identity link timed out', 'TimeoutError', 408);
+    } catch (err) {
+      logger.error(`${provider} linkIdentity error:`, err);
+      return { data: null, error: err as any };
+    }
+  },
+
+  linkWithGoogle: async () => authService._linkIdentity('google'),
+  linkWithApple: async () => authService._linkIdentity('apple'),
+  linkWithFacebook: async () => authService._linkIdentity('facebook'),
 
   /**
    * Sign in anonymously for guest users

@@ -155,12 +155,31 @@ public class LotusWeatherModule: Module {
     print("[LotusWeather] Condition: \(conditionCode) - \(description)")
     print("[LotusWeather] Returning result to JS")
 
+    // UV index
+    let uvValue = current.uvIndex.value
+    let uvCategory = String(describing: current.uvIndex.category)
+
+    // Wind gust (optional — not always available)
+    let windGust: Double
+    if let gust = current.wind.gust {
+      windGust = round(gust.converted(to: .kilometersPerHour).value * 10) / 10
+    } else {
+      windGust = 0
+    }
+
+    // Pressure in millibars
+    let pressure = round(current.pressure.converted(to: .millibars).value)
+
     return [
       "temperature": round(tempAvg),
       "temperatureMin": round(tempMin),
       "temperatureMax": round(tempMax),
       "humidity": round(current.humidity * 100), // 0-1 → 0-100
-      "windSpeed": round(current.wind.speed.converted(to: .metersPerSecond).value * 10) / 10,
+      "windSpeed": round(current.wind.speed.converted(to: .kilometersPerHour).value * 10) / 10,
+      "windGust": windGust,
+      "uvIndex": uvValue,
+      "uvCategory": uvCategory,
+      "pressure": pressure,
       "conditionCode": conditionCode,
       "description": description,
       "locationName": locationName,

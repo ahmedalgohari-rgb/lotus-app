@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { LogBox, View } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Linking from 'expo-linking';
+import * as Notifications from 'expo-notifications';
 import { useFonts } from 'expo-font';
 import { PlusJakartaSans_400Regular, PlusJakartaSans_700Bold } from '@expo-google-fonts/plus-jakarta-sans';
 
@@ -12,7 +12,7 @@ import { initializeStore, useStore } from './src/store';
 import { authService, dbService, supabase } from './src/services/supabase';
 import * as NotificationService from './src/services/notifications';
 import NotificationPromptModal from './src/components/NotificationPromptModal';
-import GardenLocationModal from './src/components/GardenLocationModal';
+import { trackAppOpened, identifyUser, setUserProperty, trackCareReminderEngagement } from './src/services/analytics';
 import './src/i18n'; // Initialize i18n
 
 // Ignore specific warnings for development
@@ -25,9 +25,8 @@ LogBox.ignoreLogs([
 ]);
 
 export default function App() {
-  const { setUser, setAuthenticated, setLoading, isRTL, setGardenLocation } = useStore();
+  const { setUser, setAuthenticated, setLoading, isRTL } = useStore();
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
-  const [showGardenLocationPrompt, setShowGardenLocationPrompt] = useState(false);
 
   // Load Tharwat Emara Ruqaa font for bilingual compass
   const [fontsLoaded] = useFonts({
@@ -52,8 +51,22 @@ export default function App() {
       }
     });
 
+    // Track when user taps a care reminder notification — this is the
+    // strongest engagement signal we have. If users ignore reminders, the
+    // whole care-schedule feature is dead weight.
+    const responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data || {};
+      if (data.plantId) {
+        trackCareReminderEngagement({
+          action: 'tapped',
+          daysOverdue: typeof data.daysOverdue === 'number' ? data.daysOverdue : undefined,
+        });
+      }
+    });
+
     return () => {
       subscription.remove();
+      responseSub.remove();
     };
   }, []);
 
@@ -138,10 +151,13 @@ export default function App() {
       // Initialize store from storage
       await initializeStore();
 
-      // Check for existing auth session
+      // Verify auth session with Supabase in the background.
+      // The store already restored isAuthenticated from cache (instant),
+      // so the user sees the main app immediately. This just refreshes
+      // the session data or signs out if the session expired.
       const { session } = await authService.getSession();
       if (session?.user) {
-        // Try to get user's profile with first_name
+        // Session valid — refresh user data from server
         const { data: profileData } = await dbService.getProfile(session.user.id);
 
         const userData = {
@@ -157,6 +173,13 @@ export default function App() {
         setUser(userData);
         setAuthenticated(true);
 
+        // Identify user in Mixpanel
+        identifyUser(session.user.id, {
+          name: userData.name,
+          email: userData.email,
+          created_at: userData.created_at,
+        });
+
         // Load garden location from profile if available
         if (profileData?.garden_lat && profileData?.garden_lon) {
           useStore.getState().setGardenLocation({
@@ -165,6 +188,11 @@ export default function App() {
             name: profileData.garden_name || '',
           });
         }
+      } else if (useStore.getState().isAuthenticated) {
+        // Cached auth was stale — session expired, sign out gracefully
+        console.log('⚠️ Cached session expired, signing out');
+        setUser(null);
+        setAuthenticated(false);
       }
 
       // Reschedule notifications on launch (uses plants loaded from store)
@@ -173,21 +201,21 @@ export default function App() {
         NotificationService.rescheduleAll(plants);
       }
 
-      // Progressive engagement for existing users who missed the prompts
+      // Progressive engagement: prompt existing users for notifications if they
+      // never saw it. The garden-location prompt now lives on the My Garden tab,
+      // triggered via useFocusEffect there — no longer fired on app launch.
       if (plants.length > 0) {
         const notifPromptShown = await NotificationService.hasPromptBeenShown();
         const notifEnabled = await NotificationService.isEnabled();
         if (!notifPromptShown && !notifEnabled) {
           // Delay slightly so the app UI loads first
           setTimeout(() => setShowNotificationPrompt(true), 1500);
-        } else if (plants.length >= 3) {
-          const gardenLoc = useStore.getState().gardenLocation;
-          const gardenPromptShown = await AsyncStorage.getItem('garden_location_prompt_shown');
-          if (!gardenLoc && !gardenPromptShown) {
-            setTimeout(() => setShowGardenLocationPrompt(true), 1500);
-          }
         }
       }
+      // Track app opened
+      trackAppOpened();
+      setUserProperty('plant_count', useStore.getState().plants.length);
+      setUserProperty('language', useStore.getState().language);
     } catch (error) {
       console.error('Error initializing app:', error);
     } finally {
@@ -203,48 +231,11 @@ export default function App() {
       const plants = useStore.getState().plants;
       await NotificationService.rescheduleAll(plants);
     }
-    // After notification prompt, check if garden location prompt is needed
-    const plants = useStore.getState().plants;
-    if (plants.length >= 3) {
-      const gardenLoc = useStore.getState().gardenLocation;
-      const gardenPromptShown = await AsyncStorage.getItem('garden_location_prompt_shown');
-      if (!gardenLoc && !gardenPromptShown) {
-        setTimeout(() => setShowGardenLocationPrompt(true), 500);
-      }
-    }
   };
 
   const handleNotificationSkip = async () => {
     setShowNotificationPrompt(false);
     await NotificationService.markPromptShown();
-    // After notification prompt, check if garden location prompt is needed
-    const plants = useStore.getState().plants;
-    if (plants.length >= 3) {
-      const gardenLoc = useStore.getState().gardenLocation;
-      const gardenPromptShown = await AsyncStorage.getItem('garden_location_prompt_shown');
-      if (!gardenLoc && !gardenPromptShown) {
-        setTimeout(() => setShowGardenLocationPrompt(true), 500);
-      }
-    }
-  };
-
-  const handleGardenLocationSave = async (location: { lat: number; lon: number; name: string }) => {
-    setShowGardenLocationPrompt(false);
-    setGardenLocation(location);
-    const user = useStore.getState().user;
-    if (user) {
-      await dbService.updateProfile(user.id, {
-        garden_lat: location.lat,
-        garden_lon: location.lon,
-        garden_name: location.name,
-      });
-    }
-    await AsyncStorage.setItem('garden_location_prompt_shown', 'true');
-  };
-
-  const handleGardenLocationSkip = async () => {
-    setShowGardenLocationPrompt(false);
-    await AsyncStorage.setItem('garden_location_prompt_shown', 'true');
   };
 
   // Wait for fonts to load before rendering app
@@ -261,11 +252,6 @@ export default function App() {
           visible={showNotificationPrompt}
           onEnable={handleNotificationEnable}
           onSkip={handleNotificationSkip}
-        />
-        <GardenLocationModal
-          visible={showGardenLocationPrompt}
-          onSave={handleGardenLocationSave}
-          onSkip={handleGardenLocationSkip}
         />
       </View>
     </SafeAreaProvider>

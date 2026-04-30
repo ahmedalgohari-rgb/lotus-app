@@ -6,6 +6,10 @@ export interface NativeWeatherResult {
   temperatureMax: number;
   humidity: number;
   windSpeed: number;
+  windGust: number;
+  uvIndex: number;
+  uvCategory: string;
+  pressure: number;
   conditionCode: string;
   description: string;
   locationName: string;

@@ -319,22 +319,21 @@ export const WEATHER_AWARE_DIRECTION_MODIFIERS: Record<string, WeatherAwareDirec
     direction: 'south',
     season: 'summer',
     getModifiers: (weather: WeatherData) => {
-      if (weather.temperature >= 38) {
-        // EXTREME DANGER: South window in 38°C+
+      const uvIndex = weather.uvIndex || 10;
+      // UV ≥ 11 (Aswan, Sharm) = extreme burn risk even at moderate temps
+      if (weather.temperature >= 38 || (weather.temperature >= 33 && uvIndex >= 11)) {
         return {
           lightIntensity: 'Very High',
-          wateringAdjustment: -3, // Check every 3 days less than normal
-          warning: '🔥 DANGER: South window in extreme heat can scorch leaves. Move plant 5 feet back or use sheer curtain immediately!',
+          wateringAdjustment: -3,
+          warning: `🔥 DANGER: South window in extreme heat (UV ${uvIndex}) can scorch leaves. Move plant back or use sheer curtain immediately!`,
         };
-      } else if (weather.temperature >= 35) {
-        // Very hot: South window dangerous
+      } else if (weather.temperature >= 35 || uvIndex >= 10) {
         return {
           lightIntensity: 'Very High',
           wateringAdjustment: -2,
-          warning: '⚠️ Very hot: Direct south sun can stress plants. Consider moving away from window during peak hours (12-4pm)',
+          warning: `⚠️ Very hot (UV ${uvIndex}): Direct south sun can stress plants. Consider moving away from window during peak hours (12-4pm)`,
         };
       } else {
-        // Hot but manageable
         return {
           lightIntensity: 'Very High',
           wateringAdjustment: -2,
@@ -400,18 +399,18 @@ export const WEATHER_AWARE_DIRECTION_MODIFIERS: Record<string, WeatherAwareDirec
     direction: 'west',
     season: 'summer',
     getModifiers: (weather: WeatherData) => {
-      if (weather.temperature >= 38) {
-        // Extreme heat: West window is second-worst after south
+      const uvIndex = weather.uvIndex || 10;
+      if (weather.temperature >= 38 || (weather.temperature >= 33 && uvIndex >= 11)) {
         return {
           lightIntensity: 'Very High',
           wateringAdjustment: -3,
-          warning: '🔥 DANGER: West window in extreme heat = peak afternoon heat stress. Move plant away from window or use heavy curtains 2-6pm!',
+          warning: `🔥 DANGER: West window in extreme heat (UV ${uvIndex}) = peak afternoon stress. Move plant away or use heavy curtains 2-6pm!`,
         };
-      } else if (weather.temperature >= 35) {
+      } else if (weather.temperature >= 35 || uvIndex >= 10) {
         return {
           lightIntensity: 'Very High',
           wateringAdjustment: -2,
-          warning: '⚠️ Very hot afternoons: West window can stress plants. Provide shade 3-6pm',
+          warning: `⚠️ Very hot afternoons (UV ${uvIndex}): West window can stress plants. Provide shade 3-6pm`,
         };
       } else {
         return {

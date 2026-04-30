@@ -6,10 +6,7 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  Platform,
   Dimensions,
-  ScrollView,
-  KeyboardAvoidingView,
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -47,10 +44,14 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
   const capturedImage = route?.params?.capturedImage;
 
   const handlePostAuthNavigation = () => {
-    // ✅ Navigation handled automatically by NavigationContainer's key-based re-mount
-    // When isAuthenticated/isGuest state changes, the entire nav tree rebuilds automatically
-    // and shows the correct screens. No manual navigation needed.
-    logger.debug('✅ Auth state updated - NavigationContainer will auto-navigate');
+    // NavigationContainer auto-remounts via its key (`nav-${isAuthenticated}-${isGuest}`)
+    // whenever auth state changes. But if the state didn't actually change — e.g. a
+    // guest re-entered AuthScreen via the AuthModal and tapped "Start Scanning" again —
+    // we must pop manually so the user is never stranded here.
+    logger.debug('✅ Auth flow complete');
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
   };
 
   const handleOpenTerms = () => {
@@ -352,6 +353,18 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
   };
 
   const handleGuestMode = async () => {
+    // If the user is already a guest (reached this screen via the AuthModal's
+    // "Already a member?" link), don't recreate their anonymous session — just
+    // pop back to whatever screen sent them here.
+    const { isGuest } = useStore.getState();
+    if (isGuest) {
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        navigation.navigate('Main');
+      }
+      return;
+    }
     await signInAsGuest();
     handlePostAuthNavigation();
   };
@@ -389,7 +402,14 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right']} testID="auth-screen">
+    <View style={styles.container} testID="auth-screen">
+      <LinearGradient
+        colors={[COLORS.primary, COLORS.secondary]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+
       {/* Name Collection Modal */}
       <NameCollectionModal
         visible={showNameCollection}
@@ -403,52 +423,23 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
         documentType={legalDocumentType}
       />
 
-      <LinearGradient
-        colors={[COLORS.primary, COLORS.secondary]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.gradientContainer}
-      >
-        {/* Skip Button - Top Right */}
-        <View style={styles.skipContainer}>
-          <TouchableOpacity
-            onPress={handleGuestMode}
-            testID="guest-login-button"
-            style={styles.skipButton}
-          >
-            <Text style={styles.skipText}>Skip</Text>
-          </TouchableOpacity>
-        </View>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom', 'left', 'right']}>
+        <View style={styles.content}>
+          {/* Logo and Taglines */}
+          <View style={styles.heroSection}>
+            <Image
+              source={require('../../assets/lotus-logo.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
+            <Text style={styles.appName}>LOTUS</Text>
+            <Text style={styles.tagline}>
+              {t('auth.tagline')}
+            </Text>
+          </View>
 
-        {/* Main Content with ScrollView */}
-        <KeyboardAvoidingView
-          style={styles.keyboardAvoidingView}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={0}
-        >
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            {/* Centered Content Wrapper */}
-            <View style={styles.centeredContent}>
-              {/* Logo and Taglines */}
-              <View style={styles.heroSection}>
-                <Image
-                  source={require('../../assets/lotus-logo.png')}
-                  style={styles.logoImage}
-                  resizeMode="contain"
-                />
-                <Text style={styles.appName}>LOTUS</Text>
-                <Text style={styles.tagline}>
-                  {t('auth.tagline')}
-                </Text>
-              </View>
-
-              {/* Auth Buttons */}
-              <View style={styles.authButtons}>
+          {/* Auth Buttons */}
+          <View style={styles.authButtons}>
             <TouchableOpacity
               style={[styles.googleButton, isLoading && styles.buttonDisabled]}
               onPress={handleGoogleSignIn}
@@ -481,35 +472,52 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
                 {t('auth.continueWithApple')}
               </Text>
             </TouchableOpacity>
-          </View>
+
+            {/* Divider */}
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>{t('auth.or')}</Text>
+              <View style={styles.dividerLine} />
             </View>
-            {/* End Centered Content Wrapper */}
 
-            {/* Loading State */}
-            {isLoading && (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={COLORS.white} />
-                <Text style={styles.loadingText}>{t('auth.signingIn')}</Text>
-              </View>
-            )}
-
-            {/* Legal Text */}
-            <View style={styles.legalSection}>
-              <Text style={styles.legalText}>
-                By continuing you agree to our{' '}
-                <Text style={styles.termsLink} onPress={handleOpenTerms}>
-                  Terms of Service
-                </Text>
-                {' '}and{' '}
-                <Text style={styles.termsLink} onPress={handleOpenPrivacy}>
-                  Privacy Policy
-                </Text>
+            {/* Guest CTA — primary path for users not ready to sign up */}
+            <TouchableOpacity
+              style={[styles.guestButton, isLoading && styles.buttonDisabled]}
+              onPress={handleGuestMode}
+              disabled={isLoading}
+              testID="guest-login-button"
+            >
+              <Ionicons name="play-circle-outline" size={22} color={COLORS.white} />
+              <Text style={styles.guestButtonText}>
+                {t('auth.startScanning')}
               </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Loading State */}
+          {isLoading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={COLORS.white} />
+              <Text style={styles.loadingText}>{t('auth.signingIn')}</Text>
             </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </LinearGradient>
-    </SafeAreaView>
+          )}
+
+          {/* Legal Text */}
+          <View style={styles.legalSection}>
+            <Text style={styles.legalText}>
+              By continuing you agree to our{' '}
+              <Text style={styles.termsLink} onPress={handleOpenTerms}>
+                Terms of Service
+              </Text>
+              {' '}and{' '}
+              <Text style={styles.termsLink} onPress={handleOpenPrivacy}>
+                Privacy Policy
+              </Text>
+            </Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    </View>
   );
 }
 
@@ -517,62 +525,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  gradientContainer: {
+  safeArea: {
     flex: 1,
   },
-  skipContainer: {
-    position: 'absolute',
-    top: FIBONACCI.XXL,                         // 55px - Fibonacci spacing from top
-    right: FIBONACCI.LG,                        // 21px - Fibonacci spacing from right
-    zIndex: 1,
-  },
-  skipButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: FIBONACCI.LG,
-    paddingVertical: FIBONACCI.SM,
-    borderRadius: FIBONACCI.LG,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  skipText: {
-    fontSize: TYPOGRAPHY.BASE,
-    color: COLORS.white,
-    fontWeight: '500',
-  },
-  keyboardAvoidingView: {
+  content: {
     flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: FIBONACCI.XL,           // 34px - Golden ratio horizontal padding
-    paddingTop: FIBONACCI.XXXL,                // 89px - Space for Skip button
-    paddingBottom: FIBONACCI.LG,               // 21px - Bottom breathing room
-    justifyContent: 'space-between',           // Push legal text to bottom
-  },
-  centeredContent: {
-    flex: 1,
-    justifyContent: 'center',                  // Vertically center logo + buttons
-    paddingTop: FIBONACCI.XL,                  // 34px - Slight offset from absolute center
+    paddingHorizontal: FIBONACCI.XL,           // 34px
+    paddingTop: FIBONACCI.SM,                  // 8px - tight top, SafeArea handles status bar
+    paddingBottom: FIBONACCI.SM,               // 8px
+    justifyContent: 'space-between',           // hero up, buttons middle, legal bottom
   },
   heroSection: {
     alignItems: 'center',
-    marginBottom: FIBONACCI.SM,                // 8px - Minimal gap to buttons
   },
   logo: {
-    fontSize: FIBONACCI.HUGE,                  // 144px - Large logo emoji
-    marginBottom: FIBONACCI.LG,                // 21px
+    fontSize: FIBONACCI.HUGE,
+    marginBottom: FIBONACCI.LG,
   },
   logoImage: {
-    width: SCREEN_WIDTH * 0.70,                // 70% width - bold brand presence
-    height: SCREEN_HEIGHT * 0.27,              // Taller for impact
-    marginBottom: FIBONACCI.SM,                // 8px - Tight spacing to "LOTUS"
+    width: SCREEN_WIDTH * 0.55,                // 55% width - bold but doesn't dominate
+    height: SCREEN_HEIGHT * 0.20,              // 20% - was 27%, fits without scroll
+    marginBottom: FIBONACCI.XS,                // 5px
     shadowColor: '#000',
     shadowOffset: { width: 0, height: FIBONACCI.SM },
     shadowOpacity: 0.15,
-    shadowRadius: FIBONACCI.LG,                // 21px shadow blur
+    shadowRadius: FIBONACCI.LG,
   },
   appName: {
     fontSize: TYPOGRAPHY.HUGE,                 // 55px - Display text from typography scale
@@ -653,6 +630,38 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.BASE,
     fontWeight: '600',
     marginLeft: FIBONACCI.MD,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: FIBONACCI.MD,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.35)',
+  },
+  dividerText: {
+    color: COLORS.white,
+    fontSize: TYPOGRAPHY.SM,
+    marginHorizontal: FIBONACCI.MD,
+    opacity: 0.85,
+  },
+  guestButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    height: ELEMENT_SIZES.BUTTON_MD,
+    borderRadius: ELEMENT_SIZES.RADIUS_LG,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.55)',
+  },
+  guestButtonText: {
+    color: COLORS.white,
+    fontSize: TYPOGRAPHY.BASE,
+    fontWeight: '700',
+    marginLeft: FIBONACCI.SM,
   },
   loadingContainer: {
     alignItems: 'center',

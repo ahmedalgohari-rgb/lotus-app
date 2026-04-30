@@ -5,6 +5,7 @@ export const COLORS = {
   secondary: '#4A90A4', // Nile Blue
   background: '#F7F3E9', // Cairo Sand
   white: '#FFFFFF',
+  black: '#000000',
   text: '#2C2C2C',
   textSecondary: '#6B6B6B',
   lightGray: '#F5F5F5',
@@ -13,6 +14,21 @@ export const COLORS = {
   error: '#FF4D4F',
   border: '#E8E8E8',
 };
+
+/**
+ * Score-to-gradient mapping for the placement rating hero card.
+ * Shared by AddPlantScreen and EditPlantScreen.
+ */
+export function getScoreGradient(score: number): [string, string] {
+  switch (score) {
+    case 5: return ['#D9F7BE', '#52C41A'];
+    case 4: return ['#FEF3C7', '#F59E0B'];
+    case 3: return ['#FEF3C7', '#F59E0B'];
+    case 2: return ['#FED7AA', '#F97316'];
+    case 1: return ['#FEE2E2', '#EF4444'];
+    default: return ['#F3F4F6', '#D1D5DB'];
+  }
+}
 
 export const PLANT_LOCATIONS = [
   { value: 'living_room', label: 'Living Room', labelAr: 'أوضة المعيشة' },

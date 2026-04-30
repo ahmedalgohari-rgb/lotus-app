@@ -18,6 +18,7 @@ import { COLORS, FIBONACCI, TYPOGRAPHY } from '../constants';
 import { createPlantIdService } from '../services/plant-identification';
 import { getCurrentLanguage } from '../i18n';
 import { logger, timer } from '../utils/logger';
+import { trackPlantScanned } from '../services/analytics';
 
 // Camera constants (never change during component lifecycle)
 const CAMERA_ZOOM = 0;
@@ -168,6 +169,13 @@ export default function ScanScreen({ route }: any) {
           confidence: `${result.confidence}%`
         });
 
+        trackPlantScanned({
+          result: 'identified',
+          confidence: result.confidence,
+          scientificName: result.scientific_name,
+          commonName: result.common_name,
+        });
+
         logger.groupEnd();
 
         // Navigate to PlantResultScreen instead of showing modal
@@ -177,6 +185,7 @@ export default function ScanScreen({ route }: any) {
         });
       } else {
         logger.warn('No identification results returned');
+        trackPlantScanned({ result: 'not_found' });
         logger.groupEnd();
 
         // Phase 1: Simple Alert with fixed navigation

@@ -27,7 +27,7 @@ import {
   FIBONACCI,
   TYPOGRAPHY,
   ELEMENT_SIZES,
-  GOLDEN_RECTANGLES,
+  getScoreGradient,
 } from '../constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useStore } from '../store';
@@ -49,17 +49,9 @@ import {
   translateSeasonalTip,
 } from '../utils/careTextUtils';
 import * as NotificationService from '../services/notifications';
-
-const getScoreGradient = (score: number): [string, string] => {
-  switch (score) {
-    case 5: return ['#D9F7BE', '#52C41A']; // Excellent - Brand Success Green (Lotus)
-    case 4: return ['#FEF3C7', '#F59E0B']; // Very Good - Cream to Gold
-    case 3: return ['#FEF3C7', '#F59E0B']; // Good - Light yellow to Amber
-    case 2: return ['#FED7AA', '#F97316']; // Challenging - Peach to Orange
-    case 1: return ['#FEE2E2', '#EF4444']; // Not Recommended - Pink to Red
-    default: return ['#F3F4F6', '#D1D5DB']; // Fallback - Gray
-  }
-};
+import PlantAddedCelebration from '../components/PlantAddedCelebration';
+import CompassDirectionPicker from '../components/CompassDirectionPicker';
+import { trackPlantAdded, trackNotificationResponse } from '../services/analytics';
 
 interface RouteParams {
   identificationResult?: IdentificationResult;
@@ -86,6 +78,7 @@ export default function AddPlantScreen() {
   const [isKeyboardVisible, setKeyboardVisible] = useState(false); // 🔧 Track keyboard state
   const [isNicknameFocused, setNicknameFocused] = useState(false); // 🎨 Track nickname input focus for color change
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const primaryButtonScale = useRef(new Animated.Value(1)).current;
   const scrollViewRef = useRef<ScrollView>(null); // 🔧 Ref for programmatic scroll control
 
   const { t } = useTranslation();
@@ -106,6 +99,7 @@ export default function AddPlantScreen() {
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   const [showGardenLocationPrompt, setShowGardenLocationPrompt] = useState(false);
   const [savedPlantData, setSavedPlantData] = useState<Plant | null>(null);
+  const [showCelebration, setShowCelebration] = useState(false);
 
   // ⚡ OPTIMIZATION: Image processing & upload now happens on PlantResultScreen (background)
   // This screen receives pre-processed images, so no processing needed here!
@@ -207,7 +201,7 @@ export default function AddPlantScreen() {
               dbPlant.id,
               location.value as any,
               direction.value as any,
-              false // Don't include weather for comparison
+              gardenLocation
             );
             if (rec.score.score > highestScore) {
               highestScore = rec.score.score;
@@ -244,7 +238,7 @@ export default function AddPlantScreen() {
           dbPlant.id,
           selectedLocation as any,
           selectedDirection as any,
-          true
+          gardenLocation
         );
         setEnhancedCareRec(recommendation);
         logger.info(`✅ Care recommendation updated for ${dbPlant.id}: ${recommendation.score.stars}`);
@@ -423,6 +417,17 @@ export default function AddPlantScreen() {
         addPlant(data);
         setSavedPlantData(data);
 
+        trackPlantAdded({
+          commonName: data.common_name || undefined,
+          location: selectedLocation,
+          windowDirection: selectedDirection,
+          isCurated: isCurated,
+          matchType: matchType,
+          source: 'scan',
+          plantCount: plants.length + 1,
+          isFirstPlant: plantCountBefore === 0,
+        });
+
         // Schedule notification for this plant (if already enabled)
         const notificationsEnabled = await NotificationService.isEnabled();
         if (notificationsEnabled) {
@@ -462,37 +467,33 @@ export default function AddPlantScreen() {
   };
 
   const showSuccessAndNavigate = (plantName: string) => {
-    Alert.alert(
-      t('addPlant.plantAddedTitle'),
-      t('addPlant.plantAddedMessage', { name: plantName }),
-      [
-        {
-          text: t('common.ok'),
-          onPress: () => {
-            navigation.reset({
-              index: 0,
-              routes: [{
-                name: 'MainTabs' as never,
-                state: {
-                  routes: [
-                    { name: 'Home' },
-                    { name: 'Scan' },
-                    { name: 'Plants' }
-                  ],
-                  index: 2,
-                }
-              }],
-            });
-          },
-        },
-      ]
-    );
+    // 350ms delay to avoid nested modal overlap (NotificationPrompt/GardenLocation may just have closed)
+    setTimeout(() => setShowCelebration(true), 350);
+  };
+
+  const handleCelebrationDismiss = () => {
+    setShowCelebration(false);
+    navigation.reset({
+      index: 0,
+      routes: [{
+        name: 'MainTabs' as never,
+        state: {
+          routes: [
+            { name: 'Home' },
+            { name: 'Scan' },
+            { name: 'Plants' }
+          ],
+          index: 2,
+        }
+      }],
+    });
   };
 
   const handleNotificationEnable = async () => {
     setShowNotificationPrompt(false);
     const granted = await NotificationService.requestPermission();
     await NotificationService.markPromptShown();
+    trackNotificationResponse({ action: granted ? 'enabled' : 'denied' });
     if (granted && savedPlantData) {
       const checkDays = extractCheckSoilDays(
         enhancedCareRec?.adjusted?.wateringFrequency || '',
@@ -506,6 +507,7 @@ export default function AddPlantScreen() {
   const handleNotificationSkip = async () => {
     setShowNotificationPrompt(false);
     await NotificationService.markPromptShown();
+    trackNotificationResponse({ action: 'skipped' });
     showSuccessAndNavigate(savedPlantData?.nickname || nickname);
   };
 
@@ -563,64 +565,12 @@ export default function AddPlantScreen() {
         );
       case 2:
         return (
-          <View style={styles.formGroup}>
-            <Text style={styles.sectionTitle}>{isRTL ? 'ما هو اتجاه الشباك؟' : 'What is the window direction?'}</Text>
-            <View style={styles.compassContainer}>
-              <View style={styles.compass}>
-                {WINDOW_DIRECTIONS.map((direction) => (
-                  <TouchableOpacity
-                    key={direction.value}
-                    style={[
-                      styles.compassDirection,
-                      (direction.value === 'north' || direction.value === 'south') && styles.compassDirectionNS,
-                      (styles as any)[`compass${direction.value.charAt(0).toUpperCase() + direction.value.slice(1)}`],
-                      selectedDirection === direction.value && styles.compassDirectionSelected,
-                    ]}
-                    onPress={() => setSelectedDirection(direction.value)}
-                  >
-                    {(direction.value === 'north' || direction.value === 'south') ? (
-                      <View style={styles.compassBilingualContainer}>
-                        {direction.value === 'north' ? (
-                          <>
-                            <Text style={[styles.compassEnglishLetter, selectedDirection === direction.value && styles.compassTextSelected]}>
-                              {direction.value.charAt(0).toUpperCase()}
-                            </Text>
-                            <Text style={[styles.compassArabicText, selectedDirection === direction.value && styles.compassTextSelected]}>
-                              {direction.labelAr}
-                            </Text>
-                          </>
-                        ) : (
-                          <>
-                            <Text style={[styles.compassArabicText, selectedDirection === direction.value && styles.compassTextSelected]}>
-                              {direction.labelAr}
-                            </Text>
-                            <Text style={[styles.compassEnglishLetter, selectedDirection === direction.value && styles.compassTextSelected]}>
-                              {direction.value.charAt(0).toUpperCase()}
-                            </Text>
-                          </>
-                        )}
-                      </View>
-                    ) : (
-                      <Text style={[styles.compassText, selectedDirection === direction.value && styles.compassTextSelected]}>
-                        {direction.value.charAt(0).toUpperCase()}
-                      </Text>
-                    )}
-                    {bestDirection === direction.value && (
-                      <View style={styles.compassRecommendedBadge}>
-                        <Text style={styles.compassRecommendedText}>R</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                ))}
-                <View style={styles.compassCenter}>
-                  <Ionicons name="compass-outline" size={34} color={COLORS.white} />
-                </View>
-              </View>
-              <Text style={styles.selectedDirection}>
-                {t('addPlant.selectedDirection')} {t(`addPlant.directions.${selectedDirection}`)}
-              </Text>
-            </View>
-          </View>
+          <CompassDirectionPicker
+            selectedDirection={selectedDirection}
+            onDirectionChange={setSelectedDirection}
+            bestDirection={bestDirection}
+            isRTL={isRTL}
+          />
         );
       case 3:
         return (
@@ -628,33 +578,34 @@ export default function AddPlantScreen() {
             {enhancedCareRec && (
               <View style={styles.tipsContainer}>
                 {enhancedCareRec.warnings.map((warning, idx) => (
-                  <View key={`warn-${idx}`} style={[styles.tipCard, warning.type === 'danger' && styles.tipCardDanger]}>
+                  <View key={`warn-${idx}`} style={[styles.tipCard, warning.type === 'danger' && styles.tipCardDanger, isRTL && { flexDirection: 'row-reverse' }]}>
                     <Ionicons name={warning.type === 'danger' ? 'alert-circle-outline' : 'information-circle-outline'} size={20} color={warning.type === 'danger' ? COLORS.error : COLORS.primary} />
-                    <Text style={styles.tipText}>{warning.message}</Text>
+                    <Text style={[styles.tipText, isRTL && { textAlign: 'right' }]}>{warning.message}</Text>
                   </View>
                 ))}
-                <View style={styles.tipCard}>
+                <View style={[styles.tipCard, isRTL && { flexDirection: 'row-reverse' }]}>
                   <Ionicons name="water-outline" size={20} color={COLORS.primary} />
-                  <Text style={styles.tipText}>{translateWateringTip(enhancedCareRec.adjusted.watering, t)}</Text>
+                  <Text style={[styles.tipText, isRTL && { textAlign: 'right' }]}>{translateWateringTip(enhancedCareRec.adjusted.watering, t)}</Text>
                 </View>
-                <View style={styles.tipCard}>
+                <View style={[styles.tipCard, isRTL && { flexDirection: 'row-reverse' }]}>
                   <Ionicons name="calendar-outline" size={20} color={COLORS.primary} />
-                  <Text style={styles.tipText}>{translateCheckSoilTip(enhancedCareRec.adjusted.wateringFrequency, t)}</Text>
+                  <Text style={[styles.tipText, isRTL && { textAlign: 'right' }]}>{translateCheckSoilTip(enhancedCareRec.adjusted.wateringFrequency, t)}</Text>
                 </View>
                 {enhancedCareRec.tips.length > 0 && (
-                  <View style={styles.tipCard}>
+                  <View style={[styles.tipCard, isRTL && { flexDirection: 'row-reverse' }]}>
                     <Ionicons name="bulb-outline" size={20} color={COLORS.primary} />
-                    <Text style={styles.tipText}>{translateSeasonalTip(enhancedCareRec.tips[0], t)}</Text>
+                    <Text style={[styles.tipText, isRTL && { textAlign: 'right' }]}>{translateSeasonalTip(enhancedCareRec.tips[0], t)}</Text>
                   </View>
                 )}
               </View>
             )}
             <View style={{ marginTop: FIBONACCI.XS }}>
-              <Text style={styles.label}>{t('addPlant.plantNickname')}</Text>
+              <Text style={[styles.label, isRTL && { textAlign: 'right' }]}>{t('addPlant.plantNickname')}</Text>
               <TextInput
                 style={[
                   styles.input,
                   isNicknameFocused && styles.inputFocused, // 🎨 Dark black text when focused/editing
+                  isRTL && { textAlign: 'right' },
                 ]}
                 value={nickname}
                 onChangeText={setNickname}
@@ -686,6 +637,20 @@ export default function AddPlantScreen() {
         visible={showGardenLocationPrompt}
         onSave={handleGardenLocationSave}
         onSkip={handleGardenLocationSkip}
+      />
+      <PlantAddedCelebration
+        visible={showCelebration}
+        plantName={savedPlantData?.nickname || nickname || 'My Plant'}
+        plantNameAr={
+          dbPlant?.names.arabic?.[0] ||
+          identificationResult?.common_name_arabic
+        }
+        plantImage={{
+          imageUrl: preUploadedCloudUrl,
+          capturedImageUri: preProcessedImageUri || capturedImage,
+          plantId: plantDatabaseId || dbPlant?.id,
+        }}
+        onDismiss={handleCelebrationDismiss}
       />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -773,7 +738,7 @@ export default function AddPlantScreen() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
-          scrollEnabled={currentStep === 3} // Only allow scrolling in Step 3 (for nickname visibility)
+          scrollEnabled={true} // Always scrollable so all location options are reachable
         >
             <View style={styles.stepContentContainer}>
                 {renderStepContent()}
@@ -806,6 +771,7 @@ export default function AddPlantScreen() {
                 <View style={[styles.stepDot, currentStep >= 3 && styles.stepDotActive]} />
             </View>
 
+            <Animated.View style={[{ flex: 1 }, { transform: [{ scale: primaryButtonScale }] }]}>
             <TouchableOpacity
                 style={[
                     styles.footerButton,
@@ -818,6 +784,22 @@ export default function AddPlantScreen() {
                     (currentStep === 3 && !nickname.trim()) ||
                     isLoading
                 }
+                onPressIn={() => {
+                    Animated.spring(primaryButtonScale, {
+                        toValue: 0.97,
+                        useNativeDriver: true,
+                        speed: 50,
+                        bounciness: 4,
+                    }).start();
+                }}
+                onPressOut={() => {
+                    Animated.spring(primaryButtonScale, {
+                        toValue: 1,
+                        useNativeDriver: true,
+                        speed: 50,
+                        bounciness: 4,
+                    }).start();
+                }}
                 onPress={currentStep === 3 ? handleSave : () => setCurrentStep(currentStep + 1)}
             >
                 <Text style={[
@@ -829,6 +811,7 @@ export default function AddPlantScreen() {
                 </Text>
                 {currentStep < 3 && <Ionicons name="arrow-forward" size={20} color={COLORS.white} />}
             </TouchableOpacity>
+            </Animated.View>
           </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -838,7 +821,7 @@ export default function AddPlantScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FBF6',
+    backgroundColor: COLORS.background,
   },
   headerCard: {
     backgroundColor: COLORS.background,
@@ -855,7 +838,7 @@ const styles = StyleSheet.create({
   headerImage: {
     width: FIBONACCI.XXL,  // 55px - Original size (reverted from 89px)
     height: FIBONACCI.XXL, // 55px - Original size
-    borderRadius: 30,      // Original border radius
+    borderRadius: FIBONACCI.XXL / 2, // Fibonacci circular
     marginRight: FIBONACCI.LG, // 21px - Original spacing
     flexShrink: 0, // Prevent image from shrinking
   },
@@ -887,9 +870,10 @@ const styles = StyleSheet.create({
     flex: 1, // Takes remaining space (50%)
   },
   layoutContentContainer: {
+    flexGrow: 1,
     justifyContent: 'center',
     paddingVertical: FIBONACCI.MD, // Added for breathing room
-    paddingBottom: FIBONACCI.MD, // Minimal padding for Steps 1 & 2
+    paddingBottom: FIBONACCI.XXL, // Enough clearance so bottom cards aren't hidden behind footer
   },
   step3ExtraPadding: {
     paddingBottom: FIBONACCI.LG, // 🔧 FIX: Minimal spacing (21px) - keeps buttons close to input without excessive gap
@@ -916,11 +900,13 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: '45%',
     backgroundColor: COLORS.background,
-    padding: FIBONACCI.MD, // 13px
+    paddingVertical: FIBONACCI.MD, // 13px
+    paddingHorizontal: FIBONACCI.MD,
     borderRadius: ELEMENT_SIZES.RADIUS_MD,
     borderWidth: 1,
     borderColor: COLORS.border,
     alignItems: 'center',
+    justifyContent: 'center',
     position: 'relative',
   },
   optionCardContent: {
@@ -928,8 +914,9 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   optionCardSelected: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: 'rgba(45, 80, 50, 0.1)',
     borderColor: COLORS.primary,
+    borderWidth: 2,
   },
   optionText: {
     fontSize: TYPOGRAPHY.SM, // 14px
@@ -937,7 +924,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   optionTextSelected: {
-    color: COLORS.white,
+    color: COLORS.primary,
   },
   optionTextAr: {
     fontSize: TYPOGRAPHY.SM, // 14px
@@ -945,104 +932,7 @@ const styles = StyleSheet.create({
     marginTop: FIBONACCI.XXS,
   },
   optionTextArSelected: {
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  compassContainer: {
-    alignItems: 'center',
-  },
-  compass: {
-    width: GOLDEN_RECTANGLES.LARGE.width,
-    height: GOLDEN_RECTANGLES.LARGE.height,
-    position: 'relative',
-    backgroundColor: COLORS.background,
-    borderRadius: 110,
-    marginBottom: FIBONACCI.SM,
-  },
-  compassDirection: {
-    position: 'absolute',
-    width: 63,
-    height: 63,
-    backgroundColor: COLORS.white,
-    borderRadius: 31.5,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  compassDirectionNS: {
-    width: FIBONACCI.XXXL,
-    height: FIBONACCI.XXL,
-    borderRadius: 35,
-  },
-  compassDirectionSelected: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-    transform: [{ scale: 1.1 }],
-  },
-  compassNorth: {
-    top: -5,
-    left: '50%',
-    marginLeft: -40,
-  },
-  compassEast: {
-    right: -FIBONACCI.XS,
-    top: '50%',
-    marginTop: -31.5,
-  },
-  compassSouth: {
-    bottom: -5,
-    left: '50%',
-    marginLeft: -40,
-  },
-  compassWest: {
-    left: -FIBONACCI.XS,
-    top: '50%',
-    marginTop: -31.5,
-  },
-  compassText: {
-    fontSize: TYPOGRAPHY.BASE,
-    color: COLORS.text,
-  },
-  compassTextSelected: {
-    color: COLORS.white,
-  },
-  compassBilingualContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3,
-    flex: 1,
-    paddingHorizontal: 6,
-  },
-  compassArabicText: {
-    fontSize: TYPOGRAPHY.SM,
-    color: COLORS.text,
-    textAlign: 'center',
-    fontFamily: 'TharwatEmaraRuqaa',
-    letterSpacing: 0.5,
-  },
-  compassEnglishLetter: {
-    fontSize: TYPOGRAPHY.SM,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-  },
-  compassCenter: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    marginTop: -ELEMENT_SIZES.ICON_LG / 2,
-    marginLeft: -ELEMENT_SIZES.ICON_LG / 2,
-    width: ELEMENT_SIZES.ICON_LG,
-    height: ELEMENT_SIZES.ICON_LG,
-    backgroundColor: COLORS.primary,
-    borderRadius: ELEMENT_SIZES.ICON_LG / 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  selectedDirection: {
-    fontSize: TYPOGRAPHY.SM,
     color: COLORS.primary,
-    fontWeight: '500',
-    marginTop: FIBONACCI.SM,
   },
   tipsContainer: {
     gap: 5, // 5px (was FIBONACCI.SM = 8px) - Compressed for Step 3 to fit nickname
@@ -1104,7 +994,7 @@ const styles = StyleSheet.create({
     borderRadius: ELEMENT_SIZES.RADIUS_MD,
     paddingVertical: FIBONACCI.MD,
     paddingHorizontal: FIBONACCI.MD,
-    shadowColor: '#000',
+    shadowColor: '#1A1A1A',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 12,
@@ -1124,7 +1014,7 @@ const styles = StyleSheet.create({
     marginBottom: FIBONACCI.XXS,
   },
   heroStars: {
-    fontSize: 20,
+    fontSize: TYPOGRAPHY.LG,
     color: '#F59E0B',
     letterSpacing: 2,
   },
@@ -1156,18 +1046,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: FIBONACCI.MD,
     borderRadius: ELEMENT_SIZES.RADIUS_LG,
     gap: FIBONACCI.SM,
-    height: 55,
+    height: ELEMENT_SIZES.BUTTON_MD,
   },
   footerButtonPrimary: {
     backgroundColor: COLORS.primary,
-    flex: 1,
+    flex: 1, // fills the Animated.View wrapper which holds flex: 1
   },
   footerButtonPrimaryDisabled: {
     backgroundColor: COLORS.border,
   },
   footerButtonSecondary: {
     backgroundColor: 'transparent',
-    minWidth: 100,
+    minWidth: FIBONACCI.XXXL,
   },
   footerButtonText: {
     fontSize: TYPOGRAPHY.BASE,
@@ -1206,42 +1096,21 @@ const styles = StyleSheet.create({
   // Recommended badge styles
   recommendedBadge: {
     position: 'absolute',
-    top: -6,
-    right: -6,
-    width: FIBONACCI.MD, // 13px using Fibonacci
-    height: FIBONACCI.MD, // 13px using Fibonacci
+    top: -FIBONACCI.XS,
+    right: -FIBONACCI.XS,
+    width: FIBONACCI.MD,
+    height: FIBONACCI.MD,
     borderRadius: FIBONACCI.MD / 2, // Circular
     backgroundColor: '#EF4444', // Red color
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: '#1A1A1A',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
     elevation: 3,
   },
   recommendedText: {
-    color: '#FFFFFF',
-    fontSize: FIBONACCI.SM, // 8px using Fibonacci
-    fontWeight: '700',
-  },
-  compassRecommendedBadge: {
-    position: 'absolute',
-    top: -3,
-    right: -3,
-    width: FIBONACCI.MD, // 13px using Fibonacci
-    height: FIBONACCI.MD, // 13px using Fibonacci
-    borderRadius: FIBONACCI.MD / 2, // Circular
-    backgroundColor: '#EF4444', // Red color
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 3,
-  },
-  compassRecommendedText: {
     color: '#FFFFFF',
     fontSize: FIBONACCI.SM, // 8px using Fibonacci
     fontWeight: '700',

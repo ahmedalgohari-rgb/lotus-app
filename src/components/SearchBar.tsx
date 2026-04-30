@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Platform,
-  I18nManager,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FIBONACCI, TYPOGRAPHY, ELEMENT_SIZES } from '../constants';
@@ -16,10 +15,11 @@ interface SearchBarProps {
   value: string;
   onChangeText: (text: string) => void;
   onClear?: () => void;
+  onCameraPress?: () => void;
   placeholder?: string;
 }
 
-const SearchBar = React.memo(function SearchBar({ value, onChangeText, onClear, placeholder }: SearchBarProps) {
+const SearchBar = React.memo(function SearchBar({ value, onChangeText, onClear, onCameraPress, placeholder }: SearchBarProps) {
   const { t } = useTranslation();
   const language = useStore((state) => state.language);
   const isRTL = language === 'ar';
@@ -53,6 +53,18 @@ const SearchBar = React.memo(function SearchBar({ value, onChangeText, onClear, 
           />
         </TouchableOpacity>
       )}
+      {onCameraPress && (
+        <>
+          <View style={styles.divider} />
+          <TouchableOpacity
+            onPress={onCameraPress}
+            style={styles.cameraButton}
+            activeOpacity={0.6}
+          >
+            <Ionicons name="camera" size={22} color={COLORS.primary} />
+          </TouchableOpacity>
+        </>
+      )}
     </View>
   );
 });
@@ -65,12 +77,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.lightGray,
     borderRadius: ELEMENT_SIZES.RADIUS_MD,
-    paddingHorizontal: FIBONACCI.LG,
-    paddingVertical: Platform.OS === 'ios' ? FIBONACCI.MD : FIBONACCI.SM,
-    height: ELEMENT_SIZES.BUTTON_MD, // 55px height - match Identify button
+    paddingLeft: FIBONACCI.LG,
+    paddingRight: FIBONACCI.MD,
+    paddingVertical: Platform.OS === 'ios' ? FIBONACCI.SM : FIBONACCI.XS,
+    height: ELEMENT_SIZES.BUTTON_MD, // 55px height
   },
   containerRTL: {
     flexDirection: 'row-reverse',
+    paddingLeft: FIBONACCI.MD,
+    paddingRight: FIBONACCI.LG,
   },
   icon: {
     marginRight: FIBONACCI.MD,
@@ -81,10 +96,10 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: TYPOGRAPHY.MD, // 18px - bigger text
+    fontSize: TYPOGRAPHY.BASE, // 16px
     fontWeight: '500',
     color: COLORS.text,
-    padding: 0, // Remove default padding
+    padding: 0,
   },
   inputRTL: {
     textAlign: 'right',
@@ -97,5 +112,18 @@ const styles = StyleSheet.create({
   clearButtonRTL: {
     marginLeft: 0,
     marginRight: FIBONACCI.SM,
+  },
+  divider: {
+    width: 1,
+    height: 28,
+    backgroundColor: COLORS.textSecondary,
+    opacity: 0.25,
+    marginHorizontal: FIBONACCI.MD,
+  },
+  cameraButton: {
+    padding: FIBONACCI.SM,
+    borderRadius: ELEMENT_SIZES.RADIUS_SM,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

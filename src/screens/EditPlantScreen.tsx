@@ -25,7 +25,7 @@ import {
   FIBONACCI,
   TYPOGRAPHY,
   ELEMENT_SIZES,
-  GOLDEN_RECTANGLES,
+  getScoreGradient,
 } from '../constants';
 import { useStore } from '../store';
 import { dbService } from '../services/supabase';
@@ -34,18 +34,8 @@ import { useRTL } from '../utils/rtl';
 import { useTranslation } from 'react-i18next';
 import { getPersonalizedCareRecommendations } from '../utils/careMap';
 import PlantImage from '../components/PlantImage';
+import CompassDirectionPicker from '../components/CompassDirectionPicker';
 import { extractMaxWateringDays } from '../utils/careTextUtils';
-
-const getScoreGradient = (score: number): [string, string] => {
-  switch (score) {
-    case 5: return ['#D9F7BE', '#52C41A']; // Excellent - Brand Success Green (Lotus)
-    case 4: return ['#FEF3C7', '#F59E0B']; // Very Good - Cream to Gold
-    case 3: return ['#FEF3C7', '#F59E0B']; // Good - Light yellow to Amber
-    case 2: return ['#FED7AA', '#F97316']; // Challenging - Peach to Orange
-    case 1: return ['#FEE2E2', '#EF4444']; // Not Recommended - Pink to Red
-    default: return ['#F3F4F6', '#D1D5DB']; // Fallback - Gray
-  }
-};
 
 interface RouteParams {
   plantId: string;
@@ -56,7 +46,7 @@ export default function EditPlantScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { plantId } = route.params as RouteParams;
-  const { plants, updatePlant } = useStore();
+  const { plants, updatePlant, gardenLocation } = useStore();
   const isRTL = useRTL();
 
   const [plant, setPlant] = useState<Plant | null>(null);
@@ -72,6 +62,7 @@ export default function EditPlantScreen() {
   const [bestDirection, setBestDirection] = useState<string | null>(null);
 
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const primaryButtonScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     const foundPlant = plants.find(p => p.id === plantId);
@@ -104,7 +95,7 @@ export default function EditPlantScreen() {
               plant.species_id,
               loc.value as any,
               dir.value as any,
-              false
+              gardenLocation
             );
             if (recommendation.score.score > highestScore) {
               highestScore = recommendation.score.score;
@@ -210,7 +201,7 @@ export default function EditPlantScreen() {
           plantDbId,
           location as any,
           windowDirection as any,
-          true // Include weather
+          gardenLocation
         );
 
         setEnhancedCare(recommendation);
@@ -262,64 +253,12 @@ export default function EditPlantScreen() {
         );
       case 2:
         return (
-          <View style={styles.formGroup}>
-            <Text style={styles.sectionTitle}>{isRTL ? 'ما هو اتجاه الشباك؟' : 'What is the window direction?'}</Text>
-            <View style={styles.compassContainer}>
-              <View style={styles.compass}>
-                {WINDOW_DIRECTIONS.map((direction) => (
-                  <TouchableOpacity
-                    key={direction.value}
-                    style={[
-                      styles.compassDirection,
-                      (direction.value === 'north' || direction.value === 'south') && styles.compassDirectionNS,
-                      (styles as any)[`compass${direction.value.charAt(0).toUpperCase() + direction.value.slice(1)}`],
-                      windowDirection === direction.value && styles.compassDirectionSelected,
-                    ]}
-                    onPress={() => setWindowDirection(direction.value)}
-                  >
-                    {(direction.value === 'north' || direction.value === 'south') ? (
-                      <View style={styles.compassBilingualContainer}>
-                        {direction.value === 'north' ? (
-                          <>
-                            <Text style={[styles.compassEnglishLetter, windowDirection === direction.value && styles.compassTextSelected]}>
-                              {direction.value.charAt(0).toUpperCase()}
-                            </Text>
-                            <Text style={[styles.compassArabicText, windowDirection === direction.value && styles.compassTextSelected]}>
-                              {direction.labelAr}
-                            </Text>
-                          </>
-                        ) : (
-                          <>
-                            <Text style={[styles.compassArabicText, windowDirection === direction.value && styles.compassTextSelected]}>
-                              {direction.labelAr}
-                            </Text>
-                            <Text style={[styles.compassEnglishLetter, windowDirection === direction.value && styles.compassTextSelected]}>
-                              {direction.value.charAt(0).toUpperCase()}
-                            </Text>
-                          </>
-                        )}
-                      </View>
-                    ) : (
-                      <Text style={[styles.compassText, windowDirection === direction.value && styles.compassTextSelected]}>
-                        {direction.value.charAt(0).toUpperCase()}
-                      </Text>
-                    )}
-                    {bestDirection === direction.value && (
-                      <View style={styles.compassRecommendedBadge}>
-                        <Text style={styles.compassRecommendedText}>R</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                ))}
-                <View style={styles.compassCenter}>
-                  <Ionicons name="compass-outline" size={34} color={COLORS.white} />
-                </View>
-              </View>
-              <Text style={styles.selectedDirection}>
-                {t('addPlant.selectedDirection')} {t(`addPlant.directions.${windowDirection}`)}
-              </Text>
-            </View>
-          </View>
+          <CompassDirectionPicker
+            selectedDirection={windowDirection}
+            onDirectionChange={setWindowDirection}
+            bestDirection={bestDirection}
+            isRTL={isRTL}
+          />
         );
       case 3:
         return (
@@ -484,6 +423,7 @@ export default function EditPlantScreen() {
             <View style={[styles.stepDot, currentStep >= 3 && styles.stepDotActive]} />
           </View>
 
+          <Animated.View style={[{ flex: 1 }, { transform: [{ scale: primaryButtonScale }] }]}>
           <TouchableOpacity
             style={[
               styles.footerButton,
@@ -495,6 +435,22 @@ export default function EditPlantScreen() {
               (currentStep === 2 && !windowDirection) ||
               isSaving
             }
+            onPressIn={() => {
+              Animated.spring(primaryButtonScale, {
+                toValue: 0.97,
+                useNativeDriver: true,
+                speed: 50,
+                bounciness: 4,
+              }).start();
+            }}
+            onPressOut={() => {
+              Animated.spring(primaryButtonScale, {
+                toValue: 1,
+                useNativeDriver: true,
+                speed: 50,
+                bounciness: 4,
+              }).start();
+            }}
             onPress={currentStep === 3 ? handleSave : () => setCurrentStep(currentStep + 1)}
           >
             <Text style={[
@@ -506,6 +462,7 @@ export default function EditPlantScreen() {
             </Text>
             {currentStep < 3 && <Ionicons name="arrow-forward" size={20} color={COLORS.white} />}
           </TouchableOpacity>
+          </Animated.View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -515,7 +472,7 @@ export default function EditPlantScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FBF6',
+    backgroundColor: COLORS.background,
   },
   headerCard: {
     backgroundColor: COLORS.background,
@@ -551,9 +508,12 @@ const styles = StyleSheet.create({
   },
   viewMoreButton: {
     alignSelf: 'center',
-    paddingVertical: FIBONACCI.SM,
+    paddingVertical: FIBONACCI.MD,
     paddingHorizontal: FIBONACCI.MD,
     marginTop: FIBONACCI.XXS,
+    minHeight: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   plantDescription: {
     fontSize: TYPOGRAPHY.SM,
@@ -599,11 +559,13 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: '45%',
     backgroundColor: COLORS.background,
-    padding: FIBONACCI.MD,
+    paddingVertical: FIBONACCI.MD,
+    paddingHorizontal: FIBONACCI.MD,
     borderRadius: ELEMENT_SIZES.RADIUS_MD,
     borderWidth: 1,
     borderColor: COLORS.border,
     alignItems: 'center',
+    justifyContent: 'center',
     position: 'relative',
   },
   optionCardContent: {
@@ -611,8 +573,9 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   optionCardSelected: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: 'rgba(45, 80, 50, 0.1)',
     borderColor: COLORS.primary,
+    borderWidth: 2,
   },
   optionText: {
     fontSize: TYPOGRAPHY.SM,
@@ -620,104 +583,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   optionTextSelected: {
-    color: COLORS.white,
-  },
-  compassContainer: {
-    alignItems: 'center',
-  },
-  compass: {
-    width: GOLDEN_RECTANGLES.LARGE.width,
-    height: GOLDEN_RECTANGLES.LARGE.height,
-    position: 'relative',
-    backgroundColor: COLORS.background,
-    borderRadius: 110,
-    marginBottom: FIBONACCI.SM,
-  },
-  compassDirection: {
-    position: 'absolute',
-    width: FIBONACCI.XXL, // 55px (was 63 hardcoded - Fibonacci-compliant)
-    height: FIBONACCI.XXL, // 55px
-    backgroundColor: COLORS.white,
-    borderRadius: FIBONACCI.XXL / 2, // 27.5px (was 31.5 hardcoded - circular button)
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  compassDirectionNS: {
-    width: FIBONACCI.XXXL,
-    height: FIBONACCI.XXL,
-    borderRadius: FIBONACCI.XL, // 34px (was 35 hardcoded - Fibonacci-compliant)
-  },
-  compassDirectionSelected: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-    transform: [{ scale: 1.1 }],
-  },
-  compassNorth: {
-    top: -5,
-    left: '50%',
-    marginLeft: -40,
-  },
-  compassEast: {
-    right: -FIBONACCI.XS,
-    top: '50%',
-    marginTop: -31.5,
-  },
-  compassSouth: {
-    bottom: -5,
-    left: '50%',
-    marginLeft: -40,
-  },
-  compassWest: {
-    left: -FIBONACCI.XS,
-    top: '50%',
-    marginTop: -31.5,
-  },
-  compassText: {
-    fontSize: TYPOGRAPHY.BASE,
-    color: COLORS.text,
-  },
-  compassTextSelected: {
-    color: COLORS.white,
-  },
-  compassBilingualContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3,
-    flex: 1,
-    paddingHorizontal: 6,
-  },
-  compassArabicText: {
-    fontSize: TYPOGRAPHY.SM,
-    color: COLORS.text,
-    textAlign: 'center',
-    fontFamily: 'TharwatEmaraRuqaa',
-    letterSpacing: 0.5,
-  },
-  compassEnglishLetter: {
-    fontSize: TYPOGRAPHY.SM,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-  },
-  compassCenter: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    marginTop: -ELEMENT_SIZES.ICON_LG / 2,
-    marginLeft: -ELEMENT_SIZES.ICON_LG / 2,
-    width: ELEMENT_SIZES.ICON_LG,
-    height: ELEMENT_SIZES.ICON_LG,
-    backgroundColor: COLORS.primary,
-    borderRadius: ELEMENT_SIZES.ICON_LG / 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  selectedDirection: {
-    fontSize: TYPOGRAPHY.SM,
     color: COLORS.primary,
-    fontWeight: '500',
-    marginTop: FIBONACCI.SM,
   },
   tipsContainer: {
     gap: FIBONACCI.SM,
@@ -760,7 +626,7 @@ const styles = StyleSheet.create({
     borderRadius: ELEMENT_SIZES.RADIUS_MD,
     paddingVertical: FIBONACCI.MD,
     paddingHorizontal: FIBONACCI.MD,
-    shadowColor: '#000',
+    shadowColor: '#1A1A1A',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 12,
@@ -830,7 +696,7 @@ const styles = StyleSheet.create({
   },
   footerButtonSecondary: {
     backgroundColor: 'transparent',
-    minWidth: 100,
+    minWidth: FIBONACCI.XXXL,
   },
   footerButtonText: {
     fontSize: TYPOGRAPHY.BASE,
@@ -868,15 +734,15 @@ const styles = StyleSheet.create({
   },
   recommendedBadge: {
     position: 'absolute',
-    top: -6,
-    right: -6,
-    width: FIBONACCI.MD, // 13px
+    top: -FIBONACCI.XS,
+    right: -FIBONACCI.XS,
+    width: FIBONACCI.MD,
     height: FIBONACCI.MD,
     borderRadius: FIBONACCI.MD / 2,
     backgroundColor: '#EF4444', // Red
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: '#1A1A1A',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
@@ -885,27 +751,6 @@ const styles = StyleSheet.create({
   recommendedText: {
     color: '#FFFFFF',
     fontSize: FIBONACCI.SM, // 8px
-    fontWeight: '700',
-  },
-  compassRecommendedBadge: {
-    position: 'absolute',
-    top: -3,
-    right: -3,
-    width: FIBONACCI.MD,
-    height: FIBONACCI.MD,
-    borderRadius: FIBONACCI.MD / 2,
-    backgroundColor: '#EF4444',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 3,
-  },
-  compassRecommendedText: {
-    color: '#FFFFFF',
-    fontSize: FIBONACCI.SM,
     fontWeight: '700',
   },
 });

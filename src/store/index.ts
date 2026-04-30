@@ -4,8 +4,9 @@ import { User, Plant, PlantSpecies, AppState, WeatherData, CareRecommendation } 
 import { CACHE_KEYS } from '../constants';
 import { changeLanguage } from '../i18n';
 import { logger } from '../utils/logger';
-
-type Season = 'summer' | 'winter' | 'spring' | 'fall';
+import { getCurrentSeason, type Season } from '../utils/season';
+import { trackPlantDeleted, trackLanguageChanged, identifyUser, trackGardenLocationSet } from '../services/analytics';
+import { authService } from '../services/supabase';
 
 interface AppStore extends AppState {
   // Actions
@@ -53,30 +54,6 @@ interface AppStore extends AppState {
   clearStorage: () => Promise<void>;
 }
 
-// Helper function to detect current season using official astronomical dates
-const getCurrentSeason = (): Season => {
-  const now = new Date();
-  const month = now.getMonth(); // 0-11
-  const day = now.getDate();
-
-  // Official astronomical season dates (Egypt/Northern Hemisphere)
-  // Winter: Dec 21 - Mar 20
-  // Spring: Mar 21 - Jun 20
-  // Summer: Jun 21 - Sep 22
-  // Autumn/Fall: Sep 23 - Dec 20
-
-  if ((month === 11 && day >= 21) || month === 0 || month === 1 || (month === 2 && day <= 20)) {
-    return 'winter'; // Dec 21 - Mar 20
-  }
-  if ((month === 2 && day >= 21) || month === 3 || month === 4 || (month === 5 && day <= 20)) {
-    return 'spring'; // Mar 21 - Jun 20
-  }
-  if ((month === 5 && day >= 21) || month === 6 || month === 7 || (month === 8 && day <= 22)) {
-    return 'summer'; // Jun 21 - Sep 22
-  }
-  return 'fall'; // Sep 23 - Dec 20
-};
-
 export const useStore = create<AppStore>((set, get) => ({
   // Initial state
   user: null,
@@ -108,18 +85,45 @@ export const useStore = create<AppStore>((set, get) => ({
   },
 
   signInAsGuest: async () => {
+    // Idempotent: if user is already a guest with a valid session, no-op.
+    // Without this guard, re-entering "Start Scanning" (e.g. from the AuthScreen
+    // reached via the AuthModal's "Already a member?" link) wipes cached plants
+    // and orphans the previous anonymous user.
+    const current = get();
+    if (current.isGuest && current.user?.id) {
+      return;
+    }
+
     // Clear any cached authenticated user data
     await AsyncStorage.removeItem(CACHE_KEYS.USER_PROFILE);
     await AsyncStorage.removeItem(CACHE_KEYS.USER_PLANTS);
 
+    // Create a real Supabase anonymous user. This gives us a persistent user_id
+    // so plants can be saved against RLS-protected tables, and the same id
+    // survives an upgrade via linkIdentity() — no data loss when a guest signs in.
+    const { data, error } = await authService.signInAnonymously();
+    if (error || !data?.user) {
+      logger.error('Failed to create anonymous guest session', error);
+      set({ isGuest: false, isAuthenticated: false, user: null, plants: [] });
+      return;
+    }
+
+    const anonUser: User = {
+      id: data.user.id,
+      email: data.user.email || '',
+      name: '',
+    } as User;
+
     set({
       isGuest: true,
-      isAuthenticated: false,
-      user: null, // No user object for guests
-      plants: [], // No cached plants for guests
+      isAuthenticated: true, // Real Supabase session — RLS works
+      user: anonUser,
+      plants: [],
       isFirstVisit: true,
     });
-    // Don't save to storage for guests
+
+    identifyUser(anonUser.id, { is_anonymous: true });
+    get().saveToStorage();
   },
 
   updateUserName: (firstName) => {
@@ -146,12 +150,16 @@ export const useStore = create<AppStore>((set, get) => ({
 
   // Language actions
   setLanguage: async (language) => {
+    const previousLanguage = get().language;
     await changeLanguage(language);
-    set({ 
-      language, 
-      isRTL: language === 'ar' 
+    set({
+      language,
+      isRTL: language === 'ar'
     });
     get().saveToStorage();
+    if (previousLanguage !== language) {
+      trackLanguageChanged({ from: previousLanguage, to: language });
+    }
   },
 
   toggleLanguage: async () => {
@@ -171,17 +179,7 @@ export const useStore = create<AppStore>((set, get) => ({
   },
 
   addPlant: (plant) => {
-    const { plants, user } = get();
-    
-    // Guest mode: limit to 1 plant stored locally only
-    if (!user && plants.length >= 1) {
-      // Remove existing plant for guests and add new one
-      const newPlants = [plant];
-      set({ plants: newPlants });
-      get().saveToStorage();
-      return;
-    }
-    
+    const { plants } = get();
     const newPlants = [...plants, plant];
     set({ plants: newPlants });
     get().saveToStorage();
@@ -198,9 +196,15 @@ export const useStore = create<AppStore>((set, get) => ({
 
   deletePlant: (id) => {
     const { plants } = get();
+    const deletedPlant = plants.find(plant => plant.id === id);
     const newPlants = plants.filter(plant => plant.id !== id);
     set({ plants: newPlants });
     get().saveToStorage();
+    if (deletedPlant) {
+      const createdAt = deletedPlant.created_at ? new Date(deletedPlant.created_at) : null;
+      const daysOwned = createdAt ? Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24)) : undefined;
+      trackPlantDeleted({ commonName: deletedPlant.common_name || undefined, daysOwned });
+    }
   },
 
   // Species actions
@@ -258,34 +262,23 @@ export const useStore = create<AppStore>((set, get) => ({
 
   // Garden location
   setGardenLocation: (location) => {
+    const { gardenLocation: prev } = get();
     set({ gardenLocation: location });
     if (location) {
       AsyncStorage.setItem('garden_location', JSON.stringify(location));
     } else {
       AsyncStorage.removeItem('garden_location');
     }
+    // Only fire when state actually changes (set/unset, or location moved)
+    const changed = !prev !== !location || (location && prev && (prev.lat !== location.lat || prev.lon !== location.lon));
+    if (changed) {
+      trackGardenLocationSet({ hasLocation: !!location });
+    }
   },
 
   // Persistence
   loadFromStorage: async () => {
     try {
-      const { isGuest } = get();
-
-      // Don't load cached user data for guest users
-      if (isGuest) {
-        // Only load language preference for guests
-        const languageData = await AsyncStorage.getItem('user-language');
-        if (languageData) {
-          const language = languageData as 'en' | 'ar';
-          set({
-            language,
-            isRTL: language === 'ar'
-          });
-          await changeLanguage(language);
-        }
-        return;
-      }
-
       const [userPlantsData, userProfileData, speciesData, languageData, hasVisitedBefore, lastSeasonData, gardenLocationData] = await Promise.all([
         AsyncStorage.getItem(CACHE_KEYS.USER_PLANTS),
         AsyncStorage.getItem(CACHE_KEYS.USER_PROFILE),
@@ -303,7 +296,15 @@ export const useStore = create<AppStore>((set, get) => ({
 
       if (userProfileData) {
         const user = JSON.parse(userProfileData);
-        set({ user });
+        // Restore authenticated state immediately from cache so the navigator
+        // shows Main instead of AuthScreen while Supabase verifies the session.
+        set({ user, isAuthenticated: true });
+        // Re-bind Mixpanel identity to the cached user — without this, returning
+        // users get a fresh anonymous distinct_id until they OAuth again, breaking
+        // retention/funnel attribution across launches.
+        if (user?.id) {
+          identifyUser(user.id, { name: user.name, email: user.email });
+        }
       }
 
       if (speciesData) {
@@ -343,12 +344,7 @@ export const useStore = create<AppStore>((set, get) => ({
 
   saveToStorage: async () => {
     try {
-      const { user, plants, isGuest } = get();
-
-      // Don't cache data for guest users
-      if (isGuest) {
-        return;
-      }
+      const { user, plants } = get();
 
       await Promise.all([
         AsyncStorage.setItem(CACHE_KEYS.USER_PLANTS, JSON.stringify(plants)),

@@ -162,10 +162,16 @@ export type NavigationParamList = {
 // Weather data for Cairo
 export interface WeatherData {
   temperature: number;
+  tempMin?: number;
+  tempMax?: number;
   humidity: number;
   condition: 'sunny' | 'cloudy' | 'rainy' | 'hot' | 'mild';
   description: string;
   windSpeed: number;
+  windGust?: number;
+  uvIndex?: number;
+  uvCategory?: string;
+  pressure?: number;
   lastUpdated: Date;
   location: string;
   careRecommendation: {

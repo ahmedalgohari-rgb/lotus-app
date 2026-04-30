@@ -170,7 +170,7 @@ const CARE_MATRIX: CareMapData = {
   'balcony_summer': {
     light: 'needs protection from intense afternoon sun',
     placement: 'covered or shaded area',
-    watering: 'check daily, Cairo heat dries soil quickly',
+    watering: 'check daily, summer heat dries soil quickly',
     humidity: 'requires frequent misting in dry summer air',
   },
   'balcony_autumn': {

@@ -20,6 +20,7 @@ import {
 import { plantDatabaseService } from '../../services/plantDatabase';
 import { WeatherService } from '../../services/weather';
 import { getCurrentSeason } from '../careMap';
+import { Season } from '../season';
 import {
   getRoomModifiers,
   getWeatherAwareRoomModifiers
@@ -29,6 +30,7 @@ import {
   getWeatherAwareDirectionModifiers
 } from './directionModifiers';
 import { calculateWeatherAwarePlacementScore } from './placementScoring';
+import { getSeasonalWeatherData, getClimateLocationName } from './climateLookup';
 
 /**
  * Get Personalized Care Recommendations with Weather-Aware Modifiers
@@ -41,14 +43,14 @@ import { calculateWeatherAwarePlacementScore } from './placementScoring';
  * @param plantId - Plant species ID (e.g., "snake_plant")
  * @param room - Room type (living_room, bedroom, kitchen, bathroom, balcony, office)
  * @param direction - Window direction (north, east, south, west)
- * @param includeWeather - Whether to fetch and apply weather data (default: true)
+ * @param gardenLocation - User's garden coordinates for location-aware climate data (null = Cairo default)
  * @returns Complete care recommendation with placement score, warnings, and tips
  */
 export async function getPersonalizedCareRecommendations(
   plantId: string,
   room: 'living_room' | 'bedroom' | 'kitchen' | 'bathroom' | 'balcony' | 'office',
   direction: 'north' | 'east' | 'south' | 'west',
-  includeWeather: boolean = true
+  gardenLocation: { lat: number; lon: number; name?: string } | null = null
 ): Promise<EnhancedCareRecommendation> {
 
   logger.info(`🌿 Getting personalized care for ${plantId} in ${room} (${direction} window)`);
@@ -78,91 +80,23 @@ export async function getPersonalizedCareRecommendations(
     benefit?: string;
   };
 
-  // if (includeWeather) {
-  //   try {
-  //     // Fetch current Cairo weather
-  //     weather = await WeatherService.getCurrentWeather();
+  // ======================================
+  // LOCATION-AWARE SEASONAL CLIMATE
+  // Uses historical seasonal averages for the user's nearest Egyptian city.
+  // No API calls — purely static data driven by season + coordinates.
+  // ======================================
+  const locationName = getClimateLocationName(gardenLocation);
+  const seasonalWeather = getSeasonalWeatherData(season as Season, gardenLocation);
+  weather = seasonalWeather;
 
-  //     if (!weather) {
-  //       logger.warn('Weather service returned null, using static modifiers');
-  //       throw new Error('Weather unavailable');
-  //     }
+  logger.info(`Using ${locationName} seasonal climate for ${season}: ${seasonalWeather.temperature}°C, ${seasonalWeather.humidity}% humidity`);
 
-  //     logger.info(`✅ Weather fetched: ${weather.temperature}°C, ${weather.humidity}% humidity`);
+  // Feed seasonal climate data into weather-aware modifiers
+  // These already handle temperature-based AC scaling, humidity adjustments, etc.
+  roomModifiers = getWeatherAwareRoomModifiers(room, seasonalWeather);
+  directionModifiers = getWeatherAwareDirectionModifiers(direction, season, seasonalWeather);
 
-  //     // Layer 2: Weather establishes baseline
-  //     // Layer 3: Room/Direction modifiers SCALE with weather
-  //     roomModifiers = getWeatherAwareRoomModifiers(room, weather);
-  //     directionModifiers = getWeatherAwareDirectionModifiers(direction, season, weather);
-
-  //     logger.info(`Weather-aware modifiers applied (AC scaled with ${weather.temperature}°C)`);
-  //   } catch (error) {
-  //     logger.warn('Weather service unavailable, using static modifiers', error);
-
-  //     // Fallback to static modifiers
-  //     const staticRoom = getRoomModifiers(room);
-  //     const staticDirection = getDirectionModifiers(direction, season);
-
-  //     roomModifiers = {
-  //       humidityModifier: staticRoom.humidityModifier,
-  //       evaporationRate: staticRoom.evaporationRate,
-  //       note: staticRoom.note
-  //     };
-
-  //     directionModifiers = {
-  //       lightIntensity: staticDirection.lightIntensity,
-  //       wateringAdjustment: staticDirection.wateringAdjustment,
-  //       warning: staticDirection.warning,
-  //       benefit: staticDirection.benefit
-  //     };
-  //   }
-  // }
-  // FIX: Use season-based modifiers (no API required) for AC seasonal scaling
-  // This provides temperature-aware AC behavior based on Egyptian seasons
-  logger.info(`Using season-based modifiers for ${season}`);
-
-  // Get base static modifiers
-  const staticRoom = getRoomModifiers(room);
-  const staticDirection = getDirectionModifiers(direction, season);
-
-  // Apply seasonal scaling to AC rooms (living room, bedroom, office)
-  const hasAC = staticRoom.acEffect === true;
-  let seasonalHumidityModifier = staticRoom.humidityModifier;
-  let seasonalEvaporationRate = staticRoom.evaporationRate;
-
-  if (hasAC) {
-    // Scale AC effect based on season (Cairo climate)
-    if (season === 'summer') {
-      // June-September: Hot weather, AC runs at max capacity
-      seasonalHumidityModifier = staticRoom.humidityModifier * 2; // Double AC drying effect
-      seasonalEvaporationRate = staticRoom.evaporationRate * 1.75; // Much faster evaporation
-      logger.info(`🌞 Summer AC scaling applied: ${room} AC at max (×2 humidity, ×1.75 evaporation)`);
-    } else if (season === 'winter') {
-      // December-February: Cool weather, AC barely runs
-      seasonalHumidityModifier = staticRoom.humidityModifier * 0.33; // Minimal AC effect
-      seasonalEvaporationRate = staticRoom.evaporationRate * 0.25; // Much slower evaporation
-      logger.info(`❄️ Winter AC scaling applied: ${room} AC minimal (×0.33 humidity, ×0.25 evaporation)`);
-    } else {
-      // Spring/Autumn: Moderate weather, AC runs normally
-      // Use base values (no scaling)
-      logger.info(`🍂 Spring/Autumn: ${room} using standard AC settings`);
-    }
-  }
-
-  roomModifiers = {
-    humidityModifier: seasonalHumidityModifier,
-    evaporationRate: seasonalEvaporationRate,
-    note: hasAC
-      ? `${staticRoom.note} (${season === 'summer' ? 'AC at max in summer heat' : season === 'winter' ? 'AC minimal in winter' : 'AC moderate'})`
-      : staticRoom.note
-  };
-
-  directionModifiers = {
-    lightIntensity: staticDirection.lightIntensity,
-    wateringAdjustment: staticDirection.wateringAdjustment,
-    warning: staticDirection.warning,
-    benefit: staticDirection.benefit
-  };
+  logger.info(`Location-aware modifiers applied for ${locationName} (${seasonalWeather.temperature}°C ${season})`);
 
   // ======================================
   // Calculate Placement Score
@@ -182,9 +116,14 @@ export async function getPersonalizedCareRecommendations(
   // Generate Adjusted Care Recommendations
   // ======================================
   const baseWateringDays = parseInt(plant.care.watering.frequency.split('-')[0]) || 10;
+
+  // Room evaporation adjustment: high evaporation = water sooner, negative evaporation (bathroom) = water later
+  // Scale: every 20% evaporation rate = 1 day adjustment
+  const evaporationAdjustment = Math.round(roomModifiers.evaporationRate / -20);
+
   const adjustedWateringDays = Math.max(
     2, // Minimum 2 days
-    baseWateringDays + directionModifiers.wateringAdjustment
+    baseWateringDays + directionModifiers.wateringAdjustment + evaporationAdjustment
   );
 
   const adjustedWatering = {
@@ -192,7 +131,7 @@ export async function getPersonalizedCareRecommendations(
     wateringFrequency: `Check soil every ${Math.max(2, adjustedWateringDays - 2)} days`,
     placement: directionModifiers.benefit || directionModifiers.warning || `${direction} window in ${room}`,
     humidity: `${plant.care.humidity} humidity preference (current room: ${roomModifiers.humidityModifier > 0 ? 'adds' : 'reduces'} ${Math.abs(roomModifiers.humidityModifier)}% humidity)`,
-    reasoning: `Adjusted from base ${baseWateringDays} days by ${directionModifiers.wateringAdjustment} days due to ${directionModifiers.warning ? 'challenging' : 'favorable'} conditions`
+    reasoning: `Adjusted from base ${baseWateringDays} days: ${directionModifiers.wateringAdjustment} days (${direction} window), ${evaporationAdjustment} days (${room} evaporation)`
   };
 
   // ======================================
@@ -247,18 +186,22 @@ export async function getPersonalizedCareRecommendations(
   // Room-specific tips
   tips.push(roomModifiers.note);
 
-  // Weather-specific tips (currently disabled as weather API is not in use)
-  // if (weather) {
-  //   if (weather.temperature >= 38) {
-  //     tips.push('Extreme heat: Mist plants daily and monitor soil moisture closely');
-  //   } else if (weather.temperature <= 15) {
-  //     tips.push('Cool weather: Reduce watering frequency as plants grow slower');
-  //   }
+  // Weather-specific tips based on seasonal climate data
+  if (weather) {
+    if (weather.temperature >= 38) {
+      tips.push('Extreme heat: Mist plants daily and monitor soil moisture closely');
+    } else if (weather.temperature <= 15) {
+      tips.push('Cool weather: Reduce watering frequency as plants grow slower');
+    }
 
-  //   if (weather.humidity < 20) {
-  //     tips.push('Very dry air: Consider using a humidifier or pebble tray');
-  //   }
-  // }
+    if (weather.humidity < 20) {
+      tips.push('Very dry air: Consider using a humidifier or pebble tray');
+    }
+
+    if ((weather.windSpeed || 0) >= 4 && room === 'balcony') {
+      tips.push('Windy location: Wind accelerates soil drying — check moisture more often');
+    }
+  }
 
   // Plant-specific care tips (if available in database)
   // Note: Current plant database may not have tips field, this is for future enhancement

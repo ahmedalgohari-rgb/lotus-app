@@ -1,5 +1,5 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useRef } from 'react';
+import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +21,7 @@ import { NavigationParamList } from '../types';
 import { COLORS } from '../constants';
 import { useStore } from '../store';
 import { useTranslation } from 'react-i18next';
+import { trackScreenViewed } from '../services/analytics';
 
 const Tab = createBottomTabNavigator<any>();
 const Stack = createStackNavigator<any>();
@@ -130,11 +131,26 @@ function MainTabs() {
 // Root navigator
 export default function AppNavigator() {
   const { user, isAuthenticated, isGuest } = useStore();
+  const navigationRef = useRef<NavigationContainerRef<any>>(null);
+  const routeNameRef = useRef<string | undefined>();
 
   const shouldShowAuth = !isAuthenticated && !isGuest;
-  
+
   return (
-    <NavigationContainer key={`nav-${isAuthenticated}-${isGuest}`}>
+    <NavigationContainer
+      key={`nav-${isAuthenticated}-${isGuest}`}
+      ref={navigationRef}
+      onReady={() => {
+        routeNameRef.current = navigationRef.current?.getCurrentRoute()?.name;
+      }}
+      onStateChange={() => {
+        const currentRouteName = navigationRef.current?.getCurrentRoute()?.name;
+        if (currentRouteName && currentRouteName !== routeNameRef.current) {
+          trackScreenViewed(currentRouteName);
+          routeNameRef.current = currentRouteName;
+        }
+      }}
+    >
       {/* @ts-ignore - Navigation types are working correctly at runtime */}
       <Stack.Navigator 
         screenOptions={{ headerShown: false }}

@@ -41,7 +41,13 @@ export default function FeedbackModal({ visible, onClose }: FeedbackModalProps) 
   const isRTL = useRTL();
   const { user } = useStore();
   const [message, setMessage] = useState('');
+  const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Anonymous/guest users have no email on their account — collect it inline
+  // so we can follow up on the feedback.
+  const needsEmail = !user?.email;
+  const isValidEmail = (val: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim());
 
   const handleSubmit = async () => {
     if (!message.trim()) {
@@ -52,11 +58,16 @@ export default function FeedbackModal({ visible, onClose }: FeedbackModalProps) 
       return;
     }
 
+    if (needsEmail && !isValidEmail(email)) {
+      Alert.alert(t('feedback.error'), t('feedback.invalidEmail'));
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const { error } = await supabase.from('feedback').insert({
         user_id: user?.id || null,
-        user_email: user?.email || null,
+        user_email: user?.email || (needsEmail ? email.trim() : null),
         user_name: user?.user_metadata?.display_name || null,
         message: message.trim(),
         app_version: Constants.expoConfig?.version || 'unknown',
@@ -74,6 +85,7 @@ export default function FeedbackModal({ visible, onClose }: FeedbackModalProps) 
         [{ text: t('common.ok'), onPress: handleClose }]
       );
       setMessage('');
+      setEmail('');
     } catch (error) {
       logger.error('Failed to submit feedback:', error);
       Alert.alert(
@@ -87,6 +99,7 @@ export default function FeedbackModal({ visible, onClose }: FeedbackModalProps) 
 
   const handleClose = () => {
     setMessage('');
+    setEmail('');
     onClose();
   };
 
@@ -127,6 +140,24 @@ export default function FeedbackModal({ visible, onClose }: FeedbackModalProps) 
               {t('feedback.subtitle')}
             </Text>
 
+            {/* Email (anonymous/guest users only) */}
+            {needsEmail && (
+              <View style={styles.emailContainer}>
+                <TextInput
+                  style={[styles.emailInput, isRTL && styles.textInputRTL]}
+                  placeholder={t('feedback.emailPlaceholder')}
+                  placeholderTextColor={COLORS.textSecondary}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  textAlign={isRTL ? 'right' : 'left'}
+                  editable={!isSubmitting}
+                />
+              </View>
+            )}
+
             {/* Text Input */}
             <View style={styles.inputContainer}>
               <TextInput
@@ -165,10 +196,10 @@ export default function FeedbackModal({ visible, onClose }: FeedbackModalProps) 
               <TouchableOpacity
                 style={[
                   styles.submitButton,
-                  (!message.trim() || isSubmitting) && styles.submitButtonDisabled,
+                  (!message.trim() || (needsEmail && !isValidEmail(email)) || isSubmitting) && styles.submitButtonDisabled,
                 ]}
                 onPress={handleSubmit}
-                disabled={!message.trim() || isSubmitting}
+                disabled={!message.trim() || (needsEmail && !isValidEmail(email)) || isSubmitting}
               >
                 {isSubmitting ? (
                   <ActivityIndicator size="small" color={COLORS.primary} />
@@ -234,6 +265,19 @@ const styles = StyleSheet.create({
     width: '100%',
     position: 'relative',
     marginBottom: 8,
+  },
+  emailContainer: {
+    width: '100%',
+    marginBottom: FIBONACCI.MD,
+  },
+  emailInput: {
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: COLORS.text,
+    width: '100%',
   },
   textInput: {
     backgroundColor: COLORS.white,

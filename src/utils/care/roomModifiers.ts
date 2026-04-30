@@ -53,7 +53,7 @@ export const ROOM_MODIFIERS: Record<string, RoomModifier> = {
     room: 'balcony',
     humidityModifier: -25, // Outdoor air very dry in Cairo
     evaporationRate: 40, // Wind + sun = rapid evaporation (40% increase)
-    note: 'Cairo heat and wind dry soil very quickly',
+    note: 'Outdoor heat and wind dry soil very quickly',
   },
   office: {
     room: 'office',
@@ -197,32 +197,33 @@ export const WEATHER_AWARE_ROOM_MODIFIERS: Record<string, WeatherAwareRoomModifi
     room: 'balcony',
     getModifiers: (weather: WeatherData) => {
       // Balcony conditions directly mirror outdoor weather
+      // Wind amplifies evaporation: scale by wind speed (baseline 2.5 m/s)
+      const windFactor = Math.max(0.6, (weather.windSpeed || 2.5) / 2.5);
+      // Dry air amplifies evaporation: scale by inverse humidity (baseline 50%)
+      const drynessFactor = Math.max(0.8, (100 - (weather.humidity || 50)) / 50);
+
       if (weather.temperature >= 38) {
-        // Extreme heat: Dangerous evaporation
         return {
-          humidityModifier: -40,  // Extremely dry outdoor air
-          evaporationRate: 60,    // Rapid soil drying (wind + heat)
-          note: 'Cairo summer heat + wind creates extreme drying - check plants twice daily',
+          humidityModifier: Math.round(-40 * drynessFactor),
+          evaporationRate: Math.round(60 * windFactor),
+          note: 'Extreme heat + wind creates dangerous drying - check plants twice daily',
         };
       } else if (weather.temperature >= 32) {
-        // Hot: High evaporation
         return {
-          humidityModifier: -30,  // Very dry outdoor air
-          evaporationRate: 45,    // Fast evaporation
-          note: 'Cairo heat and wind dry soil very quickly',
+          humidityModifier: Math.round(-30 * drynessFactor),
+          evaporationRate: Math.round(45 * windFactor),
+          note: 'Outdoor heat and wind dry soil very quickly',
         };
       } else if (weather.temperature >= 25) {
-        // Warm: Moderate evaporation
         return {
-          humidityModifier: -20,  // Dry outdoor air
-          evaporationRate: 30,    // Moderate evaporation
+          humidityModifier: Math.round(-20 * drynessFactor),
+          evaporationRate: Math.round(30 * windFactor),
           note: 'Outdoor conditions dry soil faster than indoors',
         };
       } else {
-        // Cool: Slow evaporation
         return {
-          humidityModifier: -10,  // Mild dryness
-          evaporationRate: 15,    // Slow evaporation
+          humidityModifier: Math.round(-10 * drynessFactor),
+          evaporationRate: Math.round(15 * windFactor),
           note: 'Cool weather reduces outdoor evaporation',
         };
       }

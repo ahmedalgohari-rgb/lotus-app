@@ -66,6 +66,9 @@ export default function NotificationPromptModal({
             <Text style={styles.subtitle}>
               {t('notifications.promptSubtitle')}
             </Text>
+            <Text style={styles.subtitleSecondary}>
+              {t('notifications.promptSubtitleSecondary')}
+            </Text>
 
             {/* Enable Button */}
             <TouchableOpacity
@@ -131,6 +134,15 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   subtitle: {
+    fontSize: 14,
+    color: COLORS.white,
+    textAlign: 'center',
+    marginBottom: 6,
+    opacity: 0.9,
+    paddingHorizontal: FIBONACCI.SM,
+    lineHeight: 20,
+  },
+  subtitleSecondary: {
     fontSize: 14,
     color: COLORS.white,
     textAlign: 'center',

@@ -49,11 +49,25 @@ coverage/
 # Screenshots, recordings, and media files (don't commit these)
 IMG_*.PNG
 IMG_*.png
+IMG_*.jpeg
+IMG_*.jpg
 *.MOV
 *.mov
 *.mp4
 Simulator Screen Recording*
 icon_BIGGER.png
+
+# Xcode archive export folders (contain compiled .ipa binaries)
+Lotus */
+
+# Supabase local dev temp files (not needed in repo)
+supabase/.temp/
+
+# Claude Code tool internals
+.agents/
+.claude/skills/
+skills/
+skills-lock.json
 
 # One-off utility scripts (not part of the app)
 generate-apple-jwt*.js

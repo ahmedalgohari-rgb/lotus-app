@@ -3,15 +3,11 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   FlatList,
   TouchableOpacity,
-  Dimensions,
   Keyboard,
-  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
 import { COLORS, FIBONACCI, TYPOGRAPHY, ELEMENT_SIZES } from '../constants';
@@ -20,8 +16,6 @@ import SearchBar from '../components/SearchBar';
 import { plantDatabaseService } from '../services/plantDatabase';
 import { Plant, PlantMatch } from '../types';
 import { useRTL } from '../utils/rtl';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface AddScanScreenProps {
   navigation: any;
@@ -209,18 +203,18 @@ export default function AddScanScreen({ navigation }: AddScanScreenProps) {
         </Text>
       </View>
 
-      {/* Search + Identify Row - Outside FlatList */}
+      {/* Search Row - Camera integrated inside SearchBar */}
       <View style={[styles.searchRow, isRTL && styles.searchRowRTL]}>
         <View style={[styles.searchContainer, isKeyboardVisible && styles.searchContainerExpanded]}>
           <SearchBar
             value={searchQuery}
             onChangeText={handleSearchChange}
             onClear={handleClearSearch}
+            onCameraPress={!isKeyboardVisible ? handleIdentifyPress : undefined}
           />
         </View>
 
-        {/* Show Cancel button when keyboard is visible, otherwise show camera button */}
-        {isKeyboardVisible ? (
+        {isKeyboardVisible && (
           <TouchableOpacity
             style={styles.cancelButton}
             onPress={handleCancelSearch}
@@ -228,17 +222,6 @@ export default function AddScanScreen({ navigation }: AddScanScreenProps) {
           >
             <Text style={styles.cancelText}>{isRTL ? 'إلغاء' : 'Cancel'}</Text>
           </TouchableOpacity>
-        ) : (
-          <>
-            <Text style={[styles.orText, isRTL && styles.orTextRTL]}>{t('addScan.or')}</Text>
-            <TouchableOpacity
-              style={styles.identifyButton}
-              onPress={handleIdentifyPress}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="camera" size={24} color={COLORS.text} />
-            </TouchableOpacity>
-          </>
         )}
       </View>
 
@@ -316,38 +299,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row-reverse',
   },
   searchContainer: {
-    flex: 1, // Takes remaining space after fixed-width identify button
-  },
-  orText: {
-    fontSize: TYPOGRAPHY.BASE,
-    color: COLORS.textSecondary,
-    marginHorizontal: FIBONACCI.MD,
-    fontWeight: '500',
-  },
-  orTextRTL: {
-    textAlign: 'center',
-  },
-  identifyButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F4D03F', // Yellow color from reference design
-    width: ELEMENT_SIZES.BUTTON_MD, // 55px - make it square
-    height: ELEMENT_SIZES.BUTTON_MD, // 55px - match search bar height
-    borderRadius: ELEMENT_SIZES.RADIUS_MD,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  identifyButtonText: {
-    fontSize: TYPOGRAPHY.MD, // 18px - bigger text
-    fontWeight: '600',
-    color: COLORS.text,
-    marginLeft: FIBONACCI.XS,
-  },
-  identifyButtonTextRTL: {
-    textAlign: 'center',
+    flex: 1,
   },
   sectionTitle: {
     fontSize: TYPOGRAPHY.XL, // 26px
