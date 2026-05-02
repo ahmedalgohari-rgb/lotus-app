@@ -1,11 +1,11 @@
 # Trellis — LinkedIn Post Draft (FINAL)
 **Date:** 2026-05-03 (Sunday morning post)
 **Angle:** A — Compass / Window Direction
-**Voice:** Empathetic founder, story-first, build-in-public
+**Voice:** Empathetic founder, story-first, build-in-public, viral-optimized
 
 ---
 
-## ✅ POST THIS ONE — V2-Polished (Story Hook, Viral-Optimized)
+## ✅ POST THIS — V2-Polished (Story Hook, Viral-Optimized)
 
 > A user messaged me last week:
 >
@@ -47,7 +47,7 @@
 
 ---
 
-## Why This Version Wins
+## Why V2 Wins for Virality
 
 **Empathy hooks (in order of impact):**
 1. **Opens with a real user voice** — readers see themselves before they see you
@@ -57,50 +57,34 @@
 5. **Closes with a question to the reader** — invites comments (algorithm fuel)
 
 **Virality mechanics:**
-- **Specific numbers:** "three plants in 2024", "15 seconds", "three times longer" (specificity > vague claims)
-- **Counterintuitive claim:** "friction = retention" (LinkedIn loves contrarian product takes)
-- **Egypt context:** "45°C in Cairo" makes you stand out from SF tech bros
-- **Generalizable lesson:** *"the question you ask first defines the product"* is quotable — people will save and re-share for that line alone
-- **Soft CTA inviting reflection** ("What's the question YOUR product asks first?") — not "download my app" (that kills shares)
-- **Plant emoji 🌿🌱** humanizes without being unprofessional
-
-**LinkedIn algorithm bait (intentional):**
-- 7 paragraphs, mostly 1-2 lines each (hooks scrollers)
-- Bold pull quote in the middle (visual rhythm)
-- One emoji-marked takeaway (people screenshot for re-sharing)
-- Mentions "free, no ads" (reduces "ad-suspicion" — boosts trust)
+- **Specific numbers** ("three plants in 2024", "15 seconds", "three times longer") — specificity = credibility
+- **Counterintuitive claim** ("friction = retention") — LinkedIn loves contrarian product takes
+- **Egypt context** ("45°C in Cairo") — stands out from SF tech bros
+- **Generalizable lesson** — *"the question you ask first defines the product"* is quotable. People will save and re-share for that line alone
+- **Soft CTA** ("What's the question YOUR product asks first?") — not "download my app" (kills shares)
+- **Plant emoji** 🌿🌱 — humanizes without being unprofessional
 
 ---
 
-## Posting Instructions
+## Posting Instructions (Tomorrow Morning)
 
-| When | What |
+| Time | Action |
 |---|---|
-| **Sunday 9-10am Cairo** | Post live (peak LinkedIn engagement window for MENA/EU audience) |
-| **Image** | Screenshot of the compass picker IN ACTION (the unique, scroll-stopping visual). Crop tight. |
-| **First comment** | "If you want to try the compass yourself: [App Store link]. iOS only — Android is on the roadmap." |
-| **Hashtags** | Already in post — keep at 4-5 max |
-| **Reply window** | Stay near phone for 2 hours after posting. Reply to every comment within 30 mins. LinkedIn algorithm rewards conversation velocity in the first 2 hours. |
-| **Don't** | Post anything else about Lotus for 24h. Don't cross-post to Instagram (different audience, dilutes). |
+| **8:30am Cairo** | Take screenshot of compass picker (open AddPlantScreen → step 2 → screenshot the live rotating compass) |
+| **8:45am Cairo** | Crop screenshot tight, open LinkedIn |
+| **9:00am Cairo** | Copy V2-Polished above → paste into LinkedIn → attach screenshot → post |
+| **9:00–11:00am** | Stay on phone, reply to every comment within 30 mins |
+| **11:00am Cairo** | Post first comment: "If you want to try the compass yourself: [App Store link]. iOS only — Android is on the roadmap." |
+| **All day** | DON'T cross-post to Instagram or anywhere. Let this one breathe. |
+
+**Why 9am Cairo Sunday:** Peak engagement window for MENA + EU professional audiences. First 2 hours of velocity determine total reach.
 
 ---
 
-## Trellis's 4-Week Queue (after this one)
+## Trellis Queue (Future Weeks)
 
-| Week | Theme | Story angle |
+| Week | Theme | Hook |
 |---|---|---|
-| 2 | **Arabic-First, Not Translated** | "We didn't translate the app. We rebuilt it. Here's what that meant for buttons that flip, fonts that breathe, and tone that sounds like home." |
-| 3 | **Solo Founder April Recap** | "I shipped 5 features in April. Here's which one moved the needle, which one I'd kill, and what I learned from making the wrong bet on push notifications." |
-| 4 | **WeatherKit as Trust Story** | "I stopped paying $99/year for OpenWeather and switched to Apple's free WeatherKit. The migration took two weeks. The bigger story is what it told me about which APIs to never trust again." |
-
-(All 4 will eventually become a single Trellis recurring agent — same pattern as Sprout but weekly.)
-
----
-
-## ARCHIVED — V1 (Question Hook, NOT POSTING)
-
-Kept here for reference only. V2-Polished above is the shipping version. V1 was more analytical, less empathetic — better for product-podcast-style audiences but lower viral ceiling.
-
-> Most plant care apps ask: *"What's your plant?"*
-> When we built Lotus, we started asking a different question first: *"Which window does your plant face?"*
-> [...truncated — original V1 in git history]
+| 2 | Arabic-First, Not Translated | "We didn't translate the app. We rebuilt it." |
+| 3 | Solo April Recap | "I shipped 5 features in April. Here's which one moved the needle." |
+| 4 | WeatherKit as Trust Story | "I stopped paying for OpenWeather. Here's what that taught me about API dependencies." |
