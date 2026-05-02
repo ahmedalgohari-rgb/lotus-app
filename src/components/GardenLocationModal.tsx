@@ -16,6 +16,7 @@ import {
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
+import PressSpring from './PressSpring';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -120,11 +121,10 @@ export default function GardenLocationModal({
             ) : null}
 
             {/* Save Button */}
-            <TouchableOpacity
+            <PressSpring
               style={[styles.saveButton, (isLoading || isSaving) && styles.saveButtonDisabled]}
               onPress={handleSave}
               disabled={isLoading || isSaving || !locationData}
-              activeOpacity={0.8}
             >
               {isSaving ? (
                 <ActivityIndicator size="small" color={COLORS.primary} />
@@ -136,18 +136,18 @@ export default function GardenLocationModal({
                   </Text>
                 </>
               )}
-            </TouchableOpacity>
+            </PressSpring>
 
             {/* Skip Link */}
-            <TouchableOpacity
+            <PressSpring
               style={styles.skipButton}
               onPress={onSkip}
-              activeOpacity={0.7}
+              pressedScale={0.98}
             >
               <Text style={styles.skipButtonText}>
                 {t('gardenLocation.notNow')}
               </Text>
-            </TouchableOpacity>
+            </PressSpring>
           </View>
         </LinearGradient>
       </View>

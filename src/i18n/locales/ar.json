@@ -14,7 +14,8 @@
     "next": "التالي",
     "done": "تم",
     "retry": "جرب تاني",
-    "close": "إغلاق"
+    "close": "إغلاق",
+    "tryAgain": "حاول تاني من فضلك."
   },
   "navigation": {
     "home": "البيت",
@@ -45,6 +46,11 @@
     "maybeLater": "ممكن بعدين",
     "comingSoon": "قريباً",
     "termsAgreement": "بالمتابعة، أنت توافق على شروط الخدمة وسياسة الخصوصية",
+    "termsPrefix": "بالمتابعة، أنت توافق على ",
+    "termsLink": "شروط الخدمة",
+    "termsAnd": " و",
+    "privacyLink": "سياسة الخصوصية",
+    "saveNameFailed": "ما قدرناش نحفظ اسمك. حاول تاني.",
     "createFreeAccount": "اعمل حساب مجاني"
   },
   "nameCollection": {
@@ -215,7 +221,12 @@
       "watering": "الري:",
       "humidity": "الرطوبة:",
       "light": "الإضاءة:"
-    }
+    },
+    "updateNicknameFailed": "ما قدرناش نحدث اسم النبات.",
+    "recordCareFailed": "ما قدرناش نسجل العناية. حاول تاني.",
+    "actionDoneTitle": "تم!",
+    "actionDoneMessage": "{{action}} لـ {{name}}",
+    "eventAt": "{{date}} في {{time}}"
   },
   "addPlant": {
     "unknownPlant": "زرعة مش معروفة",
@@ -380,7 +391,17 @@
     "recommendation": "توصية الري",
     "increaseWatering": "زود الري عشان الحر",
     "normalWatering": "جدول ري عادي",
-    "reduceWatering": "قلل الري عشان الرطوبة/المطر"
+    "reduceWatering": "قلل الري عشان الرطوبة/المطر",
+    "tracker": {
+      "title": "متتبع الطقس",
+      "minMax": "أقل {{min}}°C ؛ أعلى {{max}}°C",
+      "uvIndex": "مؤشر UV",
+      "wind": "الرياح",
+      "kmh": "كم/س",
+      "gusts": "هبات: {{value}} كم/س",
+      "humidity": "الرطوبة",
+      "pressure": "الضغط"
+    }
   },
   "careMatrix": {
     "placements": {
@@ -552,6 +573,10 @@
       "family": "نباتات مشابهة متاحة",
       "none": "تم التعرف بواسطة الذكاء الاصطناعي"
     },
+    "familyLabel": "العائلة:",
+    "refineTitle": "حدد نباتك",
+    "refineSubtitle": "اكتشفنا {{name}}.\nأي صورة أشبه بنباتك؟",
+    "saveNameFailed": "ما قدرناش نحفظ اسمك. حاول تاني.",
     "matchMessages": {
       "fullMatch": "ممتاز! لدينا معلومات عناية تفصيلية لهذا النبات (تطابق {{confidence}}٪).",
       "genusMatch": "وجدنا نباتات من نفس الجنس. إرشادات العناية العامة تنطبق، لكن الأصناف قد تختلف.",

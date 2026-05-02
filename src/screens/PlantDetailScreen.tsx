@@ -24,6 +24,7 @@ import {
   PLANT_LOCATIONS,
   WINDOW_DIRECTIONS,
   CARE_EVENT_TYPES,
+  HEALTH_STATUS,
   FIBONACCI,
   TYPOGRAPHY,
   ELEMENT_SIZES,
@@ -49,6 +50,7 @@ import {
 import * as NotificationService from '../services/notifications';
 import { trackCareAction } from '../services/analytics';
 import TagInfoModal, { getLightIcon, getLightColor, TagInfoType } from '../components/TagInfoModal';
+import TraitPill from '../components/TraitPill';
 
 interface RouteParams {
   plantId: string;
@@ -67,6 +69,8 @@ export default function PlantDetailScreen() {
   const [editableNickname, setEditableNickname] = useState('');
   const [enhancedCare, setEnhancedCare] = useState<EnhancedCareRecommendation | null>(null);
   const [isLoadingCare, setIsLoadingCare] = useState(false);
+  const [capturedImageFailed, setCapturedImageFailed] = useState(false);
+  const [remoteImageFailed, setRemoteImageFailed] = useState(false);
   const [isCareGuideExpanded, setIsCareGuideExpanded] = useState(true); // Expanded by default
   const [dbPlant, setDbPlant] = useState<DbPlant | null>(null);
   const [tagInfoVisible, setTagInfoVisible] = useState(false);
@@ -111,7 +115,8 @@ export default function PlantDetailScreen() {
   const { plantId } = route.params as RouteParams;
   const { plants, updatePlant, user, gardenLocation } = useStore();
   const isRTL = useRTL();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language === 'ar' ? 'ar-EG' : 'en-US';
 
   // Helper function to translate plant type
   const translatePlantType = (type: string): string => {
@@ -165,6 +170,11 @@ export default function PlantDetailScreen() {
     }
     setIsLoading(false);
   }, [plantId, plants]);
+
+  useEffect(() => {
+    setCapturedImageFailed(false);
+    setRemoteImageFailed(false);
+  }, [plantId]);
 
   // Load enhanced care recommendations when plant data is available
   useEffect(() => {
@@ -257,7 +267,7 @@ export default function PlantDetailScreen() {
       const revertedPlant = { ...plant, nickname: oldNickname };
       setPlant(revertedPlant);
       updatePlant(plant.id, { nickname: oldNickname });
-      Alert.alert('Error', 'Failed to update nickname.');
+      Alert.alert(t('common.error'), t('plantDetail.updateNicknameFailed'));
     }
   };
 
@@ -341,11 +351,12 @@ export default function PlantDetailScreen() {
       // Refresh care history
       await loadCareHistory();
 
-      const actionName = CARE_EVENT_TYPES.find(c => c.value === eventType)?.label || eventType;
-      Alert.alert('✅ Done!', `${actionName} completed for ${plant.nickname}`);
+      const careEventType = CARE_EVENT_TYPES.find(c => c.value === eventType);
+      const actionName = isRTL ? (careEventType?.labelAr || eventType) : (careEventType?.label || eventType);
+      Alert.alert(t('plantDetail.actionDoneTitle'), t('plantDetail.actionDoneMessage', { action: actionName, name: plant.nickname }));
     } catch (error) {
       logger.error('Error recording care action:', error);
-      Alert.alert('Error', 'Failed to record care action. Please try again.');
+      Alert.alert(t('common.error'), t('plantDetail.recordCareFailed'));
     }
   };
 
@@ -370,7 +381,7 @@ export default function PlantDetailScreen() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString(dateLocale, {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -379,10 +390,10 @@ export default function PlantDetailScreen() {
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', {
+    return date.toLocaleTimeString(dateLocale, {
       hour: 'numeric',
       minute: '2-digit',
-      hour12: true,
+      hour12: i18n.language !== 'ar',
     });
   };
 
@@ -390,7 +401,7 @@ export default function PlantDetailScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <Text>Loading plant details...</Text>
+          <Text>{t('common.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -398,24 +409,40 @@ export default function PlantDetailScreen() {
 
   const daysUntilWatering = getDaysUntilWatering();
 
+  // Cascading header image: captured → local database → remote URL → branded fallback
+  function getHeaderSource() {
+    if (plant.captured_image_uri && !capturedImageFailed) return { uri: plant.captured_image_uri };
+    const local = getPlantImage(plant.plant_id);
+    if (local) return local;
+    if (plant.image_url && !remoteImageFailed) return { uri: plant.image_url };
+    return null;
+  }
+  const headerSource = getHeaderSource();
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.headerImageContainer}>
-          <Image
-            source={
-              // Priority 1: User's captured photo (WebP)
-              plant.captured_image_uri ? { uri: plant.captured_image_uri } :
-              // Priority 2: Local database image
-              getPlantImage(plant.plant_id) ||
-              // Priority 3: Remote URL
-              { uri: plant.image_url || undefined }
-            }
-            style={styles.headerImage}
-            contentFit="cover"
-            cachePolicy="memory-disk"
-            transition={200}
-          />
+          {headerSource ? (
+            <Image
+              source={headerSource}
+              style={styles.headerImage}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={200}
+              onError={() => {
+                if (plant.captured_image_uri && !capturedImageFailed) {
+                  setCapturedImageFailed(true);
+                } else {
+                  setRemoteImageFailed(true);
+                }
+              }}
+            />
+          ) : (
+            <View style={[styles.headerImage, styles.headerImageFallback]}>
+              <Ionicons name="leaf" size={64} color={COLORS.primary} style={{ opacity: 0.35 }} />
+            </View>
+          )}
           <View style={styles.headerOverlay}>
             <View style={styles.headerTop}>
               <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButton}>
@@ -438,7 +465,11 @@ export default function PlantDetailScreen() {
             </View>
             <View style={[styles.newHealthBadge, { backgroundColor: getHealthColor(calculateHealthStatus(plant)) }]}>
               <Text style={styles.newHealthBadgeText}>
-                {calculateHealthStatus(plant).replace('_', ' ')}
+                {(() => {
+                  const status = calculateHealthStatus(plant);
+                  const found = HEALTH_STATUS.find(h => h.value === status);
+                  return isRTL ? (found?.labelAr ?? status) : (found?.label ?? status.replace('_', ' '));
+                })()}
               </Text>
             </View>
           </View>
@@ -470,43 +501,25 @@ export default function PlantDetailScreen() {
           {dbPlant ? (
             <View style={[styles.traitTagsRow, isRTL && styles.traitTagsRowRTL]}>
               {dbPlant.care?.difficulty && (
-                <View style={styles.traitTagPill}>
-                  <Text style={styles.traitTagPillText}>{t(`tags.${dbPlant.care.difficulty}`)}</Text>
-                </View>
+                <TraitPill label={t(`tags.${dbPlant.care.difficulty}`)} />
               )}
               {dbPlant.care?.plant_type && (
-                <View style={styles.traitTagPill}>
-                  <Text style={styles.traitTagPillText}>{t(`tags.${dbPlant.care.plant_type}`)}</Text>
-                </View>
+                <TraitPill label={t(`tags.${dbPlant.care.plant_type}`)} />
               )}
               {dbPlant.care?.light?.requirement && (
-                <TouchableOpacity
-                  style={styles.traitTagPill}
+                <TraitPill
+                  label={t(`tags.${dbPlant.care.light.requirement}`)}
+                  icon={<Ionicons name={getLightIcon(dbPlant.care.light.requirement)} size={14} color={getLightColor(dbPlant.care.light.requirement)} />}
                   onPress={() => openTagInfo('light', dbPlant.care!.light!.requirement)}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name={getLightIcon(dbPlant.care.light.requirement)}
-                    size={14}
-                    color={getLightColor(dbPlant.care.light.requirement)}
-                    style={{ marginRight: 4 }}
-                  />
-                  <Text style={styles.traitTagPillText}>{t(`tags.${dbPlant.care.light.requirement}`)}</Text>
-                </TouchableOpacity>
+                />
               )}
               {dbPlant.characteristics?.pet_safe !== undefined && (
-                <TouchableOpacity
-                  style={[styles.traitTagPill, !dbPlant.characteristics.pet_safe && styles.traitTagPillDanger]}
+                <TraitPill
+                  label={dbPlant.characteristics.pet_safe ? t('tags.petSafe') : t('tags.petToxic')}
+                  icon={<Text style={{ fontSize: 13 }}>{dbPlant.characteristics.pet_safe ? '🐶' : '🚫'}</Text>}
+                  danger={!dbPlant.characteristics.pet_safe}
                   onPress={() => openTagInfo(dbPlant.characteristics!.pet_safe ? 'petSafe' : 'petToxic')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={{ fontSize: 13, marginRight: 4 }}>
-                    {dbPlant.characteristics.pet_safe ? '🐶' : '🚫'}
-                  </Text>
-                  <Text style={[styles.traitTagPillText, !dbPlant.characteristics.pet_safe && styles.traitTagPillTextDanger]}>
-                    {dbPlant.characteristics.pet_safe ? t('tags.petSafe') : t('tags.petToxic')}
-                  </Text>
-                </TouchableOpacity>
+                />
               )}
             </View>
           ) : plant.plant_type ? (
@@ -771,7 +784,7 @@ export default function PlantDetailScreen() {
                         <View style={[styles.careGuideItem, isRTL && styles.careGuideItemRTL]}>
                           <Ionicons name="cloud-outline" size={20} color={COLORS.primary} />
                           <Text style={[styles.careGuideValue, isRTL && styles.careGuideValueRTL]}>
-                            {isRTL ? 'الرطوبة:' : 'Humidity:'} {translateHumidity(plant.preferred_humidity || dbPlant?.care.humidity || '')}
+                            {t('plantDetail.careLabels.humidity')} {translateHumidity(plant.preferred_humidity || dbPlant?.care.humidity || '')}
                           </Text>
                         </View>
                       )}
@@ -812,10 +825,10 @@ export default function PlantDetailScreen() {
                       <Text style={styles.historyIcon}>{eventType?.emoji || '•'}</Text>
                       <View style={styles.historyContent}>
                         <Text style={styles.historyText}>
-                          {eventType?.label || event.event_type} completed
+                          {isRTL ? (eventType?.labelAr || event.event_type) : (eventType?.label || event.event_type)}
                         </Text>
                         <Text style={styles.historyDate}>
-                          {formatDate(event.completed_at)} at {formatTime(event.completed_at)}
+                          {t('plantDetail.eventAt', { date: formatDate(event.completed_at), time: formatTime(event.completed_at) })}
                         </Text>
                       </View>
                       <Ionicons name="checkmark-circle" size={20} color={COLORS.success} />
@@ -848,6 +861,11 @@ const styles = StyleSheet.create({
   headerImage: {
     width: '100%',
     height: GOLDEN_RECTANGLES.LARGE.width, // 233px
+  },
+  headerImageFallback: {
+    backgroundColor: COLORS.background,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -970,25 +988,6 @@ const styles = StyleSheet.create({
   },
   traitTagsRowRTL: {
     flexDirection: 'row-reverse',
-  },
-  traitTagPill: {
-    backgroundColor: '#F0F0F0',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  traitTagPillText: {
-    fontSize: 12,
-    fontWeight: '500' as const,
-    color: COLORS.text,
-  },
-  traitTagPillDanger: {
-    backgroundColor: '#FDDEDE',
-  },
-  traitTagPillTextDanger: {
-    color: '#E53E3E',
   },
   actionsContainer: {
     marginBottom: FIBONACCI.XL,

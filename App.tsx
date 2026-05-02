@@ -12,6 +12,7 @@ import { initializeStore, useStore } from './src/store';
 import { authService, dbService, supabase } from './src/services/supabase';
 import * as NotificationService from './src/services/notifications';
 import NotificationPromptModal from './src/components/NotificationPromptModal';
+import AnimatedSplash from './src/components/AnimatedSplash';
 import { trackAppOpened, identifyUser, setUserProperty, trackCareReminderEngagement } from './src/services/analytics';
 import './src/i18n'; // Initialize i18n
 
@@ -27,6 +28,7 @@ LogBox.ignoreLogs([
 export default function App() {
   const { setUser, setAuthenticated, setLoading, isRTL } = useStore();
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+  const [splashDone, setSplashDone] = useState(false);
 
   // Load Tharwat Emara Ruqaa font for bilingual compass
   const [fontsLoaded] = useFonts({
@@ -238,9 +240,8 @@ export default function App() {
     await NotificationService.markPromptShown();
   };
 
-  // Wait for fonts to load before rendering app
   if (!fontsLoaded) {
-    return null; // Or you could return a loading screen
+    return null;
   }
 
   return (
@@ -253,6 +254,7 @@ export default function App() {
           onEnable={handleNotificationEnable}
           onSkip={handleNotificationSkip}
         />
+        {!splashDone && <AnimatedSplash onComplete={() => setSplashDone(true)} />}
       </View>
     </SafeAreaProvider>
   );

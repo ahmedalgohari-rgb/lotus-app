@@ -9,6 +9,7 @@ import {
   Dimensions,
   Image,
 } from 'react-native';
+import PressSpring from '../components/PressSpring';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -150,7 +151,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
 
       // Don't show error alert if user intentionally cancelled
       if (error?.name !== 'UserCancelled' && error?.message !== 'User cancelled OAuth') {
-        Alert.alert('Sign In Failed', 'Please try again.');
+        Alert.alert(t('auth.signInError'), t('common.tryAgain'));
       }
 
       setIsLoading(false);
@@ -252,7 +253,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
 
       // Don't show error alert if user intentionally cancelled
       if (error?.name !== 'UserCancelled' && error?.message !== 'User cancelled OAuth') {
-        Alert.alert('Sign In Failed', 'Please try again.');
+        Alert.alert(t('auth.signInError'), t('common.tryAgain'));
       }
 
       setIsLoading(false);
@@ -345,7 +346,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
 
       // Don't show error alert if user intentionally cancelled
       if (error?.name !== 'UserCancelled' && error?.message !== 'User cancelled OAuth') {
-        Alert.alert('Sign In Failed', 'Please try again.');
+        Alert.alert(t('auth.signInError'), t('common.tryAgain'));
       }
 
       setIsLoading(false);
@@ -395,7 +396,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
       // No manual navigation needed - state change triggers automatic navigation
     } catch (error) {
       logger.error('Error saving user name:', error);
-      Alert.alert('Error', 'Failed to save your name. Please try again.');
+      Alert.alert(t('common.error'), t('auth.saveNameFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -440,7 +441,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
 
           {/* Auth Buttons */}
           <View style={styles.authButtons}>
-            <TouchableOpacity
+            <PressSpring
               style={[styles.googleButton, isLoading && styles.buttonDisabled]}
               onPress={handleGoogleSignIn}
               disabled={isLoading}
@@ -449,9 +450,9 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
               <Text style={styles.googleButtonText}>
                 {t('auth.continueWithGoogle')}
               </Text>
-            </TouchableOpacity>
+            </PressSpring>
 
-            <TouchableOpacity
+            <PressSpring
               style={[styles.facebookButton, isLoading && styles.buttonDisabled]}
               onPress={handleFacebookSignIn}
               disabled={isLoading}
@@ -460,9 +461,9 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
               <Text style={styles.facebookButtonText}>
                 {t('auth.continueWithFacebook')}
               </Text>
-            </TouchableOpacity>
+            </PressSpring>
 
-            <TouchableOpacity
+            <PressSpring
               style={[styles.appleButton, isLoading && styles.buttonDisabled]}
               onPress={handleAppleSignIn}
               disabled={isLoading}
@@ -471,7 +472,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
               <Text style={styles.appleButtonText}>
                 {t('auth.continueWithApple')}
               </Text>
-            </TouchableOpacity>
+            </PressSpring>
 
             {/* Divider */}
             <View style={styles.dividerRow}>
@@ -481,7 +482,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
             </View>
 
             {/* Guest CTA — primary path for users not ready to sign up */}
-            <TouchableOpacity
+            <PressSpring
               style={[styles.guestButton, isLoading && styles.buttonDisabled]}
               onPress={handleGuestMode}
               disabled={isLoading}
@@ -491,7 +492,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
               <Text style={styles.guestButtonText}>
                 {t('auth.startScanning')}
               </Text>
-            </TouchableOpacity>
+            </PressSpring>
           </View>
 
           {/* Loading State */}
@@ -505,13 +506,13 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
           {/* Legal Text */}
           <View style={styles.legalSection}>
             <Text style={styles.legalText}>
-              By continuing you agree to our{' '}
+              {t('auth.termsPrefix')}
               <Text style={styles.termsLink} onPress={handleOpenTerms}>
-                Terms of Service
+                {t('auth.termsLink')}
               </Text>
-              {' '}and{' '}
+              {t('auth.termsAnd')}
               <Text style={styles.termsLink} onPress={handleOpenPrivacy}>
-                Privacy Policy
+                {t('auth.privacyLink')}
               </Text>
             </Text>
           </View>
@@ -546,7 +547,7 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH * 0.55,                // 55% width - bold but doesn't dominate
     height: SCREEN_HEIGHT * 0.20,              // 20% - was 27%, fits without scroll
     marginBottom: FIBONACCI.XS,                // 5px
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: FIBONACCI.SM },
     shadowOpacity: 0.15,
     shadowRadius: FIBONACCI.LG,
@@ -579,7 +580,7 @@ const styles = StyleSheet.create({
     height: ELEMENT_SIZES.BUTTON_MD,            // 55px - Standard button height
     borderRadius: ELEMENT_SIZES.RADIUS_LG,      // 21px - Pronounced rounding
     marginBottom: FIBONACCI.MD,                 // 13px - Consistent gap between buttons
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: FIBONACCI.XXS },
     shadowOpacity: 0.12,
     shadowRadius: FIBONACCI.SM,
@@ -599,7 +600,7 @@ const styles = StyleSheet.create({
     height: ELEMENT_SIZES.BUTTON_MD,
     borderRadius: ELEMENT_SIZES.RADIUS_LG,
     marginBottom: FIBONACCI.MD,                 // 13px - Same as Google button
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: FIBONACCI.XXS },
     shadowOpacity: 0.12,
     shadowRadius: FIBONACCI.SM,
@@ -619,7 +620,7 @@ const styles = StyleSheet.create({
     height: ELEMENT_SIZES.BUTTON_MD,
     borderRadius: ELEMENT_SIZES.RADIUS_LG,
     marginBottom: 0,                            // Last button - no bottom margin
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: FIBONACCI.XXS },
     shadowOpacity: 0.12,
     shadowRadius: FIBONACCI.SM,
@@ -684,61 +685,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: TYPOGRAPHY.MD,                  // 18px line height
     opacity: 0.7,
-  },
-  legalLink: {
-    fontWeight: '600',
-    textDecorationLine: 'underline',
-  },
-  comingSoonContainer: {
-    position: 'absolute',
-    top: -FIBONACCI.SM, // -8px - Anchored to Apple button top edge matching October 10th
-    right: FIBONACCI.SM, // 8px - Closer to right edge matching October 10th design
-    backgroundColor: '#2D5F3F', // Lotus Green - dark teal/green matching target design
-    paddingHorizontal: FIBONACCI.SM, // 8px - Compact padding
-    paddingVertical: FIBONACCI.XXS, // 3px - Minimal vertical padding
-    borderRadius: FIBONACCI.MD, // 13px - Pill-shaped badge
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: FIBONACCI.XXS }, // 3px - Subtle depth
-    shadowOpacity: 0.2,
-    shadowRadius: FIBONACCI.XS, // 5px - Soft shadow
-    elevation: 3,
-  },
-  comingSoonText: {
-    fontSize: 8,
-    color: '#FFFFFF', // Pure white for maximum brightness matching October 10th
-    fontWeight: '700',
-  },
-  // Terms & Conditions Checkbox Styles
-  termsContainer: {
-    paddingHorizontal: SCREEN_WIDTH * 0.08,
-    marginBottom: FIBONACCI.LG,
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: COLORS.white,
-    marginRight: FIBONACCI.SM,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-  },
-  checkboxChecked: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  termsTextContainer: {
-    flex: 1,
-  },
-  termsText: {
-    fontSize: TYPOGRAPHY.SM,
-    color: COLORS.white,
-    lineHeight: 20,
   },
   termsLink: {
     fontWeight: '600',

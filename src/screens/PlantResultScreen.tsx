@@ -42,6 +42,7 @@ import { useRTL } from '../utils/rtl';
 import { processCapturedPhoto } from '../utils/imageProcessor';
 import { trackPlantResultViewed } from '../services/analytics';
 import TagInfoModal, { getLightIcon, getLightColor, TagInfoType } from '../components/TagInfoModal';
+import TraitPill from '../components/TraitPill';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -135,17 +136,7 @@ export default function PlantResultScreen() {
   const dbMatch = identificationResult?.database_match;
   const currentLang = getCurrentLanguage(); // 🌐 FIX: Get current language for localization
 
-  // 🐛 DEBUG: Log what data we have
   useEffect(() => {
-    console.log('=== PLANT RESULT DEBUG ===');
-    console.log('Current Language:', currentLang);
-    console.log('English Name:', identificationResult?.common_name);
-    console.log('Arabic Name:', identificationResult?.common_name_arabic);
-    console.log('English Info:', identificationResult?.plant_info?.substring(0, 30));
-    console.log('Arabic Info:', identificationResult?.plant_info_arabic?.substring(0, 30));
-    console.log('DB Match Found:', dbMatch?.found);
-    console.log('DB Match Arabic Name:', dbMatch?.primary_plant_name_arabic);
-
     trackPlantResultViewed({
       commonName: identificationResult?.common_name,
       scientificName: identificationResult?.scientific_name,
@@ -464,7 +455,7 @@ export default function PlantResultScreen() {
 
       // Don't show error alert if user intentionally cancelled
       if (error?.name !== 'UserCancelled' && error?.message !== 'User cancelled OAuth') {
-        Alert.alert('Sign In Failed', 'Please try again.');
+        Alert.alert(t('auth.signInError'), t('common.tryAgain'));
       }
 
       setIsLoading(false);
@@ -550,7 +541,7 @@ export default function PlantResultScreen() {
 
       // Don't show error alert if user intentionally cancelled
       if (error?.name !== 'UserCancelled' && error?.message !== 'User cancelled OAuth') {
-        Alert.alert('Sign In Failed', 'Please try again.');
+        Alert.alert(t('auth.signInError'), t('common.tryAgain'));
       }
 
       setIsLoading(false);
@@ -636,7 +627,7 @@ export default function PlantResultScreen() {
 
       // Don't show error alert if user intentionally cancelled
       if (error?.name !== 'UserCancelled' && error?.message !== 'User cancelled OAuth') {
-        Alert.alert('Sign In Failed', 'Please try again.');
+        Alert.alert(t('auth.signInError'), t('common.tryAgain'));
       }
 
       setIsLoading(false);
@@ -665,7 +656,7 @@ export default function PlantResultScreen() {
       handlePostAuthSuccess();
     } catch (error) {
       logger.error('Error saving user name:', error);
-      Alert.alert('Error', 'Failed to save your name. Please try again.');
+      Alert.alert(t('common.error'), t('plantResult.saveNameFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -822,17 +813,16 @@ export default function PlantResultScreen() {
         >
           <Animated.View style={{ opacity: cardOpacity, transform: [{ translateY: cardTranslateY }] }}>
           <View style={styles.imageContainer}>
-            <Image
-              source={
-                // PRIORITY FIX: When user scans a plant, ONLY show their photo!
-                // Stock database images only for plants selected from search (no scan)
-                capturedImage ? { uri: capturedImage } :
-                plantDatabaseId && !capturedImage ? getPlantImage(plantDatabaseId) :
-                { uri: 'https://i.imgur.com/2n3nS2Y.png' }
-              }
-              style={styles.resultImage}
-              resizeMode="cover"
-            />
+            {(() => {
+              const imgSrc = capturedImage ? { uri: capturedImage } : (plantDatabaseId ? getPlantImage(plantDatabaseId) : null);
+              return imgSrc ? (
+                <Image source={imgSrc} style={styles.resultImage} resizeMode="cover" />
+              ) : (
+                <View style={[styles.resultImage, styles.resultImageFallback]}>
+                  <Ionicons name="leaf" size={48} color={COLORS.primary} style={{ opacity: 0.35 }} />
+                </View>
+              );
+            })()}
             {/* Removed "Identified by AI" badge - PlantNet logo below is sufficient */}
             {/* Provider Attribution Watermark (Dynamic based on active provider) */}
             {/* Required by some providers' Terms of Service (e.g., PlantNet) */}
@@ -875,7 +865,7 @@ export default function PlantResultScreen() {
               {identificationResult.scientific_name}
             </Text>
             {identificationResult.family && (
-              <Text style={[styles.familyName, isRTL && styles.familyNameRTL]}>Family: {identificationResult.family}</Text>
+              <Text style={[styles.familyName, isRTL && styles.familyNameRTL]}>{t('plantResult.familyLabel')} {identificationResult.family}</Text>
             )}
           </View>
 
@@ -883,49 +873,25 @@ export default function PlantResultScreen() {
           {plantTraits && (
             <View style={[styles.traitTagsContainer, isRTL && styles.traitTagsContainerRTL]}>
               {plantTraits.difficulty && (
-                <View style={styles.traitTag}>
-                  <Text style={styles.traitTagText}>
-                    {t(`tags.${plantTraits.difficulty}`)}
-                  </Text>
-                </View>
+                <TraitPill label={t(`tags.${plantTraits.difficulty}`)} />
               )}
               {plantTraits.type && (
-                <View style={styles.traitTag}>
-                  <Text style={styles.traitTagText}>
-                    {t(`tags.${plantTraits.type}`)}
-                  </Text>
-                </View>
+                <TraitPill label={t(`tags.${plantTraits.type}`)} />
               )}
               {plantTraits.lightRequirement && (
-                <TouchableOpacity
-                  style={styles.traitTag}
+                <TraitPill
+                  label={t(`tags.${plantTraits.lightRequirement}`)}
+                  icon={<Ionicons name={getLightIcon(plantTraits.lightRequirement)} size={14} color={getLightColor(plantTraits.lightRequirement)} />}
                   onPress={() => openTagInfo('light', plantTraits.lightRequirement)}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name={getLightIcon(plantTraits.lightRequirement)}
-                    size={14}
-                    color={getLightColor(plantTraits.lightRequirement)}
-                    style={{ marginRight: 4 }}
-                  />
-                  <Text style={styles.traitTagText}>
-                    {t(`tags.${plantTraits.lightRequirement}`)}
-                  </Text>
-                </TouchableOpacity>
+                />
               )}
               {plantTraits.petSafe !== undefined && (
-                <TouchableOpacity
-                  style={[styles.traitTag, !plantTraits.petSafe && styles.traitTagDanger]}
+                <TraitPill
+                  label={plantTraits.petSafe ? t('tags.petSafe') : t('tags.petToxic')}
+                  icon={<Text style={{ fontSize: 13 }}>{plantTraits.petSafe ? '🐶' : '🚫'}</Text>}
+                  danger={!plantTraits.petSafe}
                   onPress={() => openTagInfo(plantTraits.petSafe ? 'petSafe' : 'petToxic')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={{ fontSize: 13, marginRight: 4 }}>
-                    {plantTraits.petSafe ? '🐶' : '🚫'}
-                  </Text>
-                  <Text style={[styles.traitTagText, !plantTraits.petSafe && styles.traitTagTextDanger]}>
-                    {plantTraits.petSafe ? t('tags.petSafe') : t('tags.petToxic')}
-                  </Text>
-                </TouchableOpacity>
+                />
               )}
             </View>
           )}
@@ -940,7 +906,7 @@ export default function PlantResultScreen() {
               >
                 <View style={styles.refinerTitleContainer}>
                   <Ionicons name="leaf-outline" size={20} color={COLORS.primary} />
-                  <Text style={styles.refinerTitle}>Refine Your Match</Text>
+                  <Text style={styles.refinerTitle}>{t('plantResult.refineTitle')}</Text>
                 </View>
                 <Ionicons
                   name={showCultivarRefiner ? "chevron-up" : "chevron-down"}
@@ -952,8 +918,7 @@ export default function PlantResultScreen() {
               {showCultivarRefiner && (
                 <View style={styles.refinerContent}>
                   <Text style={styles.refinerSubtitle}>
-                    We detected a {identificationResult.common_name}.{'\n'}
-                    Which picture matches yours?
+                    {t('plantResult.refineSubtitle', { name: identificationResult.common_name })}
                   </Text>
 
                   <View style={styles.cultivarGrid}>
@@ -1213,8 +1178,13 @@ const styles = StyleSheet.create({
   },
   resultImage: {
     width: '100%',
-    height: FIBONACCI.HUGE, // 144px
-    borderRadius: ELEMENT_SIZES.RADIUS_MD, // 13px
+    height: FIBONACCI.HUGE,
+    borderRadius: ELEMENT_SIZES.RADIUS_MD,
+  },
+  resultImageFallback: {
+    backgroundColor: COLORS.background,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   confidenceBadge: {
     position: 'absolute',
@@ -1268,25 +1238,6 @@ const styles = StyleSheet.create({
   },
   traitTagsContainerRTL: {
     flexDirection: 'row-reverse',
-  },
-  traitTag: {
-    backgroundColor: '#F0F0F0',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  traitTagText: {
-    fontSize: 13,
-    fontWeight: '500' as const,
-    color: COLORS.text,
-  },
-  traitTagDanger: {
-    backgroundColor: '#FDDEDE',
-  },
-  traitTagTextDanger: {
-    color: '#E53E3E',
   },
   lowConfidenceWarning: {
     flexDirection: 'row',
@@ -1446,7 +1397,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     height: ELEMENT_SIZES.BUTTON_MD, // 55px - Fibonacci button height
     borderRadius: FIBONACCI.XL, // 34px - Pill shape
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.12,
     shadowRadius: FIBONACCI.SM,
@@ -1465,7 +1416,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     height: ELEMENT_SIZES.BUTTON_MD, // 55px - Fibonacci button height
     borderRadius: FIBONACCI.XL, // 34px - Pill shape
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.12,
     shadowRadius: FIBONACCI.SM,
@@ -1484,7 +1435,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     height: ELEMENT_SIZES.BUTTON_MD, // 55px - Fibonacci button height
     borderRadius: FIBONACCI.XL, // 34px - Pill shape
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.12,
     shadowRadius: FIBONACCI.SM,
@@ -1511,7 +1462,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: FIBONACCI.SM, // 8px - Compact padding
     paddingVertical: FIBONACCI.XXS, // 3px - Minimal vertical padding
     borderRadius: FIBONACCI.MD, // 13px - Pill-shaped badge
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: FIBONACCI.XXS }, // 3px - Subtle depth
     shadowOpacity: 0.2,
     shadowRadius: FIBONACCI.XS, // 5px - Soft shadow
@@ -1571,7 +1522,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: FIBONACCI.SM, // 8px - Compact padding
     paddingVertical: FIBONACCI.XS, // 5px - Minimal vertical padding
     borderRadius: FIBONACCI.XS, // 5px - Subtle rounded corners
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,

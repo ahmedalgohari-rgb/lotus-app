@@ -14,7 +14,8 @@
     "next": "Next",
     "done": "Done",
     "retry": "Retry",
-    "close": "Close"
+    "close": "Close",
+    "tryAgain": "Please try again."
   },
   "navigation": {
     "home": "Home",
@@ -45,6 +46,11 @@
     "maybeLater": "Maybe later",
     "comingSoon": "Coming Soon",
     "termsAgreement": "By continuing you agree to our Terms of Service and Privacy Policy",
+    "termsPrefix": "By continuing you agree to our ",
+    "termsLink": "Terms of Service",
+    "termsAnd": " and ",
+    "privacyLink": "Privacy Policy",
+    "saveNameFailed": "Failed to save your name. Please try again.",
     "createFreeAccount": "Create Free Account"
   },
   "nameCollection": {
@@ -215,7 +221,12 @@
       "watering": "Watering:",
       "humidity": "Humidity:",
       "light": "Light:"
-    }
+    },
+    "updateNicknameFailed": "Failed to update nickname.",
+    "recordCareFailed": "Failed to record care action. Please try again.",
+    "actionDoneTitle": "Done!",
+    "actionDoneMessage": "{{action}} recorded for {{name}}",
+    "eventAt": "{{date}} at {{time}}"
   },
   "addPlant": {
     "unknownPlant": "Unknown Plant",
@@ -379,7 +390,17 @@
     "recommendation": "Watering recommendation",
     "increaseWatering": "Increase watering due to heat",
     "normalWatering": "Normal watering schedule",
-    "reduceWatering": "Reduce watering due to humidity/rain"
+    "reduceWatering": "Reduce watering due to humidity/rain",
+    "tracker": {
+      "title": "Weather Tracker",
+      "minMax": "Min {{min}}°C; max {{max}}°C",
+      "uvIndex": "UV Index",
+      "wind": "Wind",
+      "kmh": "km/h",
+      "gusts": "Gusts: {{value}} km/h",
+      "humidity": "Humidity",
+      "pressure": "Pressure"
+    }
   },
   "settings": {
     "title": "Settings",
@@ -474,6 +495,10 @@
       "family": "Similar Plants Available",
       "none": "Identified by AI"
     },
+    "familyLabel": "Family:",
+    "refineTitle": "Refine Your Match",
+    "refineSubtitle": "We detected a {{name}}.\nWhich picture matches yours?",
+    "saveNameFailed": "Failed to save your name. Please try again.",
     "matchMessages": {
       "fullMatch": "Excellent! We have detailed care information for this plant ({{confidence}}% match).",
       "genusMatch": "We found plants in the same genus. General care guidance applies, but varieties may differ.",
@@ -607,8 +632,8 @@
     "addedToGarden": "Added to your garden"
   },
   "tags": {
-    "petSafe": "Pet-safe",
-    "petToxic": "Pet-toxic",
+    "petSafe": "Pet Friendly",
+    "petToxic": "Not Pet Friendly",
     "beginner": "Easy",
     "intermediate": "Intermediate",
     "advanced": "Advanced",
@@ -647,8 +672,8 @@
     "light_medium_indirect_desc": "A few meters from a window. You can read a book here without a lamp.",
     "light_low_light_desc": "Away from windows — a hallway, bathroom, or shaded corner.",
     "lightProTip": "The \"book test\": if you can comfortably read a book without turning on a lamp, that spot gets medium light.",
-    "petSafeTitle": "Pet-Friendly",
-    "petToxicTitle": "Not Pet-Safe",
+    "petSafeTitle": "Pet Friendly",
+    "petToxicTitle": "Not Pet Friendly",
     "petSafeMessage": "Safe around cats and dogs. No known toxicity if a curious pet nibbles a leaf.",
     "petToxicMessage": "Toxic if your pet eats it. Can cause irritation, vomiting, or worse.",
     "petSafeNote": "Even pet-safe plants can cause mild stomach upset if eaten in large amounts. Keep an eye on curious chewers!",

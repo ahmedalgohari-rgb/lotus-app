@@ -12,6 +12,7 @@ import {
   Text,
   Modal,
   TouchableOpacity,
+  Pressable,
   StyleSheet,
   Dimensions,
 } from 'react-native';
@@ -209,12 +210,8 @@ export default function TagInfoModal({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <TouchableOpacity
-        style={styles.backdrop}
-        activeOpacity={1}
-        onPress={onClose}
-      >
-        <TouchableOpacity activeOpacity={1} style={styles.sheet}>
+      <Pressable style={styles.backdrop} onPress={onClose}>
+        <View style={styles.sheet}>
           {/* Drag handle */}
           <View style={styles.handleBar} />
 
@@ -228,8 +225,8 @@ export default function TagInfoModal({
           >
             <Text style={styles.closeButtonText}>{t('tagInfo.gotIt')}</Text>
           </TouchableOpacity>
-        </TouchableOpacity>
-      </TouchableOpacity>
+        </View>
+      </Pressable>
     </Modal>
   );
 }
@@ -243,8 +240,8 @@ const styles = StyleSheet.create({
   },
   sheet: {
     backgroundColor: COLORS.white,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: FIBONACCI.LG,
+    borderTopRightRadius: FIBONACCI.LG,
     paddingTop: FIBONACCI.SM,
     paddingBottom: FIBONACCI.XL,
     paddingHorizontal: FIBONACCI.LG,
@@ -254,7 +251,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#D1D5DB',
+    backgroundColor: COLORS.border,
     alignSelf: 'center',
     marginBottom: FIBONACCI.MD,
   },

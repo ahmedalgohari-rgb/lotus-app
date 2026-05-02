@@ -7,12 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0B8DC7463BDCFAD0DCAD6845 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85A513E9C84AF344409F2670 /* ExpoModulesProvider.swift */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
+		24B471AF22D718BF9A6B6890 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = CE2B15C7671028C7A7AC1E5E /* PrivacyInfo.xcprivacy */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		A9BAB6C405556BE89559BD1A /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 61372F1625321FE182226ECC /* PrivacyInfo.xcprivacy */; };
+		83C69F5C8780B17796CC9840 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C8C9E24D015F7FA08E225BE /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		EC2C3050C7198EE28E163CDB /* libPods-Lotus.a in Frameworks */ = {isa = PBXBuildFile; fileRef = DA3DC48C1F91AAE0EC8FAC23 /* libPods-Lotus.a */; };
+		E1B6EB1C8063FAF880490C60 /* libPods-Lotus.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 9A745BFC6E96228CE5F0DD8B /* libPods-Lotus.a */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
 
@@ -20,16 +20,16 @@
 		13B07F961A680F5B00A75B9A /* Lotus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Lotus.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = Lotus/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = Lotus/Info.plist; sourceTree = "<group>"; };
-		498E058CF7237B3AC3E9B6D7 /* Pods-Lotus.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Lotus.debug.xcconfig"; path = "Target Support Files/Pods-Lotus/Pods-Lotus.debug.xcconfig"; sourceTree = "<group>"; };
-		61372F1625321FE182226ECC /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = Lotus/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		85A513E9C84AF344409F2670 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-Lotus/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		8C8C9E24D015F7FA08E225BE /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-Lotus/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		9A745BFC6E96228CE5F0DD8B /* libPods-Lotus.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Lotus.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		9EAFD8D838A609037D40DB42 /* Pods-Lotus.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Lotus.release.xcconfig"; path = "Target Support Files/Pods-Lotus/Pods-Lotus.release.xcconfig"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = Lotus/SplashScreen.storyboard; sourceTree = "<group>"; };
-		B5C83E91D8865D57C76E16A3 /* Pods-Lotus.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Lotus.release.xcconfig"; path = "Target Support Files/Pods-Lotus/Pods-Lotus.release.xcconfig"; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		DA3DC48C1F91AAE0EC8FAC23 /* libPods-Lotus.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Lotus.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CE2B15C7671028C7A7AC1E5E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = Lotus/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Lotus/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* Lotus-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "Lotus-Bridging-Header.h"; path = "Lotus/Lotus-Bridging-Header.h"; sourceTree = "<group>"; };
+		F9D48D68AB1635CA565833AC /* Pods-Lotus.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Lotus.debug.xcconfig"; path = "Target Support Files/Pods-Lotus/Pods-Lotus.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,22 +37,13 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				EC2C3050C7198EE28E163CDB /* libPods-Lotus.a in Frameworks */,
+				E1B6EB1C8063FAF880490C60 /* libPods-Lotus.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		0E5BCB9F199E9BA2102BB38C /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				498E058CF7237B3AC3E9B6D7 /* Pods-Lotus.debug.xcconfig */,
-				B5C83E91D8865D57C76E16A3 /* Pods-Lotus.release.xcconfig */,
-			);
-			path = Pods;
-			sourceTree = "<group>";
-		};
 		13B07FAE1A68108700A75B9A /* Lotus */ = {
 			isa = PBXGroup;
 			children = (
@@ -62,18 +53,35 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				61372F1625321FE182226ECC /* PrivacyInfo.xcprivacy */,
+				CE2B15C7671028C7A7AC1E5E /* PrivacyInfo.xcprivacy */,
 			);
 			name = Lotus;
+			sourceTree = "<group>";
+		};
+		224ED5CAA8FC2283D481C703 /* ExpoModulesProviders */ = {
+			isa = PBXGroup;
+			children = (
+				FDACDA81E3E1FF7BAE001BB2 /* Lotus */,
+			);
+			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				DA3DC48C1F91AAE0EC8FAC23 /* libPods-Lotus.a */,
+				9A745BFC6E96228CE5F0DD8B /* libPods-Lotus.a */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		2EA0C923897DE93B86130A25 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				F9D48D68AB1635CA565833AC /* Pods-Lotus.debug.xcconfig */,
+				9EAFD8D838A609037D40DB42 /* Pods-Lotus.release.xcconfig */,
+			);
+			path = Pods;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -90,8 +98,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				0E5BCB9F199E9BA2102BB38C /* Pods */,
-				A397CC1BEC0DE66C98612E11 /* ExpoModulesProviders */,
+				2EA0C923897DE93B86130A25 /* Pods */,
+				224ED5CAA8FC2283D481C703 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -106,14 +114,6 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		A397CC1BEC0DE66C98612E11 /* ExpoModulesProviders */ = {
-			isa = PBXGroup;
-			children = (
-				BEF3F362A3A1B3F8C07595D7 /* Lotus */,
-			);
-			name = ExpoModulesProviders;
-			sourceTree = "<group>";
-		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
 			isa = PBXGroup;
 			children = (
@@ -123,10 +123,10 @@
 			path = Lotus/Supporting;
 			sourceTree = "<group>";
 		};
-		BEF3F362A3A1B3F8C07595D7 /* Lotus */ = {
+		FDACDA81E3E1FF7BAE001BB2 /* Lotus */ = {
 			isa = PBXGroup;
 			children = (
-				85A513E9C84AF344409F2670 /* ExpoModulesProvider.swift */,
+				8C8C9E24D015F7FA08E225BE /* ExpoModulesProvider.swift */,
 			);
 			name = Lotus;
 			sourceTree = "<group>";
@@ -139,13 +139,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "Lotus" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				E17B5E23D06F311DFFEC0187 /* [Expo] Configure project */,
+				E649FF036FB1804638C9259C /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				0DD44D672B7D931782F9C808 /* [CP] Embed Pods Frameworks */,
+				365CF158C9FB95BC04A6274C /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -195,7 +195,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				A9BAB6C405556BE89559BD1A /* PrivacyInfo.xcprivacy in Resources */,
+				24B471AF22D718BF9A6B6890 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -239,7 +239,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		0DD44D672B7D931782F9C808 /* [CP] Embed Pods Frameworks */ = {
+		365CF158C9FB95BC04A6274C /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -349,7 +349,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Lotus/Pods-Lotus-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		E17B5E23D06F311DFFEC0187 /* [Expo] Configure project */ = {
+		E649FF036FB1804638C9259C /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -376,7 +376,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				0B8DC7463BDCFAD0DCAD6845 /* ExpoModulesProvider.swift in Sources */,
+				83C69F5C8780B17796CC9840 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -385,12 +385,12 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 498E058CF7237B3AC3E9B6D7 /* Pods-Lotus.debug.xcconfig */;
+			baseConfigurationReference = F9D48D68AB1635CA565833AC /* Pods-Lotus.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Lotus/Lotus.entitlements;
-				CURRENT_PROJECT_VERSION = 67;
+				CURRENT_PROJECT_VERSION = 70;
 				DEVELOPMENT_TEAM = 496VC2V7M6;
 				ENABLE_BITCODE = NO;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -404,7 +404,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -423,12 +423,12 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = B5C83E91D8865D57C76E16A3 /* Pods-Lotus.release.xcconfig */;
+			baseConfigurationReference = 9EAFD8D838A609037D40DB42 /* Pods-Lotus.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Lotus/Lotus.entitlements;
-				CURRENT_PROJECT_VERSION = 67;
+				CURRENT_PROJECT_VERSION = 70;
 				DEVELOPMENT_TEAM = 496VC2V7M6;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = Lotus/Info.plist;
@@ -437,7 +437,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",

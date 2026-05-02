@@ -13,6 +13,7 @@ export const COLORS = {
   warning: '#FAAD14',
   error: '#FF4D4F',
   border: '#E8E8E8',
+  shadow: '#000000',
 };
 
 /**

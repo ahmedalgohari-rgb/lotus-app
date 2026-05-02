@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TextInput,
-  TouchableOpacity,
   Alert,
   LayoutAnimation,
   Platform,
@@ -19,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
+import PressSpring from '../components/PressSpring';
 
 import {
   COLORS,
@@ -78,7 +78,6 @@ export default function AddPlantScreen() {
   const [isKeyboardVisible, setKeyboardVisible] = useState(false); // 🔧 Track keyboard state
   const [isNicknameFocused, setNicknameFocused] = useState(false); // 🎨 Track nickname input focus for color change
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const primaryButtonScale = useRef(new Animated.Value(1)).current;
   const scrollViewRef = useRef<ScrollView>(null); // 🔧 Ref for programmatic scroll control
 
   const { t } = useTranslation();
@@ -540,13 +539,14 @@ export default function AddPlantScreen() {
             <Text style={styles.sectionTitle}>{t('addPlant.whereWillPlantLive')}</Text>
             <View style={styles.optionsGrid}>
               {PLANT_LOCATIONS.map((location) => (
-                <TouchableOpacity
+                <PressSpring
                   key={location.value}
                   style={[
                     styles.optionCard,
                     selectedLocation === location.value && styles.optionCardSelected,
                   ]}
                   onPress={() => setSelectedLocation(location.value)}
+                  pressedScale={0.95}
                 >
                   <View style={styles.optionCardContent}>
                     <Text style={[styles.optionText, selectedLocation === location.value && styles.optionTextSelected]}>
@@ -558,7 +558,7 @@ export default function AddPlantScreen() {
                       </View>
                     )}
                   </View>
-                </TouchableOpacity>
+                </PressSpring>
               ))}
             </View>
           </View>
@@ -747,23 +747,22 @@ export default function AddPlantScreen() {
 
         {/* 4. FIXED FOOTER NAVIGATION */}
         <View style={styles.fixedFooter}>
-            <TouchableOpacity
+            <PressSpring
                 style={[styles.footerButton, styles.footerButtonSecondary]}
                 onPress={() => {
                     if (currentStep === 1) {
-                        // On first step, go back to previous screen
                         navigation.goBack();
                     } else {
-                        // On later steps, go to previous step
                         setCurrentStep(currentStep - 1);
                     }
                 }}
+                pressedScale={0.97}
             >
                 <Ionicons name="arrow-back" size={24} color={COLORS.primary} />
                 <Text style={[styles.footerButtonText, styles.footerButtonSecondaryText]}>
                     {isRTL ? 'رجوع' : 'Back'}
                 </Text>
-            </TouchableOpacity>
+            </PressSpring>
 
             <View style={styles.footerProgress}>
                 <View style={[styles.stepDot, currentStep >= 1 && styles.stepDotActive]} />
@@ -771,9 +770,9 @@ export default function AddPlantScreen() {
                 <View style={[styles.stepDot, currentStep >= 3 && styles.stepDotActive]} />
             </View>
 
-            <Animated.View style={[{ flex: 1 }, { transform: [{ scale: primaryButtonScale }] }]}>
-            <TouchableOpacity
+            <PressSpring
                 style={[
+                    { flex: 1 },
                     styles.footerButton,
                     styles.footerButtonPrimary,
                     ((currentStep === 1 && !selectedLocation) || (currentStep === 2 && !selectedDirection) || (currentStep === 3 && !nickname.trim()) || isLoading) && styles.footerButtonPrimaryDisabled
@@ -784,23 +783,8 @@ export default function AddPlantScreen() {
                     (currentStep === 3 && !nickname.trim()) ||
                     isLoading
                 }
-                onPressIn={() => {
-                    Animated.spring(primaryButtonScale, {
-                        toValue: 0.97,
-                        useNativeDriver: true,
-                        speed: 50,
-                        bounciness: 4,
-                    }).start();
-                }}
-                onPressOut={() => {
-                    Animated.spring(primaryButtonScale, {
-                        toValue: 1,
-                        useNativeDriver: true,
-                        speed: 50,
-                        bounciness: 4,
-                    }).start();
-                }}
                 onPress={currentStep === 3 ? handleSave : () => setCurrentStep(currentStep + 1)}
+                pressedScale={0.97}
             >
                 <Text style={[
                     styles.footerButtonText,
@@ -810,8 +794,7 @@ export default function AddPlantScreen() {
                     {currentStep === 3 ? (isLoading ? t('common.loading') : t('addPlant.saveToCollection')) : (isRTL ? 'التالي' : 'Next')}
                 </Text>
                 {currentStep < 3 && <Ionicons name="arrow-forward" size={20} color={COLORS.white} />}
-            </TouchableOpacity>
-            </Animated.View>
+            </PressSpring>
           </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -858,8 +841,8 @@ const styles = StyleSheet.create({
   },
   // New Layout Styles
   layoutHeader: {
-    paddingTop: FIBONACCI.XL,     // 34px - Creates visual breathing room at top
-    paddingBottom: FIBONACCI.XXL, // 55px - Golden ratio to top (34:55 ≈ 1:1.6) - Fills negative space
+    paddingTop: FIBONACCI.XL,
+    paddingBottom: FIBONACCI.SM,
     justifyContent: 'center',
   },
   layoutHero: {
@@ -900,7 +883,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: '45%',
     backgroundColor: COLORS.background,
-    paddingVertical: FIBONACCI.MD, // 13px
+    paddingVertical: FIBONACCI.SM,
     paddingHorizontal: FIBONACCI.MD,
     borderRadius: ELEMENT_SIZES.RADIUS_MD,
     borderWidth: 1,

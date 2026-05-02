@@ -75,7 +75,7 @@ export default function WeatherTrackerModal({
             <Ionicons name="close" size={24} color={COLORS.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
-            {isRTL ? 'متتبع الطقس' : 'Weather Tracker'}
+            {t('weather.tracker.title')}
           </Text>
           <View style={styles.closeButton} />
         </View>
@@ -93,9 +93,7 @@ export default function WeatherTrackerModal({
               <Text style={styles.locationText}>{weather.location}</Text>
             </View>
             <Text style={styles.minMaxText}>
-              {isRTL
-                ? `أقل ${weather.tempMin ?? '--'}°C ؛ أعلى ${weather.tempMax ?? '--'}°C`
-                : `Min ${weather.tempMin ?? '--'}°C; max ${weather.tempMax ?? '--'}°C`}
+              {t('weather.tracker.minMax', { min: weather.tempMin ?? '--', max: weather.tempMax ?? '--' })}
             </Text>
           </View>
 
@@ -108,7 +106,7 @@ export default function WeatherTrackerModal({
                 <View style={[styles.gridCardHeader, isRTL && styles.gridCardHeaderRTL]}>
                   <Ionicons name="sunny-outline" size={18} color={COLORS.secondary} />
                   <Text style={styles.gridCardLabel}>
-                    {isRTL ? 'مؤشر UV' : 'UV Index'}
+                    {t('weather.tracker.uvIndex')}
                   </Text>
                 </View>
                 <Text style={styles.gridCardValue}>
@@ -124,17 +122,15 @@ export default function WeatherTrackerModal({
                 <View style={[styles.gridCardHeader, isRTL && styles.gridCardHeaderRTL]}>
                   <Ionicons name="flag-outline" size={18} color={COLORS.secondary} />
                   <Text style={styles.gridCardLabel}>
-                    {isRTL ? 'الرياح' : 'Wind'}
+                    {t('weather.tracker.wind')}
                   </Text>
                 </View>
                 <Text style={styles.gridCardValue}>
-                  {Math.round(windSpeedKmh)} {isRTL ? 'كم/س' : 'km/h'}
+                  {Math.round(windSpeedKmh)} {t('weather.tracker.kmh')}
                 </Text>
                 {windGustKmh > 0 && (
                   <Text style={styles.gridCardSub}>
-                    {isRTL
-                      ? `هبات: ${Math.round(windGustKmh)} كم/س`
-                      : `Gusts: ${Math.round(windGustKmh)} km/h`}
+                    {t('weather.tracker.gusts', { value: Math.round(windGustKmh) })}
                   </Text>
                 )}
               </View>
@@ -147,7 +143,7 @@ export default function WeatherTrackerModal({
                 <View style={[styles.gridCardHeader, isRTL && styles.gridCardHeaderRTL]}>
                   <Ionicons name="water-outline" size={18} color={COLORS.secondary} />
                   <Text style={styles.gridCardLabel}>
-                    {isRTL ? 'الرطوبة' : 'Humidity'}
+                    {t('weather.tracker.humidity')}
                   </Text>
                 </View>
                 <Text style={styles.gridCardValue}>
@@ -160,7 +156,7 @@ export default function WeatherTrackerModal({
                 <View style={[styles.gridCardHeader, isRTL && styles.gridCardHeaderRTL]}>
                   <Ionicons name="speedometer-outline" size={18} color={COLORS.secondary} />
                   <Text style={styles.gridCardLabel}>
-                    {isRTL ? 'الضغط' : 'Pressure'}
+                    {t('weather.tracker.pressure')}
                   </Text>
                 </View>
                 <Text style={styles.gridCardValue}>
@@ -191,15 +187,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: FIBONACCI.MD,
     paddingVertical: FIBONACCI.SM,
   },
   headerRTL: {
     flexDirection: 'row-reverse',
   },
   closeButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -210,7 +206,7 @@ const styles = StyleSheet.create({
   },
 
   content: {
-    paddingHorizontal: 16,
+    paddingHorizontal: FIBONACCI.MD,
     paddingBottom: FIBONACCI.XXL,
   },
 
@@ -264,7 +260,7 @@ const styles = StyleSheet.create({
     borderRadius: ELEMENT_SIZES.RADIUS_LG,
     padding: FIBONACCI.LG,
     minHeight: 120,
-    shadowColor: '#000',
+    shadowColor: COLORS.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 4,

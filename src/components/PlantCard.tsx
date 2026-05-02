@@ -2,12 +2,12 @@ import React from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
 } from 'react-native';
 import { COLORS, FIBONACCI, TYPOGRAPHY, ELEMENT_SIZES } from '../constants';
 import { Plant } from '../types';
 import PlantImage from './PlantImage';
+import PressSpring from './PressSpring';
 import { useRTL } from '../utils/rtl';
 import { getCurrentLanguage } from '../i18n';
 
@@ -37,10 +37,10 @@ export default function PlantCard({ plant, onPress, imageUrl }: PlantCardProps) 
   const species = scientificNameParts.slice(1).join(' ');
 
   return (
-    <TouchableOpacity
+    <PressSpring
       style={styles.container}
       onPress={onPress}
-      activeOpacity={0.7}
+      pressedScale={0.97}
     >
       {/* Plant Image */}
       <View style={styles.imageContainer}>
@@ -64,7 +64,7 @@ export default function PlantCard({ plant, onPress, imageUrl }: PlantCardProps) 
           <Text style={styles.speciesName}>{species}</Text>
         </Text>
       </View>
-    </TouchableOpacity>
+    </PressSpring>
   );
 }
 

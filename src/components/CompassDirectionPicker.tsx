@@ -13,6 +13,7 @@ import Animated, {
   withTiming,
   withSequence,
 } from 'react-native-reanimated';
+import PressSpring from './PressSpring';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
@@ -125,7 +126,7 @@ export default function CompassDirectionPicker({
         {/* Light green background circle — circumference intersects direction circle centers (radius 86) */}
         <View style={styles.compassBackground} />
         {WINDOW_DIRECTIONS.map((direction) => (
-          <TouchableOpacity
+          <PressSpring
             key={direction.value}
             style={[
               styles.compassDirection,
@@ -135,6 +136,7 @@ export default function CompassDirectionPicker({
             ]}
             onPress={() => !isAnimated && handleManualSelect(direction.value)}
             disabled={isAnimated}
+            pressedScale={0.88}
           >
             <Text style={[
               styles.compassText,
@@ -148,7 +150,7 @@ export default function CompassDirectionPicker({
                 <Text style={styles.compassRecommendedText}>R</Text>
               </View>
             )}
-          </TouchableOpacity>
+          </PressSpring>
         ))}
         {/* Center */}
         {isAnimated ? (
