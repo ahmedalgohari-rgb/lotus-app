@@ -13,7 +13,6 @@ import Animated, {
   withTiming,
   withSequence,
 } from 'react-native-reanimated';
-import PressSpring from './PressSpring';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
@@ -125,33 +124,37 @@ export default function CompassDirectionPicker({
       <>
         {/* Light green background circle — circumference intersects direction circle centers (radius 86) */}
         <View style={styles.compassBackground} />
-        {WINDOW_DIRECTIONS.map((direction) => (
-          <PressSpring
-            key={direction.value}
-            style={[
-              styles.compassDirection,
-              (styles as any)[`compass${direction.value.charAt(0).toUpperCase() + direction.value.slice(1)}`],
-              !isAnimated && selectedDirection === direction.value && styles.compassDirectionSelected,
-              isAnimated && cardinalDirection === direction.value && styles.compassDirectionHighlight,
-            ]}
-            onPress={() => !isAnimated && handleManualSelect(direction.value)}
-            disabled={isAnimated}
-            pressedScale={0.88}
-          >
-            <Text style={[
-              styles.compassText,
-              !isAnimated && selectedDirection === direction.value && styles.compassTextSelected,
-              isAnimated && cardinalDirection === direction.value && styles.compassTextSelected,
-            ]}>
-              {direction.value.charAt(0).toUpperCase()}
-            </Text>
-            {bestDirection === direction.value && (
-              <View style={styles.compassRecommendedBadge}>
-                <Text style={styles.compassRecommendedText}>R</Text>
-              </View>
-            )}
-          </PressSpring>
-        ))}
+        {WINDOW_DIRECTIONS.map((direction) => {
+          const isSelected = !isAnimated && selectedDirection === direction.value;
+          const isHighlighted = isAnimated && cardinalDirection === direction.value;
+          const positionKey = `compass${direction.value.charAt(0).toUpperCase() + direction.value.slice(1)}`;
+          return (
+            <TouchableOpacity
+              key={direction.value}
+              style={[
+                styles.compassDirection,
+                (styles as any)[positionKey],
+                isSelected && styles.compassDirectionSelected,
+                isHighlighted && styles.compassDirectionHighlight,
+              ]}
+              onPress={() => !isAnimated && handleManualSelect(direction.value)}
+              disabled={isAnimated}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.compassText,
+                (isSelected || isHighlighted) && styles.compassTextSelected,
+              ]}>
+                {direction.value.charAt(0).toUpperCase()}
+              </Text>
+              {bestDirection === direction.value && (
+                <View style={styles.compassRecommendedBadge}>
+                  <Text style={styles.compassRecommendedText}>R</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
         {/* Center */}
         {isAnimated ? (
           <Animated.View style={[styles.compassCenter, pulseStyle]}>
@@ -298,7 +301,7 @@ const styles = StyleSheet.create({
 
   // Direction indicator arrow (fixed above compass in live mode)
   indicatorArrow: {
-    marginBottom: -FIBONACCI.XS,
+    marginBottom: FIBONACCI.XXS,
     zIndex: 1,
   },
 
@@ -338,7 +341,7 @@ const styles = StyleSheet.create({
   compassDirectionSelected: {
     backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
-    transform: [{ scale: 1.1 }],
+    borderWidth: 2,
   },
   compassDirectionHighlight: {
     backgroundColor: COLORS.primary,
@@ -356,7 +359,7 @@ const styles = StyleSheet.create({
     top: 78,
   },
   compassSouth: {
-    bottom: -8,
+    top: 164,
     left: 78,
   },
   compassWest: {

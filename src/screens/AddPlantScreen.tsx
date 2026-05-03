@@ -842,7 +842,7 @@ const styles = StyleSheet.create({
   // New Layout Styles
   layoutHeader: {
     paddingTop: FIBONACCI.XL,
-    paddingBottom: FIBONACCI.SM,
+    paddingBottom: FIBONACCI.LG,
     justifyContent: 'center',
   },
   layoutHero: {
@@ -877,13 +877,13 @@ const styles = StyleSheet.create({
   optionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: FIBONACCI.SM, // 8px
+    gap: FIBONACCI.MD,
   },
   optionCard: {
     flex: 1,
     minWidth: '45%',
     backgroundColor: COLORS.background,
-    paddingVertical: FIBONACCI.SM,
+    paddingVertical: FIBONACCI.MD,
     paddingHorizontal: FIBONACCI.MD,
     borderRadius: ELEMENT_SIZES.RADIUS_MD,
     borderWidth: 1,
