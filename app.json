@@ -10,12 +10,12 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#F7F3E9"
+      "backgroundColor": "#D4C5B0"
     },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.lotus.plantcare",
-      "buildNumber": "58",
+      "buildNumber": "59",
       "icon": "./assets/icon.png",
       "config": {
         "usesNonExemptEncryption": false

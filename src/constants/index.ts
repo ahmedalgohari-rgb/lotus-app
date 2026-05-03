@@ -14,6 +14,7 @@ export const COLORS = {
   error: '#FF4D4F',
   border: '#E8E8E8',
   shadow: '#000000',
+  warmSand: '#D4C5B0',
 };
 
 /**

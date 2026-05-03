@@ -62,7 +62,7 @@ export default function AnimatedSplash({ onComplete }: AnimatedSplashProps) {
       style={[StyleSheet.absoluteFill, styles.container, overlayStyle]}
     >
       <Animated.Image
-        source={require('../../assets/lotus-logo.png')}
+        source={require('../../assets/splash-lotus.png')}
         style={[styles.logo, logoStyle]}
         resizeMode="contain"
       />
@@ -72,13 +72,13 @@ export default function AnimatedSplash({ onComplete }: AnimatedSplashProps) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.warmSand,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 9999,
   },
   logo: {
-    width: SCREEN_WIDTH * 0.5,
-    height: SCREEN_WIDTH * 0.5,
+    width: SCREEN_WIDTH * 0.6,
+    height: SCREEN_WIDTH * 0.6,
   },
 });
