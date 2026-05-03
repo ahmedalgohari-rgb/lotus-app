@@ -1,10 +1,8 @@
 #!/bin/sh
 set -e
 
-# Install Homebrew packages needed for the build
-brew install node@22
-
 # Install npm dependencies (needed for Expo autolinking + native modules)
+# Note: Xcode Cloud provides Node.js and CocoaPods pre-installed
 cd "$CI_WORKSPACE"
 npm install
 
