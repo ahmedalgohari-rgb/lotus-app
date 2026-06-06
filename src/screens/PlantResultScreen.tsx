@@ -6,11 +6,8 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
-  Modal,
   Dimensions,
   Alert,
-  ActivityIndicator,
-  TextInput,
   Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -30,17 +27,15 @@ import { useStore } from '../store';
 import type { IdentificationResult } from '../types';
 import { authService, dbService } from '../services/supabase';
 import { createPlantIdService } from '../services/plant-identification';
-import NameCollectionModal from '../components/NameCollectionModal';
+import AuthModal from '../components/AuthModal';
 import MatchBadge from '../components/MatchBadge';
-import PartialMatchCard from '../components/PartialMatchCard';
 import GenericCareCard from '../components/GenericCareCard';
 import PlantRequestButton from '../components/PlantRequestButton';
-import CultivarPicker from '../components/CultivarPicker';
 import { getPlantImage } from '../assets/plantImages';
 import { logger, timer } from '../utils/logger';
 import { useRTL } from '../utils/rtl';
 import { processCapturedPhoto } from '../utils/imageProcessor';
-import { trackPlantResultViewed } from '../services/analytics';
+import { trackPlantResultViewed, trackAuthModalShown } from '../services/analytics';
 import TagInfoModal, { getLightIcon, getLightColor, TagInfoType } from '../components/TagInfoModal';
 import TraitPill from '../components/TraitPill';
 
@@ -67,12 +62,6 @@ export default function PlantResultScreen() {
 
   const { user, isAuthenticated, isGuest, setUser, setAuthenticated, updateUserName } = useStore();
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showNameCollection, setShowNameCollection] = useState(false);
-  const [pendingUser, setPendingUser] = useState<any>(null);
-
-  // 🌿 CULTIVAR REFINER: Optional refinement for species with multiple varieties
-  const [showCultivarRefiner, setShowCultivarRefiner] = useState(false);
 
   // 🏷️ TAG INFO: Tap-to-learn modal for light & pet safety tags
   const [tagInfoVisible, setTagInfoVisible] = useState(false);
@@ -107,24 +96,29 @@ export default function PlantResultScreen() {
   });
 
   // Determine match scenario based on database_match object
-  const getMatchScenario = (): 'full' | 'genus' | 'family' | 'none' => {
+  const getMatchScenario = (): 'full' | 'genus_auto' | 'family' | 'none' => {
     if (!identificationResult?.database_match?.found) {
       return 'none';
     }
 
     const { confidence, match_type } = identificationResult.database_match;
 
-    // FULL_MATCH: Exact or high-confidence genus match
+    // genus_auto: auto-selected closest match — show as confident but with subtle badge
+    if (match_type === 'genus_auto') {
+      return 'genus_auto';
+    }
+
+    // Backward compat: old genus matches treated as genus_auto (no picker)
+    if (match_type === 'genus') {
+      return 'genus_auto';
+    }
+
+    // FULL_MATCH: Exact or high-confidence match
     if (confidence >= 85) {
       return 'full';
     }
 
-    // GENUS_MATCH: All genus matches show alternatives (any confidence)
-    if (match_type === 'genus') {
-      return 'genus';
-    }
-
-    // FAMILY_MATCH: Common name match or low-confidence genus
+    // FAMILY_MATCH: Common name match or low-confidence
     if (match_type === 'common_name' || (confidence >= 60 && confidence < 70)) {
       return 'family';
     }
@@ -164,48 +158,6 @@ export default function PlantResultScreen() {
       ? identificationResult?.common_name
       : identificationResult?.common_name_arabic
   );
-
-  useEffect(() => {
-    if (plantDatabaseId && dbMatch?.all_cultivars) {
-      // User selected a specific cultivar - update the displayed info
-      const selectedCultivar = dbMatch.all_cultivars.find(c => c.plant_id === plantDatabaseId);
-      if (selectedCultivar) {
-        // Fetch the full plant data from database
-        const plantData = require('../data/plantCareDatabase.json');
-        const fullPlantData = plantData.plants.find((p: any) => p.id === plantDatabaseId);
-
-        if (fullPlantData) {
-          // 🌐 LOCALIZATION: Use Arabic name/info when language is Arabic
-          const plantName = currentLang === 'ar' && fullPlantData.names.arabic?.length > 0
-            ? fullPlantData.names.arabic[0]
-            : fullPlantData.names.common[0];
-
-          const plantInfo = currentLang === 'ar' && fullPlantData.care?.plant_info_arabic
-            ? fullPlantData.care.plant_info_arabic
-            : (fullPlantData.care?.plant_info || identificationResult.plant_info);
-
-          // Alt name is the opposite language
-          const plantNameAlt = currentLang === 'ar'
-            ? fullPlantData.names.common[0]
-            : (fullPlantData.names.arabic?.length > 0 ? fullPlantData.names.arabic[0] : undefined);
-
-          setDisplayedPlantName(plantName);
-          setDisplayedPlantNameAlt(plantNameAlt);
-          setDisplayedPlantInfo(plantInfo);
-
-          // Update trait tags for the selected cultivar
-          setPlantTraits({
-            difficulty: fullPlantData.care?.difficulty,
-            type: fullPlantData.care?.plant_type,
-            lightRequirement: fullPlantData.care?.light?.requirement,
-            petSafe: fullPlantData.characteristics?.pet_safe,
-          });
-
-          logger.debug('🌿 Updated display to cultivar:', plantDatabaseId, { lang: currentLang });
-        }
-      }
-    }
-  }, [plantDatabaseId, currentLang]);
 
   // 🏷️ Load plant traits on initial mount (for non-cultivar plants)
   useEffect(() => {
@@ -338,332 +290,22 @@ export default function PlantResultScreen() {
     };
   }, [imageProcessing.cloudUrl, imageProcessing.status]);
 
-  // 🌿 CULTIVAR REFINER: User manually refines to a specific variety
-  const handleCultivarRefine = (plantId: string) => {
-    logger.info('🌿 User refined to cultivar:', plantId);
-
-    // Navigate to PlantResult with the specific cultivar selected
-    // This reloads the screen with the refined plant data
-    const selectedCultivar = identificationResult?.database_match?.all_cultivars?.find(
-      c => c.plant_id === plantId
-    );
-
-    if (selectedCultivar) {
-      navigation.replace('PlantResult', {
-        identificationResult,
-        capturedImage,
-        plantDatabaseId: plantId, // This will override the default selection
-      });
-    }
-  };
-
   const handlePostAuthSuccess = () => {
-    // Close all modals
-    setShowAuthPrompt(false);
-    setShowNameCollection(false);
-
-    // Navigate to AddPlant screen with the identification result
     if (identificationResult) {
-      isProceedingToSave.current = true; // Don't delete cloud image - user is saving!
+      isProceedingToSave.current = true;
       navigation.navigate('AddPlant', {
         identificationResult,
         capturedImage,
         plantDatabaseId,
-        // ⚡ NEW: Pass pre-processed URIs (already done in background!)
         processedImageUri: imageProcessing.processedUri,
         cloudImageUrl: imageProcessing.cloudUrl,
       });
     }
   };
 
-  const handleFacebookSignIn = async () => {
-    setIsLoading(true);
-    logger.group('🔐 Facebook Sign-In Flow (Modal)');
-    timer.start('facebook-signin-modal');
-
-    try {
-      logger.debug('Initiating Facebook auth from modal...', { isUpgrade: isGuest });
-      const { data, error } = isGuest
-        ? await authService.linkWithFacebook()
-        : await authService.signInWithFacebook();
-      if (error) throw error;
-
-      if (data && 'user' in data && data.user) {
-        logger.debug('Facebook OAuth successful', { userId: data.user.id, email: data.user.email });
-
-        const { data: profileData } = await dbService.getProfile(data.user.id);
-        const hasFirstName = profileData?.first_name && profileData.first_name.trim().length > 0;
-
-        const facebookFullName = data.user.user_metadata?.name || data.user.user_metadata?.full_name;
-        const facebookFirstName = facebookFullName?.split(' ')[0]?.trim();
-
-        const userData = {
-          id: data.user.id,
-          email: data.user.email,
-          name: profileData?.first_name || facebookFullName || data.user.email,
-          first_name: profileData?.first_name || facebookFirstName,
-          avatar_url: data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture?.data?.url,
-          created_at: data.user.created_at,
-        };
-
-        if (!hasFirstName && facebookFirstName) {
-          // Auto-save Facebook-provided name
-          logger.info('Auto-saving Facebook-provided name', { firstName: facebookFirstName });
-          try {
-            await dbService.updateUserProfile(data.user.id, facebookFirstName);
-            setUser({
-              ...userData,
-              first_name: facebookFirstName,
-              name: facebookFirstName,
-            });
-            updateUserName(facebookFirstName);
-            setAuthenticated(true);
-            logger.success('User authenticated with auto-saved name');
-            timer.end('facebook-signin-modal');
-            logger.groupEnd();
-            setIsLoading(false);
-            handlePostAuthSuccess();
-          } catch (saveError) {
-            logger.error('Error auto-saving Facebook name:', saveError);
-            setPendingUser(userData);
-            setShowNameCollection(true);
-            logger.groupEnd();
-            setIsLoading(false);
-          }
-        } else if (!hasFirstName && !facebookFirstName) {
-          // Show name collection modal
-          logger.info('Showing name collection modal');
-          setPendingUser(userData);
-          setShowNameCollection(true);
-          timer.end('facebook-signin-modal');
-          logger.groupEnd();
-          setIsLoading(false);
-        } else {
-          // Existing user with first_name
-          logger.success('Returning user authenticated', { firstName: userData.first_name });
-          setUser(userData);
-          setAuthenticated(true);
-          timer.end('facebook-signin-modal');
-          logger.groupEnd();
-          setIsLoading(false);
-          handlePostAuthSuccess();
-        }
-      }
-    } catch (error: any) {
-      logger.error('Facebook sign in error:', error);
-      logger.groupEnd();
-
-      // Don't show error alert if user intentionally cancelled
-      if (error?.name !== 'UserCancelled' && error?.message !== 'User cancelled OAuth') {
-        Alert.alert(t('auth.signInError'), t('common.tryAgain'));
-      }
-
-      setIsLoading(false);
-    }
-  };
-
-  const handleAppleSignIn = async () => {
-    setIsLoading(true);
-    logger.group('🔐 Apple Sign-In Flow (Modal)');
-    timer.start('apple-signin-modal');
-
-    try {
-      logger.debug('Initiating Apple auth from modal...', { isUpgrade: isGuest });
-      const { data, error } = isGuest
-        ? await authService.linkWithApple()
-        : await authService.signInWithApple();
-      if (error) throw error;
-
-      if (data && 'user' in data && data.user) {
-        logger.debug('Apple OAuth successful', { userId: data.user.id, email: data.user.email });
-
-        const { data: profileData } = await dbService.getProfile(data.user.id);
-        const hasFirstName = profileData?.first_name && profileData.first_name.trim().length > 0;
-
-        const appleFullName = data.user.user_metadata?.name || data.user.user_metadata?.full_name;
-        const appleFirstName = appleFullName?.split(' ')[0]?.trim();
-
-        const userData = {
-          id: data.user.id,
-          email: data.user.email,
-          name: profileData?.first_name || appleFullName || data.user.email,
-          first_name: profileData?.first_name || appleFirstName,
-          avatar_url: data.user.user_metadata?.avatar_url,
-          created_at: data.user.created_at,
-        };
-
-        if (!hasFirstName && appleFirstName) {
-          // Auto-save Apple-provided name
-          logger.info('Auto-saving Apple-provided name', { firstName: appleFirstName });
-          try {
-            await dbService.updateUserProfile(data.user.id, appleFirstName);
-            setUser({
-              ...userData,
-              first_name: appleFirstName,
-              name: appleFirstName,
-            });
-            updateUserName(appleFirstName);
-            setAuthenticated(true);
-            logger.success('User authenticated with auto-saved name');
-            timer.end('apple-signin-modal');
-            logger.groupEnd();
-            setIsLoading(false);
-            handlePostAuthSuccess();
-          } catch (saveError) {
-            logger.error('Error auto-saving Apple name:', saveError);
-            setPendingUser(userData);
-            setShowNameCollection(true);
-            logger.groupEnd();
-            setIsLoading(false);
-          }
-        } else if (!hasFirstName && !appleFirstName) {
-          // Show name collection modal
-          logger.info('Showing name collection modal');
-          setPendingUser(userData);
-          setShowNameCollection(true);
-          timer.end('apple-signin-modal');
-          logger.groupEnd();
-          setIsLoading(false);
-        } else {
-          // Existing user with first_name
-          logger.success('Returning user authenticated', { firstName: userData.first_name });
-          setUser(userData);
-          setAuthenticated(true);
-          timer.end('apple-signin-modal');
-          logger.groupEnd();
-          setIsLoading(false);
-          handlePostAuthSuccess();
-        }
-      }
-    } catch (error: any) {
-      logger.error('Apple sign in error:', error);
-      logger.groupEnd();
-
-      // Don't show error alert if user intentionally cancelled
-      if (error?.name !== 'UserCancelled' && error?.message !== 'User cancelled OAuth') {
-        Alert.alert(t('auth.signInError'), t('common.tryAgain'));
-      }
-
-      setIsLoading(false);
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    setIsLoading(true);
-    logger.group('🔐 Google Sign-In Flow (Modal)');
-    timer.start('google-signin-modal');
-
-    try {
-      logger.debug('Initiating Google auth from modal...', { isUpgrade: isGuest });
-      const { data, error } = isGuest
-        ? await authService.linkWithGoogle()
-        : await authService.signInWithGoogle();
-      if (error) throw error;
-
-      if (data && 'user' in data && data.user) {
-        logger.debug('Google OAuth successful', { userId: data.user.id, email: data.user.email });
-
-        const { data: profileData } = await dbService.getProfile(data.user.id);
-        const hasFirstName = profileData?.first_name && profileData.first_name.trim().length > 0;
-
-        const googleFullName = data.user.user_metadata?.name;
-        const googleFirstName = googleFullName?.split(' ')[0]?.trim();
-
-        const userData = {
-          id: data.user.id,
-          email: data.user.email,
-          name: profileData?.first_name || googleFullName || data.user.email,
-          first_name: profileData?.first_name || googleFirstName,
-          avatar_url: data.user.user_metadata?.avatar_url,
-          created_at: data.user.created_at,
-        };
-
-        if (!hasFirstName && googleFirstName) {
-          // Auto-save Google-provided name
-          logger.info('Auto-saving Google-provided name', { firstName: googleFirstName });
-          try {
-            await dbService.updateUserProfile(data.user.id, googleFirstName);
-            setUser({
-              ...userData,
-              first_name: googleFirstName,
-              name: googleFirstName,
-            });
-            updateUserName(googleFirstName);
-            setAuthenticated(true);
-            logger.success('User authenticated with auto-saved name');
-            timer.end('google-signin-modal');
-            logger.groupEnd();
-            setIsLoading(false);
-            handlePostAuthSuccess();
-          } catch (saveError) {
-            logger.error('Error auto-saving Google name:', saveError);
-            setPendingUser(userData);
-            setShowNameCollection(true);
-            logger.groupEnd();
-            setIsLoading(false);
-          }
-        } else if (!hasFirstName && !googleFirstName) {
-          // Show name collection modal
-          logger.info('Showing name collection modal');
-          setPendingUser(userData);
-          setShowNameCollection(true);
-          timer.end('google-signin-modal');
-          logger.groupEnd();
-          setIsLoading(false);
-        } else {
-          // Existing user with first_name
-          logger.success('Returning user authenticated', { firstName: userData.first_name });
-          setUser(userData);
-          setAuthenticated(true);
-          timer.end('google-signin-modal');
-          logger.groupEnd();
-          setIsLoading(false);
-          handlePostAuthSuccess();
-        }
-      }
-    } catch (error: any) {
-      logger.error('Google sign in error:', error);
-      logger.groupEnd();
-
-      // Don't show error alert if user intentionally cancelled
-      if (error?.name !== 'UserCancelled' && error?.message !== 'User cancelled OAuth') {
-        Alert.alert(t('auth.signInError'), t('common.tryAgain'));
-      }
-
-      setIsLoading(false);
-    }
-  };
-
-  const handleNameSubmit = async (firstName: string) => {
-    if (!pendingUser) return;
-
-    setIsLoading(true);
-    try {
-      const { error } = await dbService.updateUserProfile(pendingUser.id, firstName);
-      if (error) throw error;
-
-      const updatedUser = {
-        ...pendingUser,
-        first_name: firstName,
-        name: firstName,
-      };
-
-      setUser(updatedUser);
-      updateUserName(firstName);
-      setAuthenticated(true);
-      setShowNameCollection(false);
-      setPendingUser(null);
-      handlePostAuthSuccess();
-    } catch (error) {
-      logger.error('Error saving user name:', error);
-      Alert.alert(t('common.error'), t('plantResult.saveNameFailed'));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const saveToMyPlants = () => {
     if (isGuest || !isAuthenticated || !user) {
+      trackAuthModalShown({ trigger: 'scan_result' });
       setShowAuthPrompt(true);
       return;
     }
@@ -681,14 +323,6 @@ export default function PlantResultScreen() {
     }
   };
 
-  const handleSignInPress = () => {
-    // Wait for the modal dismiss animation before pushing AuthScreen — pushing
-    // mid-animation can leave the modal overlay visible on the next screen and
-    // trap the user. 350ms matches the nested-modal pattern used elsewhere.
-    setShowAuthPrompt(false);
-    setTimeout(() => navigation.navigate('Auth'), 350);
-  };
-
   const retryCapture = async () => {
     // ⚡ CLEANUP: Delete uploaded image before going back
     if (imageProcessing.cloudUrl) {
@@ -704,91 +338,11 @@ export default function PlantResultScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Name Collection Modal */}
-      <NameCollectionModal
-        visible={showNameCollection}
-        onSubmit={handleNameSubmit}
-      />
-
-      {/* Cultivar picker removed - now using inline refiner card */}
-
-      {/* Inline Authentication Modal */}
-      <Modal
+      <AuthModal
         visible={showAuthPrompt}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowAuthPrompt(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <LinearGradient
-            colors={[COLORS.primary, COLORS.secondary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.modalGradient}
-          >
-            {/* Close Button */}
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setShowAuthPrompt(false)}
-            >
-              <Ionicons name="close" size={FIBONACCI.LG} color={COLORS.white} />
-            </TouchableOpacity>
-
-            <View style={styles.modalContent}>
-              {/* Auth Buttons */}
-              <View style={styles.authButtons}>
-                <TouchableOpacity
-                  style={[styles.googleButton, isLoading && styles.buttonDisabled]}
-                  onPress={handleGoogleSignIn}
-                  disabled={isLoading}
-                >
-                  <Ionicons name="logo-google" size={FIBONACCI.LG} color={COLORS.primary} />
-                  <Text style={styles.googleButtonText}>{t('auth.continueWithGoogle')}</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.facebookButton, isLoading && styles.buttonDisabled]}
-                  onPress={handleFacebookSignIn}
-                  disabled={isLoading}
-                >
-                  <Ionicons name="logo-facebook" size={FIBONACCI.LG} color={COLORS.primary} />
-                  <Text style={styles.facebookButtonText}>{t('auth.continueWithFacebook')}</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.appleButton, isLoading && styles.buttonDisabled]}
-                  onPress={handleAppleSignIn}
-                  disabled={isLoading}
-                >
-                  <Ionicons name="logo-apple" size={FIBONACCI.LG} color={COLORS.primary} />
-                  <Text style={styles.appleButtonText}>{t('auth.continueWithApple')}</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Loading State */}
-              {isLoading && (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color={COLORS.white} />
-                  <Text style={styles.loadingText}>{t('auth.signingIn')}</Text>
-                </View>
-              )}
-
-              {/* Already a member? Sign in */}
-              <TouchableOpacity onPress={handleSignInPress} style={styles.signInLink}>
-                <Text style={styles.signInText}>{t('auth.alreadyMember')}</Text>
-              </TouchableOpacity>
-
-              {/* Maybe later */}
-              <TouchableOpacity
-                onPress={() => setShowAuthPrompt(false)}
-                style={styles.maybeLaterButton}
-              >
-                <Text style={styles.maybeLaterText}>{t('auth.maybeLater')}</Text>
-              </TouchableOpacity>
-            </View>
-          </LinearGradient>
-        </View>
-      </Modal>
+        onClose={() => setShowAuthPrompt(false)}
+        onAuthSuccess={handlePostAuthSuccess}
+      />
 
       {/* Header */}
       <View style={styles.header}>
@@ -896,65 +450,8 @@ export default function PlantResultScreen() {
             </View>
           )}
 
-          {/* 🌿 OPTIONAL CULTIVAR REFINER: Show when multiple varieties exist */}
-          {dbMatch?.multiple_cultivars && dbMatch.all_cultivars && dbMatch.all_cultivars.length > 1 && (
-            <View style={styles.refinerCard}>
-              <TouchableOpacity
-                style={styles.refinerHeader}
-                onPress={() => setShowCultivarRefiner(!showCultivarRefiner)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.refinerTitleContainer}>
-                  <Ionicons name="leaf-outline" size={20} color={COLORS.primary} />
-                  <Text style={styles.refinerTitle}>{t('plantResult.refineTitle')}</Text>
-                </View>
-                <Ionicons
-                  name={showCultivarRefiner ? "chevron-up" : "chevron-down"}
-                  size={20}
-                  color={COLORS.textSecondary}
-                />
-              </TouchableOpacity>
-
-              {showCultivarRefiner && (
-                <View style={styles.refinerContent}>
-                  <Text style={styles.refinerSubtitle}>
-                    {t('plantResult.refineSubtitle', { name: identificationResult.common_name })}
-                  </Text>
-
-                  <View style={styles.cultivarGrid}>
-                    {dbMatch.all_cultivars.map((cultivar) => (
-                      <TouchableOpacity
-                        key={cultivar.plant_id}
-                        style={[
-                          styles.cultivarOption,
-                          cultivar.is_selected && styles.cultivarOptionSelected
-                        ]}
-                        onPress={() => handleCultivarRefine(cultivar.plant_id)}
-                        activeOpacity={0.7}
-                      >
-                        <Image
-                          source={getPlantImage(cultivar.plant_id)}
-                          style={styles.cultivarImage}
-                          resizeMode="cover"
-                        />
-                        <View style={styles.cultivarInfo}>
-                          <Text style={styles.cultivarName} numberOfLines={2}>
-                            {cultivar.plant_name}
-                          </Text>
-                          {cultivar.is_selected && (
-                            <Ionicons name="checkmark-circle" size={16} color={COLORS.primary} />
-                          )}
-                        </View>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              )}
-            </View>
-          )}
-
-          {/* Low Confidence Warning (15-40%) - Encourage users to retake for better results */}
-          {dbMatch && dbMatch.confidence < 40 && dbMatch.confidence >= 15 && capturedImage && (
+          {/* Low Confidence Warning (30-60%) - Surface uncertainty so users can verify or retake */}
+          {dbMatch && dbMatch.confidence < 60 && dbMatch.confidence >= 30 && capturedImage && (
             <View style={styles.lowConfidenceWarning}>
               <Ionicons name="camera-outline" size={20} color={COLORS.warning} />
               <Text style={[styles.lowConfidenceText, isRTL && styles.lowConfidenceTextRTL]}>
@@ -967,30 +464,24 @@ export default function PlantResultScreen() {
 
           {/* Match Scenario: FULL_MATCH (≥85% confidence) - No message shown, users don't need to know about our database */}
 
-          {/* Match Scenario: GENUS_MATCH (70-84% confidence) */}
-          {matchScenario === 'genus' && (
-            <>
-              <View style={styles.careSection}>
-                <Text style={[styles.careTitle, isRTL && styles.careTitleRTL]}>
-                  ℹ️ {t('plantResult.matchTypes.genus')}
-                </Text>
-                <Text style={[styles.careDescription, isRTL && styles.careDescriptionRTL]}>
-                  {t('plantResult.matchMessages.genusMatch')}
-                </Text>
-              </View>
+          {/* Closest match badge — shown when genus_auto was used */}
+          {matchScenario === 'genus_auto' && (
+            <View style={styles.closestMatchBadge}>
+              <Ionicons name="leaf-outline" size={14} color={COLORS.primary} />
+              <Text style={[styles.closestMatchText, isRTL && styles.closestMatchTextRTL]}>
+                {t('plantResult.closestMatch')}
+              </Text>
+            </View>
+          )}
 
-              {dbMatch?.alternatives && dbMatch.alternatives.length > 0 && (
-                <PartialMatchCard
-                  genusName={identificationResult.genus || ''}
-                  alternatives={dbMatch.alternatives}
-                  onAlternativePress={(plantId) => {
-                    isProceedingToSave.current = true; // Don't delete cloud image - user is saving!
-                    // Navigate to AddPlant with selected database plant
-                    navigation.navigate('AddPlant', { plantDatabaseId: plantId });
-                  }}
-                />
-              )}
-            </>
+          {/* 🐛 DEV ONLY: Match path debug panel */}
+          {__DEV__ && dbMatch && (
+            <View style={styles.debugPanel}>
+              <Text style={styles.debugText}>🐛 match_type: {dbMatch.match_type}</Text>
+              <Text style={styles.debugText}>scenario: {matchScenario}</Text>
+              <Text style={styles.debugText}>plant_id: {dbMatch.plant_id ?? 'null'}</Text>
+              <Text style={styles.debugText}>db confidence: {dbMatch.confidence}</Text>
+            </View>
           )}
 
           {/* Match Scenario: FAMILY_MATCH (<70% confidence or common_name) */}
@@ -1098,12 +589,12 @@ export default function PlantResultScreen() {
             )}
 
             {/* Show request button for partial/no matches */}
-            {(matchScenario === 'genus' || matchScenario === 'family' || matchScenario === 'none') && (
+            {(matchScenario === 'genus_auto' || matchScenario === 'family' || matchScenario === 'none') && (
               <PlantRequestButton
                 plantName={identificationResult.common_name}
                 scientificName={identificationResult.scientific_name}
                 buttonText={
-                  matchScenario === 'genus'
+                  matchScenario === 'genus_auto'
                     ? t('plantRequest.requestSpecific')
                     : t('plantRequest.requestCare')
                 }
@@ -1260,6 +751,39 @@ const styles = StyleSheet.create({
   lowConfidenceTextRTL: {
     textAlign: 'right',
   },
+  closestMatchBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: FIBONACCI.XXS,
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.primary + '40',
+    borderRadius: ELEMENT_SIZES.RADIUS_SM,
+    paddingHorizontal: FIBONACCI.SM,
+    paddingVertical: FIBONACCI.XXS,
+    marginBottom: FIBONACCI.MD,
+  },
+  closestMatchText: {
+    fontSize: TYPOGRAPHY.XS,
+    color: COLORS.primary,
+    fontWeight: '500',
+  },
+  closestMatchTextRTL: {
+    textAlign: 'right',
+  },
+  debugPanel: {
+    backgroundColor: '#000000CC',
+    borderRadius: 6,
+    padding: 8,
+    marginBottom: FIBONACCI.SM,
+    gap: 2,
+  },
+  debugText: {
+    color: '#00FF00',
+    fontSize: 11,
+    fontFamily: 'monospace',
+  },
   careSection: {
     marginBottom: FIBONACCI.LG, // 21px (was 13px - better section separation)
   },
@@ -1355,162 +879,6 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     flex: 1,
     flexWrap: 'wrap',
-  },
-
-  // Inline Authentication Modal Styles - Pure Fibonacci Golden Ratio System
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent overlay
-    position: 'relative',
-  },
-  modalGradient: {
-    borderTopLeftRadius: FIBONACCI.LG, // 21px - Golden ratio rounded corners
-    borderTopRightRadius: FIBONACCI.LG, // 21px
-    paddingTop: FIBONACCI.XXL, // 55px - Fibonacci top padding
-    paddingHorizontal: FIBONACCI.XL, // 34px - Fibonacci horizontal padding
-    paddingBottom: FIBONACCI.XXXL, // 89px - Extra safe area padding (Fibonacci)
-  },
-  closeButton: {
-    position: 'absolute',
-    top: FIBONACCI.LG, // 21px - Fibonacci positioning
-    right: FIBONACCI.LG, // 21px - Fibonacci positioning
-    width: ELEMENT_SIZES.ICON_MD, // 34px - Standard icon size (Fibonacci)
-    height: ELEMENT_SIZES.ICON_MD, // 34px
-    borderRadius: ELEMENT_SIZES.ICON_MD / 2, // 17px - Perfect circle (half of 34)
-    backgroundColor: 'rgba(255, 255, 255, 0.2)', // Subtle white background
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-  },
-  modalContent: {
-    marginTop: FIBONACCI.MD, // 13px - Fibonacci spacing
-  },
-  authButtons: {
-    gap: FIBONACCI.LG, // 21px - Fibonacci button gaps
-    marginBottom: FIBONACCI.XL, // 34px - Fibonacci section spacing
-  },
-  googleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.white,
-    height: ELEMENT_SIZES.BUTTON_MD, // 55px - Fibonacci button height
-    borderRadius: FIBONACCI.XL, // 34px - Pill shape
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: FIBONACCI.SM,
-    elevation: 4,
-  },
-  googleButtonText: {
-    color: COLORS.primary,
-    fontSize: TYPOGRAPHY.BASE, // 16px - Golden ratio typography
-    fontWeight: '600',
-    marginLeft: FIBONACCI.MD,
-  },
-  facebookButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.white,
-    height: ELEMENT_SIZES.BUTTON_MD, // 55px - Fibonacci button height
-    borderRadius: FIBONACCI.XL, // 34px - Pill shape
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: FIBONACCI.SM,
-    elevation: 4,
-  },
-  facebookButtonText: {
-    color: COLORS.primary,
-    fontSize: TYPOGRAPHY.BASE, // 16px - Golden ratio typography
-    fontWeight: '600',
-    marginLeft: FIBONACCI.MD,
-  },
-  appleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.white,
-    height: ELEMENT_SIZES.BUTTON_MD, // 55px - Fibonacci button height
-    borderRadius: FIBONACCI.XL, // 34px - Pill shape
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: FIBONACCI.SM,
-    elevation: 4,
-  },
-  appleButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
-    position: 'relative',
-  },
-  appleButtonText: {
-    color: COLORS.primary,
-    fontSize: TYPOGRAPHY.BASE, // 16px - Golden ratio typography
-    fontWeight: '600',
-    marginLeft: FIBONACCI.MD,
-  },
-  comingSoonBadge: {
-    position: 'absolute',
-    top: -FIBONACCI.SM, // -8px - Anchored to Apple button top edge
-    right: FIBONACCI.SM, // 8px - Closer to right edge
-    backgroundColor: '#2D5F3F', // Lotus Green - dark teal/green
-    paddingHorizontal: FIBONACCI.SM, // 8px - Compact padding
-    paddingVertical: FIBONACCI.XXS, // 3px - Minimal vertical padding
-    borderRadius: FIBONACCI.MD, // 13px - Pill-shaped badge
-    shadowColor: COLORS.shadow,
-    shadowOffset: { width: 0, height: FIBONACCI.XXS }, // 3px - Subtle depth
-    shadowOpacity: 0.2,
-    shadowRadius: FIBONACCI.XS, // 5px - Soft shadow
-    elevation: 3,
-  },
-  comingSoonText: {
-    fontSize: FIBONACCI.SM,
-    color: '#FFFFFF', // Pure white for maximum brightness
-    fontWeight: '700',
-  },
-  signInLink: {
-    alignItems: 'center',
-    paddingVertical: FIBONACCI.MD, // 13px - Fibonacci tappable area
-    marginTop: FIBONACCI.SM, // 8px - Fibonacci spacing after buttons
-  },
-  signInText: {
-    fontSize: TYPOGRAPHY.SM, // 14px - Golden ratio typography
-    color: COLORS.white,
-    fontWeight: '500',
-    textDecorationLine: 'underline',
-  },
-  maybeLaterButton: {
-    alignItems: 'center',
-    paddingVertical: FIBONACCI.MD, // 13px - Fibonacci tappable area
-    marginTop: FIBONACCI.LG, // 21px - Fibonacci spacing from sign in link
-  },
-  maybeLaterText: {
-    fontSize: TYPOGRAPHY.SM, // 14px - Consistent with sign in text
-    color: COLORS.white,
-    fontWeight: '500',
-    opacity: 0.8, // Slightly muted to de-emphasize
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    marginVertical: FIBONACCI.LG,
-  },
-  loadingText: {
-    fontSize: TYPOGRAPHY.SM,
-    color: COLORS.white,
-    marginTop: FIBONACCI.SM,
-    opacity: 0.8,
-  },
-
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  buttonTextDisabled: {
-    color: '#999',
   },
 
   // Dynamic Provider Attribution Watermark (adapts to active provider)

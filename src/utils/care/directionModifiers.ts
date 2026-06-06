@@ -22,12 +22,14 @@ import {
 export const DIRECTION_MODIFIERS: Record<string, DirectionModifier> = {
   // ======================================
   // North Window (consistent gentle light)
+  // North never receives direct sun in the Northern Hemisphere — physical fact.
   // ======================================
   north_winter: {
     direction: 'north',
     season: 'winter',
     lightIntensity: 'Low',
     wateringAdjustment: 3, // Water 3 days later
+    directSunHours: 0,
     benefit: 'Consistent gentle light',
   },
   north_spring: {
@@ -35,6 +37,7 @@ export const DIRECTION_MODIFIERS: Record<string, DirectionModifier> = {
     season: 'spring',
     lightIntensity: 'Low',
     wateringAdjustment: 2, // Water 2 days later
+    directSunHours: 0,
     benefit: 'Stable conditions',
   },
   north_summer: {
@@ -42,6 +45,7 @@ export const DIRECTION_MODIFIERS: Record<string, DirectionModifier> = {
     season: 'summer',
     lightIntensity: 'Medium',
     wateringAdjustment: 1, // Water 1 day later
+    directSunHours: 0,
     benefit: 'Protected from harsh sun',
   },
   north_autumn: {
@@ -49,102 +53,118 @@ export const DIRECTION_MODIFIERS: Record<string, DirectionModifier> = {
     season: 'autumn',
     lightIntensity: 'Low',
     wateringAdjustment: 2, // Water 2 days later
+    directSunHours: 0,
     benefit: 'Cool and stable',
   },
 
   // ======================================
-  // East Window (gentle morning sun)
+  // East Window (gentle morning sun) — symmetric with west at equinoxes
   // ======================================
   east_winter: {
     direction: 'east',
     season: 'winter',
     lightIntensity: 'Medium',
-    wateringAdjustment: 2, // Water 2 days later
+    wateringAdjustment: 2,
+    directSunHours: 4,
     benefit: 'Gentle morning warmth',
   },
   east_spring: {
     direction: 'east',
     season: 'spring',
     lightIntensity: 'High',
-    wateringAdjustment: 0, // Normal watering schedule
+    wateringAdjustment: 0,
+    directSunHours: 5,
     benefit: 'Perfect morning light ✓',
   },
   east_summer: {
     direction: 'east',
     season: 'summer',
     lightIntensity: 'High',
-    wateringAdjustment: -1, // Water 1 day earlier
+    wateringAdjustment: -1,
+    directSunHours: 5,
     benefit: 'Morning sun before peak heat',
   },
   east_autumn: {
     direction: 'east',
     season: 'autumn',
     lightIntensity: 'Medium',
-    wateringAdjustment: 1, // Water 1 day later
+    wateringAdjustment: 1,
+    directSunHours: 4,
     benefit: 'Balanced conditions',
   },
 
   // ======================================
-  // South Window (intense direct sun)
+  // South Window — peak hours in winter (low solar arc), least in summer
+  // (sun directly overhead, briefly hits south wall)
   // ======================================
   south_winter: {
     direction: 'south',
     season: 'winter',
     lightIntensity: 'High',
-    wateringAdjustment: 0, // Normal watering schedule
+    wateringAdjustment: 0,
+    directSunHours: 6,
     benefit: 'Maximum winter light',
   },
   south_spring: {
     direction: 'south',
     season: 'spring',
     lightIntensity: 'Very High',
-    wateringAdjustment: -1, // Water 1 day earlier
+    wateringAdjustment: -1,
+    directSunHours: 4,
     warning: '⚠️ Watch for leaf burn',
   },
   south_summer: {
     direction: 'south',
     season: 'summer',
     lightIntensity: 'Very High',
-    wateringAdjustment: -2, // Water 2 days earlier
+    wateringAdjustment: -2,
+    directSunHours: 3,
     warning: '⚠️ Direct sun can scorch leaves',
   },
   south_autumn: {
     direction: 'south',
     season: 'autumn',
     lightIntensity: 'High',
-    wateringAdjustment: -1, // Water 1 day earlier
+    wateringAdjustment: -1,
+    directSunHours: 5,
     warning: '⚠️ Monitor for heat stress',
   },
 
   // ======================================
-  // West Window (hot afternoon sun)
+  // West Window — peaks in summer (long, hot afternoon, low-angle penetration)
   // ======================================
   west_winter: {
     direction: 'west',
     season: 'winter',
     lightIntensity: 'Medium',
-    wateringAdjustment: 1, // Water 1 day later
+    wateringAdjustment: 1,
+    directSunHours: 4,
     benefit: 'Afternoon warmth',
   },
   west_spring: {
     direction: 'west',
     season: 'spring',
     lightIntensity: 'High',
-    wateringAdjustment: -1, // Water 1 day earlier
+    wateringAdjustment: -1,
+    directSunHours: 5,
     warning: '⚠️ Afternoon heat can be intense',
   },
   west_summer: {
     direction: 'west',
     season: 'summer',
     lightIntensity: 'Very High',
-    wateringAdjustment: -2, // Water 2 days earlier
-    warning: '⚠️ Peak afternoon heat stress',
+    // West summer is harsher than south summer in Cairo: low-angle penetration
+    // deep into the room + peak afternoon heat stacks evaporative stress.
+    wateringAdjustment: -3,
+    directSunHours: 6,
+    warning: '🔥 DANGER: Hot afternoon sun penetrates deep into room — leaf scorch and heat stress risk',
   },
   west_autumn: {
     direction: 'west',
     season: 'autumn',
     lightIntensity: 'High',
-    wateringAdjustment: 0, // Normal watering schedule
+    wateringAdjustment: 0,
+    directSunHours: 4,
     warning: 'Warm afternoons',
   },
 };
@@ -163,6 +183,83 @@ export const getDirectionModifiers = (direction: string, season: string): Direct
 
   return modifier;
 };
+
+// ──────────────────────────────────────────────────────────────────────────
+// Latitude scaling
+// ──────────────────────────────────────────────────────────────────────────
+
+const INTENSITY_LEVELS: DirectionModifier['lightIntensity'][] =
+  ['Very Low', 'Low', 'Medium', 'High', 'Very High'];
+
+function shiftIntensity(
+  current: DirectionModifier['lightIntensity'],
+  shift: number
+): DirectionModifier['lightIntensity'] {
+  const idx = INTENSITY_LEVELS.indexOf(current);
+  const newIdx = Math.max(0, Math.min(INTENSITY_LEVELS.length - 1, idx + shift));
+  return INTENSITY_LEVELS[newIdx];
+}
+
+/**
+ * Adjust direction modifier for the user's latitude.
+ *
+ * Cairo (~30°N) is the baseline (no shift). Higher latitudes (Berlin, Stockholm)
+ * get less intense sun; lower latitudes (Khartoum) get more intense sun.
+ * Southern Hemisphere flips N↔S so the equator-facing wall behaves like
+ * Northern "south".
+ */
+export function scaleDirectionForLatitude(
+  modifier: DirectionModifier,
+  lat: number
+): DirectionModifier {
+  let result: DirectionModifier = { ...modifier };
+
+  // Hemisphere flip: in S Hemisphere, "south" is equator-facing (= Northern "south")
+  if (lat < 0) {
+    if (modifier.direction === 'north') {
+      const swapped = DIRECTION_MODIFIERS[`south_${modifier.season}`];
+      if (swapped) result = { ...swapped, direction: 'north', season: modifier.season };
+    } else if (modifier.direction === 'south') {
+      const swapped = DIRECTION_MODIFIERS[`north_${modifier.season}`];
+      if (swapped) result = { ...swapped, direction: 'south', season: modifier.season };
+    }
+  }
+
+  // Intensity scaling by distance from 30° baseline
+  const absLat = Math.abs(lat);
+  const distFromBaseline = absLat - 30;
+  let shift = 0;
+  if (distFromBaseline >= 35) shift = -2;        // Oslo, Stockholm (~65°)
+  else if (distFromBaseline >= 15) shift = -1;   // Berlin, Paris, London (~45-52°)
+  else if (distFromBaseline <= -15) shift = +1;  // Khartoum, equator-ish (~15°)
+
+  if (shift !== 0) {
+    result.lightIntensity = shiftIntensity(result.lightIntensity, shift);
+  }
+
+  return result;
+}
+
+/**
+ * Approximate direct-sun hours for a (direction, season) at the given latitude.
+ * North windows always return 0 (Northern Hemisphere physics, flipped for South).
+ */
+export function getDirectSunHoursForLatitude(
+  direction: 'north' | 'east' | 'south' | 'west',
+  season: string,
+  lat: number = 30
+): number {
+  // Hemisphere flip
+  let effectiveDirection = direction;
+  if (lat < 0) {
+    if (direction === 'north') effectiveDirection = 'south';
+    else if (direction === 'south') effectiveDirection = 'north';
+  }
+  const key = `${effectiveDirection}_${season}`;
+  const base = DIRECTION_MODIFIERS[key];
+  if (!base) return 0;
+  return base.directSunHours;
+}
 
 /**
  * Weather-Aware Direction Modifiers - Dynamic scaling based on temperature and conditions
@@ -400,6 +497,8 @@ export const WEATHER_AWARE_DIRECTION_MODIFIERS: Record<string, WeatherAwareDirec
     season: 'summer',
     getModifiers: (weather: WeatherData) => {
       const uvIndex = weather.uvIndex || 10;
+      // West summer is harsher than south summer in Cairo: low-angle penetration
+      // deep into the room + peak afternoon heat.
       if (weather.temperature >= 38 || (weather.temperature >= 33 && uvIndex >= 11)) {
         return {
           lightIntensity: 'Very High',
@@ -409,14 +508,14 @@ export const WEATHER_AWARE_DIRECTION_MODIFIERS: Record<string, WeatherAwareDirec
       } else if (weather.temperature >= 35 || uvIndex >= 10) {
         return {
           lightIntensity: 'Very High',
-          wateringAdjustment: -2,
-          warning: `⚠️ Very hot afternoons (UV ${uvIndex}): West window can stress plants. Provide shade 3-6pm`,
+          wateringAdjustment: -3,
+          warning: `🔥 DANGER: Very hot afternoons (UV ${uvIndex}): hot afternoon sun penetrates deep into room — leaf scorch risk. Provide shade 3-6pm`,
         };
       } else {
         return {
           lightIntensity: 'Very High',
-          wateringAdjustment: -2,
-          warning: '⚠️ Peak afternoon heat stress - not ideal for sensitive plants',
+          wateringAdjustment: -3,
+          warning: '🔥 DANGER: Hot afternoon sun penetrates deep into room — leaf scorch and heat stress risk',
         };
       }
     },
@@ -443,25 +542,63 @@ export const WEATHER_AWARE_DIRECTION_MODIFIERS: Record<string, WeatherAwareDirec
 };
 
 /**
- * Get weather-aware direction modifiers (dynamic scaling based on current weather)
+ * Get weather-aware direction modifiers (dynamic scaling based on current weather).
+ *
+ * @param lat - Optional user latitude. If provided, scales intensity by distance
+ *              from the 30°N baseline and flips N↔S in the Southern Hemisphere.
+ *              Defaults to Cairo (30°N) → no scaling.
+ *
+ * Always returns `directSunHours` (injected from the static table) so callers
+ * can show "Plant needs ☀☀ / Window gives ☀☀☀" comparisons and tip cards.
  */
 export const getWeatherAwareDirectionModifiers = (
   direction: string,
   season: string,
-  weather: WeatherData
+  weather: WeatherData,
+  lat?: number
 ): {
   lightIntensity: 'Very Low' | 'Low' | 'Medium' | 'High' | 'Very High';
   wateringAdjustment: number;
+  directSunHours: number;
   warning?: string;
   benefit?: string;
 } => {
   const key = `${direction}_${season}`;
   const modifier = WEATHER_AWARE_DIRECTION_MODIFIERS[key];
 
-  if (!modifier) {
-    logger.warn(`No weather-aware direction modifiers found for ${key}, using east_spring defaults`);
-    return WEATHER_AWARE_DIRECTION_MODIFIERS.east_spring.getModifiers(weather);
+  const base = modifier
+    ? modifier.getModifiers(weather)
+    : (() => {
+        logger.warn(`No weather-aware direction modifiers found for ${key}, using east_spring defaults`);
+        return WEATHER_AWARE_DIRECTION_MODIFIERS.east_spring.getModifiers(weather);
+      })();
+
+  // Inject directSunHours from the static physical table (latitude-aware).
+  const directSunHours = getDirectSunHoursForLatitude(
+    direction as 'north' | 'east' | 'south' | 'west',
+    season,
+    lat ?? 30
+  );
+
+  let result = {
+    ...base,
+    directSunHours,
+  };
+
+  // Apply latitude intensity scaling if user is far from Cairo baseline.
+  if (lat !== undefined && lat !== 30) {
+    const staticBase = DIRECTION_MODIFIERS[key];
+    if (staticBase) {
+      const scaled = scaleDirectionForLatitude(staticBase, lat);
+      // Only the intensity is latitude-sensitive; watering/warnings stay
+      // weather-derived. Trust the larger of (scaled static intensity,
+      // weather-aware intensity) when scaling makes things gentler — the
+      // weather-derived warning still applies physically.
+      // For high latitudes (negative shift), the scaled value is the right cap.
+      // For low latitudes (positive shift), bump the weather-aware value up.
+      result.lightIntensity = scaled.lightIntensity;
+    }
   }
 
-  return modifier.getModifiers(weather);
+  return result;
 };

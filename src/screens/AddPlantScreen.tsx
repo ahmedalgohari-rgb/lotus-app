@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   TextInput,
+  TouchableOpacity,
   Alert,
   LayoutAnimation,
   Platform,
@@ -539,14 +540,14 @@ export default function AddPlantScreen() {
             <Text style={styles.sectionTitle}>{t('addPlant.whereWillPlantLive')}</Text>
             <View style={styles.optionsGrid}>
               {PLANT_LOCATIONS.map((location) => (
-                <PressSpring
+                <TouchableOpacity
                   key={location.value}
                   style={[
                     styles.optionCard,
                     selectedLocation === location.value && styles.optionCardSelected,
                   ]}
                   onPress={() => setSelectedLocation(location.value)}
-                  pressedScale={0.95}
+                  activeOpacity={0.7}
                 >
                   <View style={styles.optionCardContent}>
                     <Text style={[styles.optionText, selectedLocation === location.value && styles.optionTextSelected]}>
@@ -558,7 +559,7 @@ export default function AddPlantScreen() {
                       </View>
                     )}
                   </View>
-                </PressSpring>
+                </TouchableOpacity>
               ))}
             </View>
           </View>
@@ -570,6 +571,10 @@ export default function AddPlantScreen() {
             onDirectionChange={setSelectedDirection}
             bestDirection={bestDirection}
             isRTL={isRTL}
+            plantLightRequirement={dbPlant?.care.light.requirement}
+            currentDirectionIntensity={enhancedCareRec?.environment.lightIntensity}
+            currentDirectSunHours={enhancedCareRec?.environment.directSunHours}
+            currentSeason={enhancedCareRec?.environment.season as any}
           />
         );
       case 3:
@@ -729,16 +734,18 @@ export default function AddPlantScreen() {
 
         {/* 3. QUESTION & CHOICE AREA (FLEX) */}
         <ScrollView
-          ref={scrollViewRef} // 🔧 Ref for programmatic scroll control
+          ref={scrollViewRef}
           style={styles.layoutContentScrollView}
           contentContainerStyle={[
             styles.layoutContentContainer,
-            currentStep === 3 && styles.step3ExtraPadding, // 🔧 Extra padding for Step 3 keyboard
+            currentStep === 3 && styles.step3ExtraPadding,
           ]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
-          scrollEnabled={true} // Always scrollable so all location options are reachable
+          scrollEnabled={true}
+          // @ts-expect-error — valid iOS UIScrollView prop missing from RN 0.79 types; required to fix bottom-row tap on flexWrap grid
+          delaysContentTouches={false}
         >
             <View style={styles.stepContentContainer}>
                 {renderStepContent()}
@@ -854,16 +861,13 @@ const styles = StyleSheet.create({
   },
   layoutContentContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
-    paddingVertical: FIBONACCI.MD, // Added for breathing room
-    paddingBottom: FIBONACCI.XXL, // Enough clearance so bottom cards aren't hidden behind footer
+    paddingVertical: FIBONACCI.MD,
+    paddingBottom: FIBONACCI.XXL,
   },
   step3ExtraPadding: {
     paddingBottom: FIBONACCI.LG, // 🔧 FIX: Minimal spacing (21px) - keeps buttons close to input without excessive gap
   },
-  stepContentContainer: {
-    justifyContent: 'center',
-  },
+  stepContentContainer: {},
   formGroup: {
     marginHorizontal: FIBONACCI.MD,
   },
@@ -877,13 +881,12 @@ const styles = StyleSheet.create({
   optionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: FIBONACCI.MD,
+    gap: FIBONACCI.SM,
   },
   optionCard: {
-    flex: 1,
-    minWidth: '45%',
+    width: '48.5%',
     backgroundColor: COLORS.background,
-    paddingVertical: FIBONACCI.MD,
+    paddingVertical: FIBONACCI.XL,
     paddingHorizontal: FIBONACCI.MD,
     borderRadius: ELEMENT_SIZES.RADIUS_MD,
     borderWidth: 1,
@@ -1006,7 +1009,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.text,
     letterSpacing: 0.5,
-    marginLeft: FIBONACCI.SM,
+    marginStart: FIBONACCI.SM,
   },
   heroLoadingState: {
     flexDirection: 'row',
@@ -1019,7 +1022,7 @@ const styles = StyleSheet.create({
   heroLoadingText: {
     fontSize: TYPOGRAPHY.SM,
     color: COLORS.textSecondary,
-    marginLeft: FIBONACCI.SM,
+    marginStart: FIBONACCI.SM,
   },
   footerButton: {
     flexDirection: 'row',

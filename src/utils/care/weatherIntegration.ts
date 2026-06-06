@@ -76,6 +76,7 @@ export async function getPersonalizedCareRecommendations(
   let directionModifiers: {
     lightIntensity: 'Very Low' | 'Low' | 'Medium' | 'High' | 'Very High';
     wateringAdjustment: number;
+    directSunHours: number;
     warning?: string;
     benefit?: string;
   };
@@ -93,8 +94,15 @@ export async function getPersonalizedCareRecommendations(
 
   // Feed seasonal climate data into weather-aware modifiers
   // These already handle temperature-based AC scaling, humidity adjustments, etc.
+  // Pass user latitude so the south/north intensity scales correctly outside Cairo
+  // (Berlin gets dimmer south windows, Khartoum gets harsher ones).
   roomModifiers = getWeatherAwareRoomModifiers(room, seasonalWeather);
-  directionModifiers = getWeatherAwareDirectionModifiers(direction, season, seasonalWeather);
+  directionModifiers = getWeatherAwareDirectionModifiers(
+    direction,
+    season,
+    seasonalWeather,
+    gardenLocation?.lat
+  );
 
   logger.info(`Location-aware modifiers applied for ${locationName} (${seasonalWeather.temperature}°C ${season})`);
 
@@ -264,6 +272,8 @@ export async function getPersonalizedCareRecommendations(
       season,
       roomFactor: roomModifiers.note,
       directionFactor: directionModifiers.warning || directionModifiers.benefit || `${directionModifiers.lightIntensity} light`,
+      lightIntensity: directionModifiers.lightIntensity,
+      directSunHours: directionModifiers.directSunHours,
       weatherConditions: undefined // weather ? `${weather.temperature}°C, ${weather.humidity}% humidity` : undefined
     },
     adjusted: adjustedWatering,

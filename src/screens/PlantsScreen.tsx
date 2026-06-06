@@ -243,6 +243,7 @@ function EmptyState({ isRTL, onAddPress, t }: { isRTL: boolean; onAddPress: () =
 export default function PlantsScreen() {
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const isRTL = useRTL();
 
   const { plants, user, setPlants, deletePlant, gardenLocation, setGardenLocation } = useStore();
@@ -300,8 +301,10 @@ export default function PlantsScreen() {
       const { data, error } = await dbService.getPlants(user.id);
       if (error) throw error;
       if (data) setPlants(data);
+      setLoadError(false);
     } catch (error) {
       logger.error('Error loading plants:', error);
+      setLoadError(true);
     }
   };
 
@@ -355,14 +358,13 @@ export default function PlantsScreen() {
   };
 
   const getDaysUntilWatering = (nextWatering?: string) => {
-    if (!nextWatering) return 'Set';
+    if (!nextWatering) return t('plants.wateringSet');
     const today = new Date();
     const wateringDate = new Date(nextWatering);
     const diffTime = wateringDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    if (diffDays <= 0) return 'Now';
-    if (diffDays === 1) return '1d';
-    return `${diffDays}d`;
+    if (diffDays <= 0) return t('plants.wateringNow');
+    return t('plants.wateringDayShort', { count: diffDays });
   };
 
   if (!user) {
@@ -372,6 +374,29 @@ export default function PlantsScreen() {
           <Text style={[{ fontSize: 18, color: COLORS.textSecondary }, isRTL && { textAlign: 'right' }]}>
             {t('plants.signInRequired')}
           </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (user.id.startsWith('guest-')) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={[styles.header, isRTL && styles.headerRTL]}>
+          <Text style={[styles.title, isRTL && styles.titleRTL]}>{t('plants.myGarden')}</Text>
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 34 }}>
+          <Ionicons name="leaf-outline" size={72} color={COLORS.primary} style={{ opacity: 0.35, marginBottom: 21 }} />
+          <Text style={[styles.emptyTitle, { textAlign: 'center' }]}>{t('plants.guestTitle')}</Text>
+          <Text style={[styles.emptySubtitle, { textAlign: 'center' }]}>{t('plants.guestSubtitle')}</Text>
+          <TouchableOpacity
+            style={[styles.emptyButton, { marginTop: 21 }]}
+            onPress={() => navigation.navigate('Auth')}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="person-outline" size={18} color={COLORS.white} />
+            <Text style={styles.emptyButtonText}>{t('plants.guestSignIn')}</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -406,7 +431,25 @@ export default function PlantsScreen() {
         contentInset={{ bottom: 0 }}
         contentInsetAdjustmentBehavior="never"
       >
-        {plants.length === 0 ? (
+        {plants.length === 0 && loadError ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="cloud-offline-outline" size={72} color={COLORS.error} style={{ opacity: 0.5 }} />
+            <Text style={[styles.emptyTitle, isRTL && { textAlign: 'right' }]}>
+              {t('plants.loadErrorTitle')}
+            </Text>
+            <Text style={[styles.emptySubtitle, isRTL && { textAlign: 'right' }]}>
+              {t('plants.loadErrorSubtitle')}
+            </Text>
+            <TouchableOpacity
+              style={styles.emptyButton}
+              onPress={loadPlants}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="refresh" size={18} color={COLORS.white} />
+              <Text style={styles.emptyButtonText}>{t('plants.retry')}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : plants.length === 0 ? (
           <EmptyState isRTL={isRTL} onAddPress={navigateToAddPlant} t={t} />
         ) : (
           <>
@@ -559,7 +602,7 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: TYPOGRAPHY.XS,
     color: COLORS.textSecondary,
-    marginLeft: FIBONACCI.XXS,
+    marginStart: FIBONACCI.XXS,
   },
   statusDot: {
     width: 8,

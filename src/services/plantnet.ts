@@ -361,23 +361,52 @@ export const plantNetService = {
       return null;
     }
 
-    // ⚡ PERFORMANCE: Reject very low confidence immediately (< 15%)
-    // Industry standard: 15-20% minimum for valid plant identification
-    // Lower threshold = better user experience, catches more valid plants
+    // Reject low-confidence results — industry standard 30%+ for trustworthy ID.
+    // Below this we'd surface confidently-wrong matches (e.g., "Plover Eggs" for a Snake Plant).
+    // User gets "Couldn't identify, try a clearer photo" instead of a misleading match.
     const topScore = speciesResults[0]?.score || 0;
-    if (topScore < 0.15) {
-      logger.warn(`⚠️  Very low confidence (${Math.round(topScore * 100)}%) - likely not a plant or extremely poor photo`);
-      logger.warn('   Rejecting immediately (below 15% threshold)');
-      return null; // User will see "No Results" with suggestion to retake photo
+    if (topScore < 0.30) {
+      logger.warn(`⚠️  Low confidence (${Math.round(topScore * 100)}%) - rejecting to avoid misleading user. Suggest retake.`);
+      return null;
     }
 
-    // Log confidence level for monitoring
-    if (topScore < 0.30) {
-      logger.info(`✅ Accepting result with ${Math.round(topScore * 100)}% confidence (above 15% threshold)`);
+    // Surface a "low confidence — verify this looks right" warning between 30%–60%
+    if (topScore < 0.60) {
+      logger.info(`⚠️  Medium confidence (${Math.round(topScore * 100)}%) - result will be flagged for user verification`);
     }
 
     return await plantNetService.processBestMatch(speciesResults, language);
   },
+
+  /**
+   * Bidirectional botanical synonym map for common houseplants.
+   * Covers reclassifications (Sansevieria→Dracaena 2017), regional name variants,
+   * and outdated synonyms still used by some databases.
+   */
+  BOTANICAL_SYNONYMS: {
+    'sansevieria trifasciata': ['dracaena trifasciata'],
+    'sansevieria cylindrica': ['dracaena angolensis'],
+    'sansevieria zeylanica': ['dracaena zeylanica'],
+    'sansevieria laurentii': ['dracaena trifasciata'],
+    'dracaena trifasciata': ['sansevieria trifasciata', 'sansevieria laurentii'],
+    'dracaena angolensis': ['sansevieria cylindrica'],
+    'dracaena zeylanica': ['sansevieria zeylanica'],
+    'yucca elephantipes': ['yucca guatemalensis'],
+    'yucca guatemalensis': ['yucca elephantipes'],
+    'chrysalidocarpus lutescens': ['dypsis lutescens'],
+    'dypsis lutescens': ['chrysalidocarpus lutescens'],
+    'crassula argentea': ['crassula ovata', 'crassula portulacea'],
+    'crassula portulacea': ['crassula ovata', 'crassula argentea'],
+    'epipremnum pinnatum': ['epipremnum aureum'],
+    'scindapsus aureus': ['epipremnum aureum'],
+    'pothos aureus': ['epipremnum aureum'],
+    'howea forsteriana': ['kentia forsteriana'],
+    'kentia forsteriana': ['howea forsteriana'],
+    'spathiphyllum wallisii': ['spathiphyllum clevelandii'],
+    'spathiphyllum clevelandii': ['spathiphyllum wallisii'],
+    'aloe barbadensis': ['aloe vera'],
+    'aloe vera': ['aloe barbadensis'],
+  } as Record<string, string[]>,
 
   /**
    * Match PlantNet result to database plant for tier classification
@@ -387,9 +416,8 @@ export const plantNetService = {
    * TIER 2: Same genus (e.g., species vs cultivar, or different species in same genus)
    * TIER 3: Common name match only
    *
-   * NEW: When multiple cultivars match the same species (e.g., "Song of India" and "Song of Jamaica"
-   * both being Dracaena reflexa), we return `multiple_cultivars: true` with ALL options in
-   * `all_cultivars` array so the UI can show a picker.
+   * When multiple cultivars match the same species, we auto-select the most common/default one
+   * (via DEFAULT_CULTIVARS) and use a generic species name for display. No user selection needed.
    */
   matchPlantToDatabase: (
     scientificName: string,
@@ -401,16 +429,12 @@ export const plantNetService = {
     found: boolean;
     confidence: number;
     plant_id: string | null;
-    match_type: 'exact' | 'genus' | 'common_name' | 'none';
+    match_type: 'exact' | 'genus' | 'genus_auto' | 'common_name' | 'none';
     primary_plant_name?: string; // Name from database to display instead of PlantNet
+    primary_scientific_name?: string; // Database scientific name for display
     primary_plant_info?: string; // Plant info from database
-    // NEW: For cultivar picker feature
-    multiple_cultivars?: boolean; // True when >1 exact matches exist
-    all_cultivars?: Array<{
-      plant_id: string;
-      plant_name: string;
-      scientific_name: string;
-    }>;
+    primary_plant_name_arabic?: string; // Arabic name from database
+    primary_plant_info_arabic?: string; // Arabic info from database
     alternatives?: Array<{
       plant_id: string;
       confidence: number;
@@ -524,23 +548,39 @@ export const plantNetService = {
         // 🌐 Arabic content from database
         primary_plant_name_arabic: selectedPlant.plant.names.arabic?.[0],
         primary_plant_info_arabic: selectedPlant.plant.care?.plant_info_arabic,
-        // NEW: Include all cultivars for optional refiner when multiple exist
-        multiple_cultivars: hasMultipleCultivars,
-        all_cultivars: hasMultipleCultivars
-          ? exactMatches.map(m => ({
-              plant_id: m.plant.id,
-              plant_name: m.plant.names.common[0],
-              scientific_name: m.matchedName,
-              is_selected: m.plant.id === selectedPlant.plant.id, // Mark the auto-selected one
-            }))
-          : undefined,
-        // 🔧 FIX: Show up to 6 alternatives for exact matches too
         alternatives: exactMatches.slice(1, 7).map(m => ({
           plant_id: m.plant.id,
           confidence: 95,
           plant_name: m.plant.names.common[0]
         }))
       };
+    }
+
+    // TIER 2.5: Synonym resolution — try known botanical renames before genus fallback
+    // Handles the Sansevieria↔Dracaena reclassification and other common houseplant synonyms
+    const synonyms = plantNetService.BOTANICAL_SYNONYMS[normalizedSearchName];
+    if (synonyms) {
+      for (const synonym of synonyms) {
+        const normalizedSynonym = synonym.toLowerCase().trim();
+        for (const plant of allPlants) {
+          for (const sciName of plant.names.scientific) {
+            if (normalizeScientificName(sciName) === normalizedSynonym) {
+              logger.debug(`✅ TIER 2.5: Synonym match - "${scientificName}" → "${sciName}" (${plant.names.common[0]})`);
+              return {
+                found: true,
+                confidence: 90,
+                plant_id: plant.id,
+                match_type: 'exact',
+                primary_plant_name: plant.names.common[0],
+                primary_scientific_name: sciName,
+                primary_plant_info: plant.care?.plant_info,
+                primary_plant_name_arabic: plant.names.arabic?.[0],
+                primary_plant_info_arabic: plant.care?.plant_info_arabic,
+              };
+            }
+          }
+        }
+      }
     }
 
     // TIER 3: Genus match (same genus, different species/cultivar)
@@ -655,19 +695,81 @@ export const plantNetService = {
       adjustedConfidence = Math.min(95, adjustedConfidence + 5);
     }
 
-    // Get comprehensive care data using centralized service (now async)
-    const careData = await plantDatabaseService.getComprehensivePlantCare(
+    // ✅ TIER MATCHING: Match PlantNet result to database for tier classification
+    let databaseMatch = plantNetService.matchPlantToDatabase(
+      topResult.scientificNameWithoutAuthor,
+      topResult.genus.scientificNameWithoutAuthor,
+      commonName,
+      topResult.family.scientificNameWithoutAuthor,
+      adjustedConfidence
+    );
+    let careData = await plantDatabaseService.getComprehensivePlantCare(
       topResult.scientificNameWithoutAuthor,
       commonName,
       topResult.family.scientificNameWithoutAuthor,
       language
     );
 
-    // 🔍 AUTOMATIC RESEARCH: If plant not in database, trigger background research
-    // This populates the researched_plants cache for future scans
-    if (careData.needsResearch) {
-      logger.info(`🌐 Triggering automatic research for: ${topResult.scientificNameWithoutAuthor}`);
-      // Fire and forget - don't wait for research to complete
+    // Option B: If genus match, walk PlantNet's ranked results to find a better DB match
+    if (databaseMatch.match_type === 'genus') {
+      for (let i = 1; i < Math.min(species.length, 5); i++) {
+        const candidate = species[i];
+        const candidateCommonName =
+          candidate.commonNames?.find((n: any) => n.lang === 'en')?.name ||
+          candidate.scientificNameWithoutAuthor;
+        const candidateMatch = plantNetService.matchPlantToDatabase(
+          candidate.scientificNameWithoutAuthor,
+          candidate.genus.scientificNameWithoutAuthor,
+          candidateCommonName,
+          candidate.family.scientificNameWithoutAuthor,
+          Math.round(candidate.score * 100)
+        );
+        if (candidateMatch.match_type !== 'genus' && candidateMatch.match_type !== 'none') {
+          logger.debug(`✅ Option B: Found DB match at species[${i}] — ${candidate.scientificNameWithoutAuthor}`);
+          // Mark as genus_auto so the "Closest match" badge shows — the user should know
+          // we skipped species[0] and promoted a secondary PlantNet result
+          databaseMatch = { ...candidateMatch, match_type: 'genus_auto' as any };
+          careData = await plantDatabaseService.getComprehensivePlantCare(
+            candidate.scientificNameWithoutAuthor,
+            candidateCommonName,
+            candidate.family.scientificNameWithoutAuthor,
+            language
+          );
+          break;
+        }
+      }
+
+      // Still genus after walking all results — auto-select the best DB plant silently
+      if (databaseMatch.match_type === 'genus' && databaseMatch.alternatives?.[0]) {
+        const autoPlant = plantDatabaseService.getPlantById(databaseMatch.alternatives[0].plant_id);
+        if (autoPlant) {
+          const autoSciName = autoPlant.names.scientific[0];
+          const autoCommonName = autoPlant.names.common[0];
+          logger.debug(`✅ Option B: Auto-selecting genus fallback — ${autoCommonName} (${autoSciName})`);
+          careData = await plantDatabaseService.getComprehensivePlantCare(
+            autoSciName,
+            autoCommonName,
+            '',
+            language
+          );
+          databaseMatch = {
+            ...databaseMatch,
+            match_type: 'genus_auto' as any,
+            found: true,
+            plant_id: autoPlant.id,
+            primary_plant_name: autoCommonName,
+            primary_scientific_name: autoSciName,
+            primary_plant_info: autoPlant.care?.plant_info,
+            primary_plant_name_arabic: autoPlant.names.arabic?.[0],
+            primary_plant_info_arabic: autoPlant.care?.plant_info_arabic,
+          };
+        }
+      }
+    }
+
+    // Background research for unrecognised species — fire-and-forget, never blocks the result
+    if (careData.needsResearch || databaseMatch.match_type === 'genus_auto') {
+      logger.info(`🌐 Triggering background research for: ${topResult.scientificNameWithoutAuthor}`);
       import('./plantResearch').then(({ plantResearchService }) => {
         plantResearchService.research(
           topResult.scientificNameWithoutAuthor,
@@ -677,17 +779,7 @@ export const plantNetService = {
       });
     }
 
-    // ✅ TIER MATCHING: Match PlantNet result to database for tier classification
-    const databaseMatch = plantNetService.matchPlantToDatabase(
-      topResult.scientificNameWithoutAuthor,
-      topResult.genus.scientificNameWithoutAuthor,
-      commonName,
-      topResult.family.scientificNameWithoutAuthor,
-      adjustedConfidence
-    );
-
     // ✅ USE DATABASE NAME: When we have a database match, prefer its name over PlantNet's
-    // This ensures "Song of Jamaica" shows instead of "Corn plant" for genus matches
     const displayName = databaseMatch.primary_plant_name || careData.plant_name;
     const displayScientificName = databaseMatch.primary_scientific_name || topResult.scientificNameWithoutAuthor;
     const displayInfo = databaseMatch.primary_plant_info || careData.plant_info;

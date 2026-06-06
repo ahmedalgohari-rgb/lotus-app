@@ -8,6 +8,7 @@ import Animated, {
 
 interface PressSpringProps extends Omit<PressableProps, 'style'> {
   style?: StyleProp<ViewStyle>;
+  wrapperStyle?: StyleProp<ViewStyle>;
   pressedScale?: number;
   children: React.ReactNode;
 }
@@ -20,6 +21,7 @@ const SPRING_CONFIG = {
 
 export default function PressSpring({
   style,
+  wrapperStyle,
   pressedScale = 0.96,
   children,
   onPressIn,
@@ -34,7 +36,7 @@ export default function PressSpring({
   }));
 
   return (
-    <Animated.View style={animatedStyle}>
+    <Animated.View style={[wrapperStyle, animatedStyle]}>
       <Pressable
         {...rest}
         disabled={disabled}

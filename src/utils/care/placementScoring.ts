@@ -38,6 +38,8 @@ export const calculatePlacementScore = (
   const lightRequirementMap: Record<string, string[]> = {
     low_light: ['Very Low', 'Low'],
     medium_light: ['Low', 'Medium', 'High'],
+    medium_indirect: ['Very Low', 'Low', 'Medium', 'High'],
+    low_to_medium: ['Very Low', 'Low', 'Medium', 'High'],
     bright_indirect: ['Medium', 'High', 'Very High'],
     bright_direct: ['High', 'Very High'],
   };
@@ -120,6 +122,7 @@ export const calculateWeatherAwarePlacementScore = (
   directionModifiers: {
     lightIntensity: 'Very Low' | 'Low' | 'Medium' | 'High' | 'Very High';
     wateringAdjustment: number;
+    directSunHours?: number;
     warning?: string;
     benefit?: string;
   }
@@ -152,17 +155,33 @@ export const calculateWeatherAwarePlacementScore = (
       acceptable: ['Very Low'],
       poor: [],
     },
+    // Prefers dim-to-medium diffuse light (e.g. African Violets, most shade-tolerant tropicals).
+    // North windows (Low) are optimal; east/west (High) are good but slightly over-lit.
+    // Very High triggers leaf scorch risk on these plants.
+    medium_indirect: {
+      optimal: ['Low', 'Medium'],
+      good: ['High'],
+      acceptable: ['Very Low'],
+      poor: ['Very High'],
+    },
+    // Wide shade tolerance — handles anything from very dim to high (e.g. Aglaonema variants).
+    low_to_medium: {
+      optimal: ['Very Low', 'Low', 'Medium'],
+      good: ['High'],
+      acceptable: [],
+      poor: ['Very High'],
+    },
     bright_indirect: {
       optimal: ['High'],              // 5 stars - Perfect bright indirect (south/east windows)
-      good: ['Medium'],                // 4 stars - Adequate light (filtered, central rooms)
+      good: ['Medium'],               // 4 stars - Adequate light (filtered, central rooms)
       acceptable: ['Very High', 'Low'], // 3 stars - Too bright or too dim (direct sun or dark corners)
-      poor: ['Very Low'],              // 2 stars - Too dark (closets, bathrooms without windows)
+      poor: ['Very Low'],             // 2 stars - Too dark (closets, bathrooms without windows)
     },
     bright_direct: {
-      optimal: ['Very High'],          // 5 stars - Full direct sun (balcony, south window)
-      good: ['High'],                  // 4 stars - Bright light (east window)
-      acceptable: ['Medium'],          // 3 stars - Moderate light (struggling)
-      poor: ['Low', 'Very Low'],       // 2 stars - Too dark (will not thrive)
+      optimal: ['Very High'],         // 5 stars - Full direct sun (balcony, south window)
+      good: ['High'],                 // 4 stars - Bright light (east window)
+      acceptable: ['Medium'],         // 3 stars - Moderate light (struggling)
+      poor: ['Low', 'Very Low'],      // 2 stars - Too dark (will not thrive)
     },
   };
 
@@ -184,6 +203,23 @@ export const calculateWeatherAwarePlacementScore = (
   } else {
     score -= 4; // Unsuitable = 1 star
     reasons.push(`❌ Unsuitable light: ${lightIntensity} incompatible with ${plantLightRequirement}`);
+  }
+
+  // ======================================
+  // Indirect-Light Bonus
+  // ======================================
+  // North windows in the Northern Hemisphere never receive direct sun (geometry).
+  // Plants whose primary need is *indirect* light (peace lily, African violet,
+  // most aroids) get a small bump here because we were under-rating "always
+  // indirect" placements that are actually ideal for them. Capped at 5 stars.
+  const isAlwaysIndirect = directionModifiers.directSunHours === 0;
+  const indirectLoving =
+    plantLightRequirement === 'bright_indirect' ||
+    plantLightRequirement === 'medium_indirect';
+
+  if (isAlwaysIndirect && indirectLoving && score < 5) {
+    score = Math.min(5, score + 1);
+    reasons.push('✓ Always-indirect light from north window — ideal for this plant');
   }
 
   // ======================================

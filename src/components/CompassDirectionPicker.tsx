@@ -18,12 +18,18 @@ import { useTranslation } from 'react-i18next';
 
 import { COLORS, FIBONACCI, TYPOGRAPHY, ELEMENT_SIZES, WINDOW_DIRECTIONS } from '../constants';
 import { useCompass } from '../hooks/useCompass';
+import LightComparisonCard from './LightComparisonCard';
 
 interface CompassDirectionPickerProps {
   selectedDirection: string;
   onDirectionChange: (direction: any) => void;
   bestDirection: string | null;
   isRTL: boolean;
+  // Educational comparison panel inputs (optional for backwards compatibility).
+  plantLightRequirement?: string;
+  currentDirectionIntensity?: 'Very Low' | 'Low' | 'Medium' | 'High' | 'Very High';
+  currentDirectSunHours?: number;
+  currentSeason?: 'winter' | 'spring' | 'summer' | 'autumn';
 }
 
 export default function CompassDirectionPicker({
@@ -31,6 +37,10 @@ export default function CompassDirectionPicker({
   onDirectionChange,
   bestDirection,
   isRTL,
+  plantLightRequirement,
+  currentDirectionIntensity,
+  currentDirectSunHours,
+  currentSeason,
 }: CompassDirectionPickerProps) {
   const { t } = useTranslation();
   const { heading, cardinalDirection, isAvailable, start, stop } = useCompass();
@@ -92,6 +102,16 @@ export default function CompassDirectionPicker({
     });
   }, [heading, isLiveMode]);
 
+  // Stream cardinal direction to parent while in live mode so the score banner updates in real-time.
+  // cardinalDirection only switches between 4 values (N/E/S/W) so this fires at most a few times per rotation.
+  const lastStreamedDirection = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isLiveMode || !cardinalDirection) return;
+    if (cardinalDirection === lastStreamedDirection.current) return;
+    lastStreamedDirection.current = cardinalDirection;
+    onDirectionChange(cardinalDirection);
+  }, [cardinalDirection, isLiveMode]);
+
   const compassRotationStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotationValue.value}deg` }],
   }));
@@ -131,6 +151,7 @@ export default function CompassDirectionPicker({
           return (
             <TouchableOpacity
               key={direction.value}
+              testID={`direction-${direction.value}`}
               style={[
                 styles.compassDirection,
                 (styles as any)[positionKey],
@@ -179,6 +200,18 @@ export default function CompassDirectionPicker({
     return <View style={styles.compass}>{compassContent}</View>;
   };
 
+  // Comparison card visibility: only show when we have plant + direction data.
+  const comparisonCard = plantLightRequirement && currentDirectionIntensity ? (
+    <LightComparisonCard
+      plantLightRequirement={plantLightRequirement}
+      windowIntensity={currentDirectionIntensity}
+      directSunHours={currentDirectSunHours}
+      direction={selectedDirection as 'north' | 'east' | 'south' | 'west'}
+      season={currentSeason}
+      isRTL={isRTL}
+    />
+  ) : null;
+
   // ─── Live Mode ─────────────────────────────────────────────────
   if (isLiveMode) {
     const facingDirection = WINDOW_DIRECTIONS.find(d => d.value === cardinalDirection);
@@ -188,21 +221,19 @@ export default function CompassDirectionPicker({
 
     return (
       <View style={styles.container}>
-        {/* Instruction */}
-        <Text style={[styles.instruction, isRTL && styles.textRTL]}>
-          {t('addPlant.compass.pointAtWindow')}
-        </Text>
+        {/* Educational comparison panel — replaces the old lightHint line.
+            Compact enough to fit above the compass on iPhone 13 mini. */}
+        {comparisonCard}
 
         {/* Live rotating compass */}
         <View style={styles.compassContainer}>
-          {/* Direction indicator arrow at top */}
           <View style={styles.indicatorArrow}>
             <Ionicons name="caret-down" size={20} color={COLORS.primary} />
           </View>
           {renderCompassRose(true)}
         </View>
 
-        {/* Facing direction */}
+        {/* Facing direction (acts as the "you are pointing at this" feedback) */}
         <View style={styles.facingContainer}>
           <Text style={[styles.facingLabel, isRTL && styles.textRTL]}>
             {t('addPlant.compass.youAreFacing')}
@@ -212,13 +243,9 @@ export default function CompassDirectionPicker({
           </Text>
         </View>
 
-        {/* Light quality hint */}
-        <Text style={[styles.lightHint, isRTL && styles.textRTL]}>
-          {t(`addPlant.compass.lightHints.${cardinalDirection}`)}
-        </Text>
-
         {/* Confirm button */}
         <TouchableOpacity
+          testID="confirm-direction"
           style={styles.confirmButton}
           onPress={handleConfirmDirection}
           activeOpacity={0.7}
@@ -228,7 +255,7 @@ export default function CompassDirectionPicker({
           </Text>
         </TouchableOpacity>
 
-        {/* Switch to manual */}
+        {/* Switch to manual — kept inline so it's always visible */}
         <TouchableOpacity onPress={switchToManual} style={styles.modeToggle}>
           <Text style={[styles.modeToggleText, isRTL && styles.textRTL]}>
             {t('addPlant.compass.selectManually')}
@@ -241,9 +268,9 @@ export default function CompassDirectionPicker({
   // ─── Manual Mode ───────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      <Text style={[styles.sectionTitle, isRTL && styles.textRTL]}>
-        {isRTL ? 'ما هو اتجاه الشباك؟' : 'What is the window direction?'}
-      </Text>
+      {/* Educational comparison panel — also shows the selected-direction
+          context, so we no longer need a separate lightHint line. */}
+      {comparisonCard}
 
       <View style={styles.compassContainer}>
         {renderCompassRose(false)}
@@ -251,11 +278,6 @@ export default function CompassDirectionPicker({
           {t('addPlant.selectedDirection')} {t(`addPlant.directions.${selectedDirection}`)}
         </Text>
       </View>
-
-      {/* Light quality hint for selected direction */}
-      <Text style={[styles.lightHint, isRTL && styles.textRTL]}>
-        {t(`addPlant.compass.lightHints.${selectedDirection}`)}
-      </Text>
 
       {/* Switch to live compass (only if available) */}
       {isAvailable && (
@@ -276,23 +298,8 @@ const styles = StyleSheet.create({
     marginHorizontal: FIBONACCI.MD,
   },
 
-  // Instruction text for live mode
-  instruction: {
-    fontSize: TYPOGRAPHY.BASE,
-    fontWeight: '600',
-    color: COLORS.primary,
-    textAlign: 'center',
-    marginBottom: FIBONACCI.LG,
-  },
-
-  // Section title for manual mode
-  sectionTitle: {
-    fontSize: TYPOGRAPHY.MD,
-    fontWeight: '600',
-    color: COLORS.primary,
-    marginBottom: FIBONACCI.MD,
-    textAlign: 'center',
-  },
+  // (instruction + sectionTitle removed — the comparison card carries
+  //  enough context that a separate header is just visual noise.)
 
   // Compass container
   compassContainer: {
@@ -305,34 +312,37 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
 
-  // Compass rose — perfect circle for smooth rotation
+  // Compass rose — perfect circle for smooth rotation.
+  // Shrunk from 200 → 168 so the whole compass step (card + compass +
+  // facing label + confirm + manual toggle) fits in one viewport on
+  // iPhone 13 mini.
   compass: {
-    width: 200,
-    height: 200,
+    width: 168,
+    height: 168,
     position: 'relative',
     backgroundColor: COLORS.background,
-    borderRadius: 100,
-    marginBottom: FIBONACCI.SM,
+    borderRadius: 84,
+    marginBottom: FIBONACCI.XS,
   },
 
-  // Light green background circle — radius 86, centered in 200×200 compass
+  // Light green background circle — radius 72, centered in 168×168 compass
   compassBackground: {
     position: 'absolute',
-    width: 172,
-    height: 172,
-    borderRadius: 86,
-    top: 14,
-    left: 14,
+    width: 144,
+    height: 144,
+    borderRadius: 72,
+    top: 12,
+    left: 12,
     backgroundColor: 'rgba(76, 175, 80, 0.12)',
   },
 
-  // Direction buttons — uniform circles
+  // Direction buttons — uniform circles, smaller to match shrunk compass
   compassDirection: {
     position: 'absolute',
-    width: 44,
-    height: 44,
+    width: 38,
+    height: 38,
     backgroundColor: COLORS.white,
-    borderRadius: 22,
+    borderRadius: 19,
     borderWidth: 1,
     borderColor: COLORS.border,
     justifyContent: 'center',
@@ -349,22 +359,22 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
 
-  // Compass positions — centered on 200px circle
+  // Compass positions — centered on 168px circle (button radius 19, compass radius 84)
   compassNorth: {
-    top: -8,
-    left: 78,
+    top: -6,
+    left: 65,
   },
   compassEast: {
-    right: -8,
-    top: 78,
+    right: -6,
+    top: 65,
   },
   compassSouth: {
-    top: 164,
-    left: 78,
+    top: 136,
+    left: 65,
   },
   compassWest: {
-    left: -8,
-    top: 78,
+    left: -6,
+    top: 65,
   },
 
   // Direction text
@@ -428,7 +438,7 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.SM,
     color: COLORS.primary,
     fontWeight: '500',
-    marginTop: FIBONACCI.SM,
+    marginTop: FIBONACCI.XS,
   },
 
   // Facing direction display (live mode)
@@ -437,36 +447,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: FIBONACCI.SM,
-    marginTop: FIBONACCI.MD,
+    marginTop: FIBONACCI.SM,
   },
   facingLabel: {
-    fontSize: TYPOGRAPHY.BASE,
+    fontSize: TYPOGRAPHY.SM,
     color: COLORS.textSecondary,
   },
   facingDirection: {
-    fontSize: TYPOGRAPHY.LG,
+    fontSize: TYPOGRAPHY.MD,
     fontWeight: '700',
     color: COLORS.primary,
   },
 
-  // Light quality hint
-  lightHint: {
-    fontSize: TYPOGRAPHY.SM,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginTop: FIBONACCI.SM,
-    paddingHorizontal: FIBONACCI.XL,
-    fontStyle: 'italic',
-  },
-
-  // Confirm button (live mode)
+  // Confirm button (live mode) — tighter padding
   confirmButton: {
     backgroundColor: COLORS.primary,
-    paddingVertical: FIBONACCI.MD,
+    paddingVertical: FIBONACCI.SM,
     paddingHorizontal: FIBONACCI.XL,
     borderRadius: FIBONACCI.LG,
     alignItems: 'center',
-    marginTop: FIBONACCI.LG,
+    marginTop: FIBONACCI.SM,
   },
   confirmButtonText: {
     fontSize: TYPOGRAPHY.BASE,
@@ -479,8 +479,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: FIBONACCI.MD,
-    paddingVertical: FIBONACCI.SM,
+    marginTop: FIBONACCI.XS,
+    paddingVertical: FIBONACCI.XS,
   },
   modeToggleText: {
     fontSize: TYPOGRAPHY.SM,

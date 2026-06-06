@@ -60,10 +60,11 @@ target 'Lotus' do
         end
       end
     end
-    # Fix fmt library build error on Xcode 16+
+    # Fix fmt C++17 build error (Xcode 16+) and libtool empty-object warning (Xcode 26 beta)
     installer.pods_project.targets.each do |target|
-      if target.name == 'fmt'
-        target.build_configurations.each do |config|
+      target.build_configurations.each do |config|
+        config.build_settings['OTHER_LIBTOOLFLAGS'] = '-no_warning_for_no_symbols'
+        if target.name == 'fmt'
           config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
         end
       end

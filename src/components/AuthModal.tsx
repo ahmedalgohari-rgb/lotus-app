@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,11 +18,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { logger } from '../utils/logger';
+import { trackAuthModalShown, trackAuthCompleted } from '../services/analytics';
 
 import { COLORS, FIBONACCI, TYPOGRAPHY, ELEMENT_SIZES } from '../constants';
 import { authService, dbService } from '../services/supabase';
 import { useStore } from '../store';
-import NameCollectionModal from './NameCollectionModal';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -35,10 +35,26 @@ interface AuthModalProps {
 export default function AuthModal({ visible, onClose, onAuthSuccess }: AuthModalProps) {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
-  const [showNameCollection, setShowNameCollection] = useState(false);
-  const [pendingUser, setPendingUser] = useState<any>(null);
   const { setUser, setAuthenticated, updateUserName } = useStore();
   const navigation = useNavigation();
+
+  useEffect(() => {
+    if (visible) {
+      trackAuthModalShown({ trigger: 'add_plant' });
+    }
+  }, [visible]);
+
+  // Best-effort save of the first name returned by an OAuth provider (Google/Apple).
+  // Failures are non-blocking — sign-in proceeds either way. Apple App Review takes a dim view of
+  // apps that hard-require user data after Sign in with Apple, so we never gate auth on this.
+  const saveFirstNameIfAvailable = async (userId: string, firstName: string | undefined) => {
+    if (!firstName) return;
+    try {
+      await dbService.updateUserProfile(userId, firstName);
+    } catch (err) {
+      logger.warn('Could not save first name to profile (non-blocking):', err);
+    }
+  };
 
   const handlePostAuthNavigation = () => {
     onClose();
@@ -48,6 +64,14 @@ export default function AuthModal({ visible, onClose, onAuthSuccess }: AuthModal
     } else {
       navigation.navigate('Main');
     }
+  };
+
+  const finalizeAuth = (userData: any, firstName?: string) => {
+    if (firstName) updateUserName(firstName);
+    setUser(userData);
+    setAuthenticated(true);
+    setIsLoading(false);
+    handlePostAuthNavigation();
   };
 
   const handleGoogleSignIn = async () => {
@@ -72,32 +96,10 @@ export default function AuthModal({ visible, onClose, onAuthSuccess }: AuthModal
         };
 
         if (!hasFirstName && googleFirstName) {
-          try {
-            await dbService.updateUserProfile(data.user.id, googleFirstName);
-            setUser({
-              ...userData,
-              first_name: googleFirstName,
-              name: googleFirstName,
-            });
-            updateUserName(googleFirstName);
-            setAuthenticated(true);
-            setIsLoading(false);
-            handlePostAuthNavigation();
-          } catch (saveError) {
-            setPendingUser(userData);
-            setShowNameCollection(true);
-            setIsLoading(false);
-          }
-        } else if (!hasFirstName && !googleFirstName) {
-          setPendingUser(userData);
-          setShowNameCollection(true);
-          setIsLoading(false);
-        } else {
-          setUser(userData);
-          setAuthenticated(true);
-          setIsLoading(false);
-          handlePostAuthNavigation();
+          saveFirstNameIfAvailable(data.user.id, googleFirstName);
         }
+        trackAuthCompleted({ method: 'google', isNewUser: !hasFirstName });
+        finalizeAuth(userData, !hasFirstName ? googleFirstName : undefined);
       }
     } catch (error: any) {
       // Don't log or show error if user intentionally cancelled
@@ -131,32 +133,10 @@ export default function AuthModal({ visible, onClose, onAuthSuccess }: AuthModal
         };
 
         if (!hasFirstName && facebookFirstName) {
-          try {
-            await dbService.updateUserProfile(data.user.id, facebookFirstName);
-            setUser({
-              ...userData,
-              first_name: facebookFirstName,
-              name: facebookFirstName,
-            });
-            updateUserName(facebookFirstName);
-            setAuthenticated(true);
-            setIsLoading(false);
-            handlePostAuthNavigation();
-          } catch (saveError) {
-            setPendingUser(userData);
-            setShowNameCollection(true);
-            setIsLoading(false);
-          }
-        } else if (!hasFirstName && !facebookFirstName) {
-          setPendingUser(userData);
-          setShowNameCollection(true);
-          setIsLoading(false);
-        } else {
-          setUser(userData);
-          setAuthenticated(true);
-          setIsLoading(false);
-          handlePostAuthNavigation();
+          saveFirstNameIfAvailable(data.user.id, facebookFirstName);
         }
+        trackAuthCompleted({ method: 'facebook', isNewUser: !hasFirstName });
+        finalizeAuth(userData, !hasFirstName ? facebookFirstName : undefined);
       }
     } catch (error: any) {
       // Don't log or show error if user intentionally cancelled
@@ -175,31 +155,29 @@ export default function AuthModal({ visible, onClose, onAuthSuccess }: AuthModal
       if (error) throw error;
 
       if (data && 'user' in data && data.user) {
-        // Check if user has first_name in profile
         const { data: profileData } = await dbService.getProfile(data.user.id);
         const hasFirstName = profileData?.first_name && profileData.first_name.trim().length > 0;
+
+        // Apple's native sign-in returns user.user_metadata.name on FIRST sign-in only.
+        // Capture it so we can auto-save and skip the NameCollection prompt.
+        const appleFullName = data.user.user_metadata?.name;
+        const appleFirstName = appleFullName?.split(' ')[0]?.trim();
 
         const userData = {
           id: data.user.id,
           email: data.user.email,
-          name: profileData?.first_name || data.user.user_metadata?.name || data.user.email,
-          first_name: profileData?.first_name,
+          name: profileData?.first_name || appleFullName || data.user.email,
+          first_name: profileData?.first_name || appleFirstName,
           avatar_url: data.user.user_metadata?.avatar_url,
           created_at: data.user.created_at,
         };
 
-        if (!hasFirstName) {
-          // New user - show name collection modal
-          setPendingUser(userData);
-          setShowNameCollection(true);
-          setIsLoading(false);
-        } else {
-          // Existing user - proceed
-          setUser(userData);
-          setAuthenticated(true);
-          setIsLoading(false);
-          handlePostAuthNavigation();
+        // Apple returns the name only on FIRST sign-in; subsequent logins give nothing (privacy by design).
+        if (!hasFirstName && appleFirstName) {
+          saveFirstNameIfAvailable(data.user.id, appleFirstName);
         }
+        trackAuthCompleted({ method: 'apple', isNewUser: !hasFirstName });
+        finalizeAuth(userData, !hasFirstName ? appleFirstName : undefined);
       }
     } catch (error: any) {
       // Don't log or show error if user intentionally cancelled
@@ -207,35 +185,6 @@ export default function AuthModal({ visible, onClose, onAuthSuccess }: AuthModal
         logger.error('Apple sign in error:', error);
         Alert.alert('Sign In Failed', 'Please try again.');
       }
-      setIsLoading(false);
-    }
-  };
-
-  const handleNameSubmit = async (firstName: string) => {
-    if (!pendingUser) return;
-
-    setIsLoading(true);
-    try {
-      const { error } = await dbService.updateUserProfile(pendingUser.id, firstName);
-      if (error) throw error;
-
-      const updatedUser = {
-        ...pendingUser,
-        first_name: firstName,
-        name: firstName,
-      };
-
-      setUser(updatedUser);
-      updateUserName(firstName);
-      setAuthenticated(true);
-      setShowNameCollection(false);
-      setPendingUser(null);
-
-      handlePostAuthNavigation();
-    } catch (error) {
-      logger.error('Error saving user name:', error);
-      Alert.alert('Error', 'Failed to save your name. Please try again.');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -252,10 +201,6 @@ export default function AuthModal({ visible, onClose, onAuthSuccess }: AuthModal
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View style={styles.modalContainer}>
-            <NameCollectionModal
-                visible={showNameCollection}
-                onSubmit={handleNameSubmit}
-            />
             <LinearGradient
                 colors={[COLORS.primary, COLORS.secondary]}
                 start={{ x: 0, y: 0 }}

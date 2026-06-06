@@ -139,6 +139,12 @@
     },
     "results": {
       "title": "Plant Identified"
+    },
+    "guestLimit": {
+      "title": "Daily Scan Limit Reached",
+      "subtitle": "You've used your 3 free scans for today. Sign in for unlimited plant identification.",
+      "signIn": "Sign In for Unlimited Scans",
+      "maybeLater": "Maybe Later"
     }
   },
   "plants": {
@@ -167,7 +173,16 @@
     "actions": {
       "waterAll": "Water All",
       "addNew": "Add New Plant"
-    }
+    },
+    "wateringSet": "Set",
+    "wateringNow": "Now",
+    "wateringDayShort": "{{count}}d",
+    "loadErrorTitle": "Couldn't load your plants",
+    "loadErrorSubtitle": "Check your connection and try again.",
+    "retry": "Retry",
+    "guestTitle": "Your garden is waiting",
+    "guestSubtitle": "Sign in to save plants and track their care",
+    "guestSignIn": "Sign In"
   },
   "plantDetail": {
     "careHistory": "Care History",
@@ -250,7 +265,7 @@
     "selectedDirection": "Selected:",
     "locations": {
       "living_room": "Living Room",
-      "bedroom": "Bedroom", 
+      "bedroom": "Bedroom",
       "kitchen": "Kitchen",
       "bathroom": "Bathroom",
       "balcony": "Balcony"
@@ -286,6 +301,46 @@
       "good": "Good",
       "challenging": "Challenging",
       "veryChallenging": "Very Challenging"
+    },
+    "lightComparison": {
+      "plantNeeds": "Plant needs",
+      "windowGives": "Window gives"
+    },
+    "lightScale": {
+      "lowLight": "Low Light",
+      "mediumLight": "Medium Light",
+      "brightIndirect": "Bright Indirect",
+      "fullSun": "Full Sun"
+    },
+    "placement": {
+      "north": {
+        "match": "North window — gentle, all-day indirect light. Place near the glass.",
+        "underLit": "North windows never get direct sun. This plant wants more — try moving to an east or south window."
+      },
+      "south": {
+        "summerOverLit": "Summer south sun is intense. Place 1-2m back from the window or use a sheer curtain 11am-3pm.",
+        "summerUnderLit": "South window in summer is your brightest spot — place at the glass to maximise light.",
+        "summerMatch": "Place near the window. South sun is brief but intense — watch for leaf burn the first week.",
+        "winterOverLit": "Winter south sun is gentle. Place anywhere within 1m of the window.",
+        "winterMatch": "South window in winter is the best spot in the home. Place near the glass.",
+        "shoulderOverLit": "Place 1m back from the window in spring/autumn — sun is still strong midday.",
+        "shoulderMatch": "Spring/autumn south sun is balanced. Place near the glass."
+      },
+      "west": {
+        "summerOverLit": "West summer afternoons are the harshest light in Cairo. Place 2m+ back, or shade the window 2-6pm.",
+        "summerUnderLit": "West summer is bright but stressful. Get close to the window in the morning, shade in the afternoon.",
+        "summerMatch": "West window suits this plant, but the 2-6pm sun is intense — pull back 1m and check daily.",
+        "shoulderOverLit": "Place 1-2m back from a west window — afternoon sun penetrates deep into the room.",
+        "shoulderMatch": "West afternoon sun is comfortable in spring/autumn. Place near the window."
+      },
+      "east": {
+        "match": "East window — gentle morning sun, the easiest direction. Place near the glass.",
+        "underLit": "East mornings are bright but brief. For this plant, place at the glass for maximum exposure.",
+        "overLit": "Place 1m back from the east window — morning sun is gentle but adds up over hours."
+      },
+      "generic": {
+        "match": "Place near the window for best results."
+      }
     }
   },
   "care": {
@@ -426,14 +481,58 @@
     "aboutMessage": "Lotus Plant Care App\\nVersion 2.0.0\\nMade with love for Egyptian plant lovers 🌿🇪🇬"
   },
   "errors": {
-    "networkError": "Network error. Please check your connection.",
-    "imageError": "Error processing image",
-    "cameraError": "Camera error occurred", 
-    "saveError": "Error saving data",
-    "loadError": "Error loading data",
-    "authError": "Authentication error",
-    "weatherError": "Unable to get weather data",
-    "identificationError": "Plant identification failed"
+    "notAPlant": {
+      "title": "Not a Plant",
+      "subtitle": "We couldn't find a plant in your photo. Try:",
+      "tips": {
+        "closer": "Get closer to the leaves",
+        "lighting": "Improve lighting",
+        "focus": "Focus on one plant at a time",
+        "wholePlant": "Show the whole plant"
+      },
+      "tryAgain": "Try Again",
+      "viewTips": "View Tips"
+    },
+    "lowConfidence": {
+      "title": "We Found a Plant",
+      "subtitle": "But We're Not Sure Which One",
+      "bestGuess": "Our best guess:",
+      "confidence": "{{percent}}% confident",
+      "explanation": "This might be too small or blurry to identify clearly. Try:",
+      "tips": {
+        "clearer": "Take a clearer photo",
+        "moreLeaves": "Show more leaves",
+        "lighting": "Better lighting"
+      },
+      "tryAgain": "Try Again",
+      "useAnyway": "Use This Anyway"
+    },
+    "service": {
+      "rateLimit": {
+        "title": "Too Many Requests",
+        "message": "You've identified many plants quickly. Please wait a few moments and try again."
+      },
+      "apiDown": {
+        "title": "Service Temporarily Down",
+        "message": "The plant identification service is currently unavailable. Please try again in a few moments."
+      },
+      "network": {
+        "title": "No Internet Connection",
+        "message": "Please check your internet connection and try again."
+      },
+      "config": {
+        "title": "Configuration Error",
+        "message": "There is a configuration issue. Please contact support."
+      },
+      "unknown": {
+        "title": "Something Went Wrong",
+        "message": "An unexpected error occurred. Please try again."
+      },
+      "errorCode": "Error Code:",
+      "tryAgain": "Try Again",
+      "goHome": "Go Home",
+      "support": "Still having issues? Contact us at support@lotus.app"
+    }
   },
   "tips": {
     "watering": {
@@ -489,6 +588,7 @@
       "saveGuest": "Save My Plant",
       "tryAnother": "Try Another"
     },
+    "closestMatch": "Closest match",
     "matchTypes": {
       "full": "In Our Database",
       "genus": "Genus Match",
@@ -573,60 +673,6 @@
     "myGarden": "My Garden",
     "changeLocation": "Change"
   },
-  "errors": {
-    "notAPlant": {
-      "title": "Not a Plant",
-      "subtitle": "We couldn't find a plant in your photo. Try:",
-      "tips": {
-        "closer": "Get closer to the leaves",
-        "lighting": "Improve lighting",
-        "focus": "Focus on one plant at a time",
-        "wholePlant": "Show the whole plant"
-      },
-      "tryAgain": "Try Again",
-      "viewTips": "View Tips"
-    },
-    "lowConfidence": {
-      "title": "We Found a Plant",
-      "subtitle": "But We're Not Sure Which One",
-      "bestGuess": "Our best guess:",
-      "confidence": "{{percent}}% confident",
-      "explanation": "This might be too small or blurry to identify clearly. Try:",
-      "tips": {
-        "clearer": "Take a clearer photo",
-        "moreLeaves": "Show more leaves",
-        "lighting": "Better lighting"
-      },
-      "tryAgain": "Try Again",
-      "useAnyway": "Use This Anyway"
-    },
-    "service": {
-      "rateLimit": {
-        "title": "Too Many Requests",
-        "message": "You've identified many plants quickly. Please wait a few moments and try again."
-      },
-      "apiDown": {
-        "title": "Service Temporarily Down",
-        "message": "The plant identification service is currently unavailable. Please try again in a few moments."
-      },
-      "network": {
-        "title": "No Internet Connection",
-        "message": "Please check your internet connection and try again."
-      },
-      "config": {
-        "title": "Configuration Error",
-        "message": "There is a configuration issue. Please contact support."
-      },
-      "unknown": {
-        "title": "Something Went Wrong",
-        "message": "An unexpected error occurred. Please try again."
-      },
-      "errorCode": "Error Code:",
-      "tryAgain": "Try Again",
-      "goHome": "Go Home",
-      "support": "Still having issues? Contact us at support@lotus.app"
-    }
-  },
   "celebration": {
     "viewMyPlant": "View My Plant",
     "addedToGarden": "Added to your garden"
@@ -679,5 +725,10 @@
     "petSafeNote": "Even pet-safe plants can cause mild stomach upset if eaten in large amounts. Keep an eye on curious chewers!",
     "petToxicNote": "Place this plant out of reach of pets. If your pet eats any part, contact your vet immediately.",
     "gotIt": "Got it"
+  },
+  "legal": {
+    "iUnderstand": "I Understand",
+    "termsOfService": "Terms of Service",
+    "privacyPolicy": "Privacy Policy"
   }
 }

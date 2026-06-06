@@ -38,6 +38,7 @@ import { plantDatabaseService, Plant as DbPlant } from '../services/plantDatabas
 import { getPersonalizedCareRecommendations } from '../utils/careMap';
 import { useRTL } from '../utils/rtl';
 import { logger } from '../utils/logger';
+import { ensureValidSession } from '../utils/session';
 import {
   extractMaxWateringDays,
   extractCheckSoilDays,
@@ -51,6 +52,7 @@ import * as NotificationService from '../services/notifications';
 import { trackCareAction } from '../services/analytics';
 import TagInfoModal, { getLightIcon, getLightColor, TagInfoType } from '../components/TagInfoModal';
 import TraitPill from '../components/TraitPill';
+import LightComparisonCard from '../components/LightComparisonCard';
 
 interface RouteParams {
   plantId: string;
@@ -251,6 +253,8 @@ export default function PlantDetailScreen() {
       return; // No changes to save
     }
 
+    if (!(await ensureValidSession())) return;
+
     const oldNickname = plant.nickname;
     const newNickname = editableNickname.trim();
 
@@ -300,6 +304,8 @@ export default function PlantDetailScreen() {
 
   const handleCareAction = async (eventType: 'water' | 'fertilize' | 'prune' | 'repot') => {
     if (!plant || !user) return;
+
+    if (!(await ensureValidSession())) return;
 
     try {
       const now = new Date().toISOString();
@@ -528,6 +534,22 @@ export default function PlantDetailScreen() {
               <Text style={styles.plantTypeBadgeText}>{translatePlantType(plant.plant_type)}</Text>
             </View>
           ) : null}
+
+          {/* Light Comparison — same component as the Add-Plant compass step,
+              giving the user a single, consistent vocabulary for "what does
+              this plant need vs. what does this window give". */}
+          {dbPlant && enhancedCare && (
+            <View style={styles.comparisonContainer}>
+              <LightComparisonCard
+                plantLightRequirement={dbPlant.care.light.requirement}
+                windowIntensity={enhancedCare.environment.lightIntensity}
+                directSunHours={enhancedCare.environment.directSunHours}
+                direction={plant.window_direction as 'north' | 'east' | 'south' | 'west'}
+                season={enhancedCare.environment.season as any}
+                isRTL={isRTL}
+              />
+            </View>
+          )}
 
           {/* Care Schedule - Most actionable info first */}
           <View style={styles.scheduleContainer}>
@@ -1026,6 +1048,9 @@ const styles = StyleSheet.create({
   },
   actionTextRTL: {
     textAlign: 'center',
+  },
+  comparisonContainer: {
+    marginBottom: FIBONACCI.MD,
   },
   scheduleContainer: {
     marginBottom: FIBONACCI.XL,

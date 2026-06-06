@@ -391,6 +391,8 @@ export default function EditPlantScreen() {
           contentContainerStyle={styles.layoutContentContainer}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          // @ts-expect-error — valid iOS UIScrollView prop missing from RN 0.79 types; required to fix bottom-row tap on flexWrap grid
+          delaysContentTouches={false}
         >
           <View style={styles.stepContentContainer}>
             {renderStepContent()}
@@ -533,13 +535,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   layoutContentContainer: {
-    justifyContent: 'center',
     paddingVertical: FIBONACCI.MD,
-    paddingBottom: FIBONACCI.XXL, // 55px (was 100px hardcoded - now uses Fibonacci for proper scaling)
+    paddingBottom: FIBONACCI.XXL,
   },
-  stepContentContainer: {
-    justifyContent: 'center',
-  },
+  stepContentContainer: {},
   formGroup: {
     marginHorizontal: FIBONACCI.MD,
   },
@@ -556,10 +555,9 @@ const styles = StyleSheet.create({
     gap: FIBONACCI.SM,
   },
   optionCard: {
-    flex: 1,
-    minWidth: '45%',
+    width: '48.5%',
     backgroundColor: COLORS.background,
-    paddingVertical: FIBONACCI.MD,
+    paddingVertical: FIBONACCI.XL,
     paddingHorizontal: FIBONACCI.MD,
     borderRadius: ELEMENT_SIZES.RADIUS_MD,
     borderWidth: 1,
@@ -655,7 +653,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.text,
     letterSpacing: 0.5,
-    marginLeft: FIBONACCI.SM,
+    marginStart: FIBONACCI.SM,
   },
   heroLoadingState: {
     flexDirection: 'row',
@@ -668,7 +666,7 @@ const styles = StyleSheet.create({
   heroLoadingText: {
     fontSize: TYPOGRAPHY.SM,
     color: COLORS.textSecondary,
-    marginLeft: FIBONACCI.SM,
+    marginStart: FIBONACCI.SM,
   },
   descriptionExpanded: {
     marginTop: FIBONACCI.SM,

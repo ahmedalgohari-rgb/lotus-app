@@ -241,6 +241,10 @@ export default function HomeScreen() {
     navigation.navigate('Scan');
   };
 
+  const rawName = user?.first_name || user?.name;
+  const displayName = rawName && !rawName.includes('@') ? rawName : null;
+  const namePart = displayName ? `${isRTL ? ' ' : ', '}${displayName}` : '';
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -305,11 +309,11 @@ export default function HomeScreen() {
               ) : (
                 isFirstVisit ? (
                   <>
-                    {t('home.welcomeFirst')}{isRTL ? ' ' : ', '}{user?.first_name || user?.name}! 🫡
+                    {t('home.welcomeFirst')}{namePart}! 🫡
                   </>
                 ) : (
                   <>
-                    {t('home.welcomeBack')}{isRTL ? ' ' : ', '}{user?.first_name || user?.name}! 👋
+                    {t('home.welcomeBack')}{namePart}! 👋
                   </>
                 )
               )}
@@ -455,7 +459,7 @@ export default function HomeScreen() {
       <AccountDrawer
         visible={isAccountDrawerVisible}
         onClose={() => setIsAccountDrawerVisible(false)}
-        userName={user?.first_name || user?.name || 'Guest'}
+        userName={displayName ?? 'Guest'}
       />
 
       {/* Weather Tracker Modal */}
@@ -575,7 +579,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: FIBONACCI.MD,
     paddingVertical: FIBONACCI.XS,
     borderRadius: ELEMENT_SIZES.RADIUS_MD,
-    marginRight: FIBONACCI.SM,
+    marginEnd: FIBONACCI.SM,
     minHeight: 44,
     justifyContent: 'center',
     alignItems: 'center',

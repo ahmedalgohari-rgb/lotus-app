@@ -103,20 +103,12 @@ export interface IdentificationResult {
     found: boolean;              // true if matched to database plant
     confidence: number;          // matching confidence (0-100)
     plant_id: string | null;     // Database plant ID (e.g., "golden_pothos")
-    match_type: 'exact' | 'genus' | 'common_name' | 'none';
+    match_type: 'exact' | 'genus' | 'genus_auto' | 'common_name' | 'none';
     primary_plant_name?: string; // Name from database to display instead of PlantNet
     primary_plant_info?: string; // Plant info from database
     // 🌐 Arabic content from database
     primary_plant_name_arabic?: string;
     primary_plant_info_arabic?: string;
-    // CULTIVAR PICKER: When >1 exact matches exist (same species, different varieties)
-    multiple_cultivars?: boolean; // True when multiple varieties share same scientific name
-    all_cultivars?: Array<{      // All matching cultivars for optional refiner UI
-      plant_id: string;
-      plant_name: string;
-      scientific_name: string;
-      is_selected?: boolean;     // True for the auto-selected default cultivar
-    }>;
     alternatives?: Array<{       // Other possible matches (if genus match)
       plant_id: string;
       confidence: number;
@@ -211,6 +203,9 @@ export interface DirectionModifier {
   season: string;
   lightIntensity: 'Very Low' | 'Low' | 'Medium' | 'High' | 'Very High';
   wateringAdjustment: number; // ±days to add/subtract
+  // Approx hours of direct sun reaching the window (Cairo ~30°N baseline).
+  // North = 0 in Northern Hemisphere — geometry, not weather.
+  directSunHours: number;
   warning?: string; // Alert for challenging conditions
   benefit?: string; // Positive note for good conditions
 }
@@ -232,6 +227,7 @@ export interface WeatherAwareDirectionModifier {
   getModifiers: (weather: WeatherData) => {
     lightIntensity: 'Very Low' | 'Low' | 'Medium' | 'High' | 'Very High';
     wateringAdjustment: number; // Dynamic ±days based on temperature/humidity
+    directSunHours?: number; // Approx hours of direct sun (injected from static table)
     warning?: string; // Condition-specific warnings
     benefit?: string; // Condition-specific benefits
   };
@@ -280,6 +276,10 @@ export interface EnhancedCareRecommendation {
     season: string;
     roomFactor: string; // "AC dries air faster"
     directionFactor: string; // "South window = intense afternoon sun"
+    // Numeric values used by the educational comparison UI; surface them so
+    // screens don't have to recompute modifiers themselves.
+    lightIntensity?: 'Very Low' | 'Low' | 'Medium' | 'High' | 'Very High';
+    directSunHours?: number;
     weatherConditions?: string; // "38°C, 18% humidity" when weather available
   };
   adjusted: {

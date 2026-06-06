@@ -1,8 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { makeRedirectUri } from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import * as FileSystem from 'expo-file-system';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { Plant, PlantSpecies, CareEvent, User } from '../types';
 import { logger } from '../utils/logger';
 import { trackAuthCompleted, identifyUser } from './analytics';
@@ -294,12 +296,67 @@ export const authService = {
   },
 
   signInWithApple: async () => {
-    // Using OAuth web flow (works in Expo Go and development)
-    // For production with native Apple Sign-In, see comments at top of file
-    logger.debug('Starting Apple Sign-In via OAuth web flow...');
-    return authService._signInWithOAuth('apple', {
-      useSessionPolling: true,
-    });
+    // On iOS, use the native AuthenticationServices flow.
+    // Apple returns the user's full name ONLY on the very first sign-in for a given Apple ID,
+    // so we must capture it here and pass it back to the caller for profile creation.
+    // On non-iOS, fall back to the OAuth web flow (no name available).
+    if (Platform.OS !== 'ios') {
+      logger.debug('Apple Sign-In: non-iOS platform, falling back to OAuth web flow');
+      return authService._signInWithOAuth('apple', { useSessionPolling: true });
+    }
+
+    try {
+      const isAvailable = await AppleAuthentication.isAvailableAsync();
+      if (!isAvailable) {
+        logger.warn('Apple Sign-In: native flow unavailable, falling back to OAuth');
+        return authService._signInWithOAuth('apple', { useSessionPolling: true });
+      }
+
+      logger.debug('Starting Apple Sign-In via native AuthenticationServices...');
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      if (!credential.identityToken) {
+        return createOAuthError('No identity token from Apple', 'AppleAuthError', 401);
+      }
+
+      // Exchange the Apple identity token for a Supabase session
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: credential.identityToken,
+      });
+
+      if (error) {
+        logger.error('Supabase signInWithIdToken (apple) failed:', error);
+        return { data: null, error };
+      }
+
+      // Apple gives fullName ONLY on first sign-in for a user.
+      // Inject it into the response so AuthModal can save first_name to the profile.
+      const givenName = credential.fullName?.givenName?.trim();
+      if (data?.user && givenName) {
+        logger.info('✅ Apple returned first name (first sign-in):', givenName);
+        // Store on user_metadata-shaped path so existing AuthModal logic picks it up
+        (data.user as any).user_metadata = {
+          ...(data.user.user_metadata || {}),
+          name: givenName,
+          full_name: [givenName, credential.fullName?.familyName].filter(Boolean).join(' '),
+        };
+      }
+
+      return { data, error: null };
+    } catch (err: any) {
+      // User cancelled the Apple Sign-In sheet — not a real error
+      if (err?.code === 'ERR_REQUEST_CANCELED') {
+        return createOAuthError('User cancelled OAuth', 'UserCancelled', 499);
+      }
+      logger.error('Apple native sign-in failed:', err);
+      return createOAuthError(err?.message || 'Apple sign-in failed', 'AppleAuthError', 500);
+    }
   },
 
   signInWithFacebook: async () => {

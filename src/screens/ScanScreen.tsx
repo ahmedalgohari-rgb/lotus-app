@@ -7,9 +7,11 @@ import {
   Alert,
   ActivityIndicator,
   Linking,
+  Modal,
 } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -18,7 +20,12 @@ import { COLORS, FIBONACCI, TYPOGRAPHY } from '../constants';
 import { createPlantIdService } from '../services/plant-identification';
 import { getCurrentLanguage } from '../i18n';
 import { logger, timer } from '../utils/logger';
-import { trackPlantScanned } from '../services/analytics';
+import { trackPlantScanned, trackScreenViewed, trackScanInitiated } from '../services/analytics';
+import { useStore } from '../store';
+
+const GUEST_SCAN_LIMIT = 3;
+const SCAN_COUNT_KEY = 'lotus_guest_scan_count';
+const SCAN_DATE_KEY = 'lotus_guest_scan_date';
 
 // Camera constants (never change during component lifecycle)
 const CAMERA_ZOOM = 0;
@@ -26,12 +33,35 @@ const CAMERA_FACING: CameraType = 'back';
 
 export default function ScanScreen({ route }: any) {
   const { t } = useTranslation();
+  const { isGuest } = useStore();
   const [permission, requestPermission] = useCameraPermissions();
   const [isLoading, setIsLoading] = useState(false);
   const [flashlightEnabled, setFlashlightEnabled] = useState(false);
+  const [showScanLimitModal, setShowScanLimitModal] = useState(false);
 
   const cameraRef = useRef<CameraView>(null);
   const navigation = useNavigation();
+
+  // Returns true and increments counter if the guest can scan. Returns false if limit reached.
+  const checkAndIncrementScanCount = async (): Promise<boolean> => {
+    if (!isGuest) return true;
+    const today = new Date().toISOString().split('T')[0];
+    const [storedDate, storedCount] = await Promise.all([
+      AsyncStorage.getItem(SCAN_DATE_KEY),
+      AsyncStorage.getItem(SCAN_COUNT_KEY),
+    ]);
+    const count = storedDate === today ? parseInt(storedCount || '0', 10) : 0;
+    if (count >= GUEST_SCAN_LIMIT) return false;
+    await Promise.all([
+      AsyncStorage.setItem(SCAN_DATE_KEY, today),
+      AsyncStorage.setItem(SCAN_COUNT_KEY, String(count + 1)),
+    ]);
+    return true;
+  };
+
+  useEffect(() => {
+    trackScreenViewed('Scan');
+  }, []);
 
   // Auto-request camera permission on mount (triggers native iOS prompt)
   useEffect(() => {
@@ -65,9 +95,12 @@ export default function ScanScreen({ route }: any) {
   }, [route?.params, navigation]);
 
   const takePicture = async () => {
+    const allowed = await checkAndIncrementScanCount();
+    if (!allowed) { setShowScanLimitModal(true); return; }
     if (cameraRef.current) {
       try {
         setIsLoading(true);
+        trackScanInitiated({ source: 'camera' });
         timer.start('camera-capture');
         logger.debug('Camera capture initiated', { zoom: CAMERA_ZOOM });
 
@@ -126,7 +159,10 @@ export default function ScanScreen({ route }: any) {
       });
 
       if (!result.canceled && result.assets[0]) {
+        const allowed = await checkAndIncrementScanCount();
+        if (!allowed) { setShowScanLimitModal(true); return; }
         setIsLoading(true);
+        trackScanInitiated({ source: 'gallery' });
         const imageUri = result.assets[0].uri;
 
         // Send gallery image directly to PlantNet API
@@ -329,6 +365,39 @@ export default function ScanScreen({ route }: any) {
           </View>
         </View>
       )}
+
+      {/* Guest Scan Limit Modal */}
+      <Modal
+        visible={showScanLimitModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowScanLimitModal(false)}
+      >
+        <View style={styles.limitOverlay}>
+          <View style={styles.limitCard}>
+            <View style={styles.limitIconWrap}>
+              <Ionicons name="leaf" size={32} color={COLORS.primary} />
+            </View>
+            <Text style={styles.limitTitle}>{t('scan.guestLimit.title')}</Text>
+            <Text style={styles.limitSubtitle}>{t('scan.guestLimit.subtitle')}</Text>
+            <TouchableOpacity
+              style={styles.limitSignInButton}
+              onPress={() => {
+                setShowScanLimitModal(false);
+                navigation.navigate('Auth' as never);
+              }}
+            >
+              <Text style={styles.limitSignInText}>{t('scan.guestLimit.signIn')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.limitLaterButton}
+              onPress={() => setShowScanLimitModal(false)}
+            >
+              <Text style={styles.limitLaterText}>{t('scan.guestLimit.maybeLater')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -516,5 +585,63 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     width: '100%',
     flexWrap: 'wrap',
+  },
+  limitOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: FIBONACCI.XL,
+  },
+  limitCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    padding: FIBONACCI.XL,
+    width: '100%',
+    alignItems: 'center',
+  },
+  limitIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: FIBONACCI.MD,
+  },
+  limitTitle: {
+    fontSize: TYPOGRAPHY.LG,
+    fontWeight: '700',
+    color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: FIBONACCI.SM,
+  },
+  limitSubtitle: {
+    fontSize: TYPOGRAPHY.SM,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: FIBONACCI.XL,
+  },
+  limitSignInButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    paddingVertical: FIBONACCI.MD,
+    paddingHorizontal: FIBONACCI.XL,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: FIBONACCI.MD,
+  },
+  limitSignInText: {
+    color: COLORS.white,
+    fontSize: TYPOGRAPHY.BASE,
+    fontWeight: '600',
+  },
+  limitLaterButton: {
+    paddingVertical: FIBONACCI.SM,
+  },
+  limitLaterText: {
+    color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.SM,
   },
 });

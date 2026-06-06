@@ -137,3 +137,11 @@ $$;
 COMMENT ON FUNCTION increment_api_usage_bucket IS 'Atomically increments the calling user''s bucket for the given hour. Scoped to auth.uid().';
 COMMENT ON FUNCTION get_api_global_daily_count IS 'Total calls today across all users. Used for global circuit breaker.';
 COMMENT ON FUNCTION prune_old_api_buckets IS 'Deletes buckets older than 30 days. Returns row count.';
+
+
+
+
+
+
+
+https://graph.facebook.com/v19.0/me?access_token=EAAT2ZAbhdBksBRXkwpVRZCPYcBZAs624AcmoZA0uw3IzIZBrjJMyik9fAR9m7WxkZBZAchvTZARWKlsZBeIs5Ew3HB6hpbzKa2cnEmUt8iEZBIlzY5tcZCmHEZBbOU4PXvZBmzOlvy8JLxBNNqmO0iD6MFbHIQqENhDZAF4zwXLkJL4hhQRttzZB85MNzSJqukmduJ4KpxZBpEYzzJ96mZBiCjMK3iNB0B9qlDZCWMzTRmb1TVyyvCOQlVIZBdkAfEAmmtDjAZA4gHFisi5VMb4zu3ZArhb5JWOrE5ZCT88SZCtlbfY8FmVoUcKzbSoPe3ahUuhSeX4COhdcZCLtKVuNgFuKLwZDZD

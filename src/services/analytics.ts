@@ -123,6 +123,18 @@ export function trackAuthCompleted(properties: {
   mixpanel.track('Auth Completed', properties);
 }
 
+export function trackAuthModalShown(properties: {
+  trigger: 'add_plant' | 'scan_result' | 'save_plant' | 'other';
+}) {
+  mixpanel.track('Auth Modal Shown', properties);
+}
+
+export function trackScanInitiated(properties: {
+  source: 'camera' | 'gallery';
+}) {
+  mixpanel.track('Scan Initiated', properties);
+}
+
 export function trackNotificationResponse(properties: {
   action: 'enabled' | 'skipped' | 'denied';
 }) {

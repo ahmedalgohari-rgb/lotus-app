@@ -10,6 +10,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -25,6 +26,7 @@ const LegalDocumentModal: React.FC<LegalDocumentModalProps> = ({
   documentType,
 }) => {
   const isTerms = documentType === 'terms';
+  const { t } = useTranslation();
 
   return (
     <Modal
@@ -37,7 +39,7 @@ const LegalDocumentModal: React.FC<LegalDocumentModalProps> = ({
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>
-            {isTerms ? 'Terms of Service' : 'Privacy Policy'}
+            {isTerms ? t('legal.termsOfService') : t('legal.privacyPolicy')}
           </Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Ionicons name="close" size={28} color="#333" />
@@ -60,7 +62,7 @@ const LegalDocumentModal: React.FC<LegalDocumentModalProps> = ({
         {/* Footer with Accept Button */}
         <View style={styles.footer}>
           <TouchableOpacity style={styles.acceptButton} onPress={onClose}>
-            <Text style={styles.acceptButtonText}>I Understand</Text>
+            <Text style={styles.acceptButtonText}>{t('legal.iUnderstand')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

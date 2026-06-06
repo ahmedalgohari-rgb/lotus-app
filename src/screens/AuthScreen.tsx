@@ -590,7 +590,7 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontSize: TYPOGRAPHY.BASE,                  // 16px - Body text
     fontWeight: '600',
-    marginLeft: FIBONACCI.MD,                   // 13px - Icon to text gap
+    marginStart: FIBONACCI.MD,                  // 13px - RTL-safe icon-to-text gap
   },
   facebookButton: {
     flexDirection: 'row',
@@ -610,7 +610,7 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontSize: TYPOGRAPHY.BASE,
     fontWeight: '600',
-    marginLeft: FIBONACCI.MD,
+    marginStart: FIBONACCI.MD,
   },
   appleButton: {
     flexDirection: 'row',
@@ -630,7 +630,7 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontSize: TYPOGRAPHY.BASE,
     fontWeight: '600',
-    marginLeft: FIBONACCI.MD,
+    marginStart: FIBONACCI.MD,
   },
   dividerRow: {
     flexDirection: 'row',
@@ -662,7 +662,7 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: TYPOGRAPHY.BASE,
     fontWeight: '700',
-    marginLeft: FIBONACCI.SM,
+    marginStart: FIBONACCI.SM,
   },
   loadingContainer: {
     alignItems: 'center',

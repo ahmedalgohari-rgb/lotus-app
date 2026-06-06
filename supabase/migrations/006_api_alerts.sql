@@ -83,3 +83,7 @@ $$;
 
 COMMENT ON TABLE api_alerts IS 'Threshold breach notifications. Poll for unacknowledged rows from dashboard, or push to Slack via pg_net.';
 COMMENT ON FUNCTION check_api_thresholds IS 'Checks all api_config rows against today''s usage. Inserts an alert when usage >= 80% of daily cap. Idempotent per day.';
+
+
+
+IGAAZCJ9AGZCqXxBZAFl0by1LOWt0WmVjYlY5ck1CLTVuWFJhUWtnQWpyTlVjQnI5bFVVWm42RG5HYml1SGlGei1sbU9TcVFZAcHNXcy1TbE1MNkE5OThxX0FnVUJWVEVRbGFCRlIybmdsb3dJWWIyU3g0RjJGTXQyQjNSQ2llU213OAZDZD 
